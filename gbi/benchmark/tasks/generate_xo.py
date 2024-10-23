@@ -1,9 +1,22 @@
-import pickle
-from typing import Optional
 import os
-import sys
-import torch
+import pickle
+from argparse import ArgumentParser
 from pathlib import Path
+
+import torch
+
+from gbi.benchmark.tasks.gaussian_mixture.task import GaussianMixture
+from gbi.benchmark.tasks.linear_gaussian.task import LinearGaussian
+from gbi.benchmark.tasks.two_moons.task import TwoMoonsGBI
+from gbi.benchmark.tasks.uniform_1d.task import UniformNoise1D
+
+TaskMap = {
+    "uniform_1d": UniformNoise1D,
+    "two_moons": TwoMoonsGBI,
+    "linear_gaussian": LinearGaussian,
+    "gaussian_mixture": GaussianMixture,
+}
+NOISE_SEED = 42
 
 
 def generate_x_specified(task, n_observations: int = 10):
@@ -11,6 +24,7 @@ def generate_x_specified(task, n_observations: int = 10):
     theta = task.prior.sample((n_observations,))
     x = task.simulate(theta)
     return theta, x
+
 
 def generate_x_misspecified(
     task, n_observations: int = 10, diffusion_scale=0.5, max_steps=10000
@@ -41,31 +55,22 @@ def generate_x_misspecified(
 
     return x_miss
 
+def pickle_dump(full_path, data_dump):
+    with open(full_path, "wb") as handle:
+        pickle.dump(data_dump, handle)
 
-def generate_xo(task_name="uniform_1d", n_observations=10):
+
+def generate_xo(task_name: str="uniform_1d", n_observations: int=10) -> None:
     """Generate observations, for training and testing."""
     dir_path = os.path.dirname(os.path.realpath(__file__)) + "/" + task_name + "/xos/"
     Path(dir_path).mkdir(parents=True, exist_ok=True)
     print(dir_path)
 
-    if task_name == "uniform_1d":
-        from gbi.benchmark.tasks.uniform_1d.task import UniformNoise1D
-
-        task = UniformNoise1D(seed=42)
-    elif task_name == "two_moons":
-        from gbi.benchmark.tasks.two_moons.task import TwoMoonsGBI
-
-        task = TwoMoonsGBI(seed=42)
-    elif task_name == "linear_gaussian":
-        from gbi.benchmark.tasks.linear_gaussian.task import LinearGaussian
-
-        task = LinearGaussian(seed=42)
-    elif task_name == "gaussian_mixture":
-        from gbi.benchmark.tasks.gaussian_mixture.task import GaussianMixture
-
-        task = GaussianMixture(seed=42)
-    else:
-        raise NameError("Task doesn't exist.")
+    try:
+        task_cls = TaskMap[task_name]
+        task = task_cls(seed=NOISE_SEED)
+    except KeyError as exc:
+        raise ValueError("Task doesn't exist.") from exc
 
     # Generate observed (known) xos.
     theta_gt_known, xo_specified_known = generate_x_specified(task, n_observations)
@@ -100,12 +105,21 @@ def generate_xo(task_name="uniform_1d", n_observations=10):
     return
 
 
-def pickle_dump(full_path, data_dump):
-    with open(full_path, "wb") as handle:
-        pickle.dump(data_dump, handle)
-
-
 if __name__ == "__main__":
-    task_name = sys.argv[1]
-    n_observations = int(sys.argv[2])
-    generate_xo(task_name, n_observations)
+    parser = ArgumentParser("Generate benchmark data")
+    parser.add_argument(
+        "--task-name",
+        type=str,
+        help="Which kind of benchmark data would you like to create.",
+        choices=list(TaskMap.keys()),
+        default=list(TaskMap.keys())[0],
+    )
+    parser.add_argument(
+        "-n",
+        "--n-observations",
+        type=int,
+        help="How many samples would you like to create",
+        default=10,
+    )
+    args = parser.parse_args()
+    generate_xo(args.task_name, args.n_observations)
