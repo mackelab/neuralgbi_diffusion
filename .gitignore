@@ -140,3 +140,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+# generated data
+./gbi/benchmark/tasks/**/xos/
