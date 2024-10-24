@@ -7,11 +7,11 @@ license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.10"
-gpy = "^1.13.2"
+python = "^3.11"
+sbi = "^0.21.0"
 sbibm = "^1.1.0"
-
-
+gpy = "^1.13.2"
+hydra-core = "^1.3.2"
 
 [build-system]
 requires = ["poetry-core"]
