@@ -1,8 +1,8 @@
-from typing import List, Tuple, Optional
+from typing import Optional
 
 import torch
-from torch import tensor, as_tensor, float32, ones, zeros, eye, randn, Tensor, exp, log
-from torch.distributions import MultivariateNormal, Distribution, Normal
+from torch import tensor, ones, eye, Tensor
+from torch.distributions import MultivariateNormal, Distribution
 from sbi.utils import BoxUniform
 from gbi.utils.mmd import ground_truth_mmd
 
@@ -50,21 +50,43 @@ class GaussianMixture:
         """Simulator."""
         # For misspecified x, push it out of the prior bounds.
         samples1 = torch.randn((self.num_trials, *theta.shape)) + theta
-        samples2 = 0.5 * torch.randn((self.num_trials, *theta.shape)) + torch.sign(theta)*12.5
+        # samples from a normal distribution and not from a uniform -> there will be samples which are outside of the limits
+        # TODO: either cap those samples or extend limits
+        samples2 = (
+            0.5 * torch.randn((self.num_trials, *theta.shape))
+            + torch.sign(theta) * 12.5
+        )
         all_samples = torch.zeros(*samples1.shape)
 
         bern = torch.bernoulli(0.5 * ones((self.num_trials, theta.shape[0]))).bool()
+        print(bern)
+        print(bern.shape)
+        print(all_samples.shape)
 
         all_samples[bern] = samples1[bern]
         all_samples[~bern] = samples2[~bern]
         all_samples = torch.permute(all_samples, (1, 0, 2))
-        assert ((all_samples[:,:,0]>self.limits[0,0]) & (all_samples[:,:,0]<self.limits[0,1]) & (all_samples[:,:,1]>self.limits[1,0]) & (all_samples[:,:,1]<self.limits[1,1])).all()
+        print(all_samples.shape)
+        print(all_samples)
+        print(all_samples.min(), all_samples.max())
+        print(samples1.min(), samples1.max())
+        print(samples2.min(), samples2.max())
+        print(torch.randn((self.num_trials, *theta.shape)))
+        print(theta)
+
+        bool_1 = all_samples[:, :, 0] >= self.limits[0, 0]
+        bool_2 = all_samples[:, :, 0] <= self.limits[0, 1]
+        bool_3 = all_samples[:, :, 1] >= self.limits[1, 0]
+        bool_4 = all_samples[:, :, 1] <= self.limits[1, 1]
+        assert (
+            bool_1 & bool_2 & bool_3 & bool_4
+        ).all(), (
+            f"{bool_1.prod()}\n {bool_2.prod()}\n {bool_3.prod()}\n {bool_4.prod()}"
+        )
         return all_samples
         # samples = 0.5 * torch.randn((self.num_trials, *theta.shape)) + theta
         # samples = torch.permute(samples, (1, 0, 2))
         # return samples
-
-        
 
     def build_marginal_dist(self, predicted_mean):
         class MixtureDist(Distribution):
