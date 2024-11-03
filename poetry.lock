@@ -196,6 +196,48 @@ numpy = "*"
 scipy = ["scipy"]
 
 [[package]]
+name = "brian2"
+version = "2.7.1"
+description = "A clock-driven simulator for spiking neural networks"
+optional = false
+python-versions = ">=3.10"
+files = [
+    {file = "Brian2-2.7.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:b8eee027ee8cac36455fce30365b1b7eca286ce70fd96acbd8ffe929978c9557"},
+    {file = "Brian2-2.7.1-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:90dd0b23d0c5bba933c088de73fc7cc4d00b694fd365963b6a0d698af0e6b4eb"},
+    {file = "Brian2-2.7.1-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a6ce03844dc966f20b3a5c1358e9e01298c845fd9640b2ac71b90076a47916aa"},
+    {file = "Brian2-2.7.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2fcf11798e181116f37ab2a5711403459d997cc2d58efcfcddec5773608d3c97"},
+    {file = "Brian2-2.7.1-cp310-cp310-musllinux_1_2_x86_64.whl", hash = "sha256:39d93b1f22bb228fa268e393688734ed28022905445b2e4b8dd38655683941f4"},
+    {file = "Brian2-2.7.1-cp310-cp310-win_amd64.whl", hash = "sha256:204ef9eb8f81312ba8da2e75b4f40a7503804daab2fad7474a346b4e52e9f4b6"},
+    {file = "Brian2-2.7.1-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:02e80ea2179ae6aeabdd7cc04080d7cba5245791bd06b6c98d016e10b965ea7c"},
+    {file = "Brian2-2.7.1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:9c8337f931348b61a71e84142c88301e96c360f6ad9f1e749b0c1e6a33d092ab"},
+    {file = "Brian2-2.7.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8bdb537efaf27589268512bf5cb730a47617869e3f7acc5294c73059479516dd"},
+    {file = "Brian2-2.7.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6108471f2bd10b43d8050e4db733e2768d290f1a769466169fb65d779e854a92"},
+    {file = "Brian2-2.7.1-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:71893d30d6d7b4476ece96260ab4669ba3289fa74e1840ef8e49dc39a5f6a45c"},
+    {file = "Brian2-2.7.1-cp311-cp311-win_amd64.whl", hash = "sha256:0243ed3da5f33e7caebc445aa3654d1457a25fa4c698ecc73af4ffcf184ac82c"},
+    {file = "Brian2-2.7.1-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:63a0a1048319724deb2d6d05197d35608faaff5584f779df06174cc6631582c2"},
+    {file = "Brian2-2.7.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:b355691d2fcb0549d007021c66cdb0e9e71bda7bdac0baf3f04f2707288ea988"},
+    {file = "Brian2-2.7.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:21c5aa2a6b094acf9d62df27d14a031f5627272831bce38589573053446793d6"},
+    {file = "Brian2-2.7.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3646dd8cd85bb89b9ebcac33a2f653b12b7ce09ddbebfbabc102ffaa74de249d"},
+    {file = "Brian2-2.7.1-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:e59571f75b35a8ffc94ea3ca8ebf60ab3be5486d2e1c3d65a5e5e9f1a9f47405"},
+    {file = "Brian2-2.7.1-cp312-cp312-win_amd64.whl", hash = "sha256:3753cefe997c75fb879c42e4d91b9c359e37df001e3a7344e86b571da513d80d"},
+    {file = "brian2-2.7.1.tar.gz", hash = "sha256:9a9d71a3aa28626db5b3a15871e81076c1e65601fcd6eb15f487c833418cee57"},
+]
+
+[package.dependencies]
+cython = ">=0.29.21"
+jinja2 = ">=2.7"
+numpy = ">=1.23.5"
+packaging = "*"
+py-cpuinfo = {version = "*", markers = "platform_system == \"Windows\""}
+pyparsing = "*"
+setuptools = ">=61"
+sympy = ">=1.2"
+
+[package.extras]
+docs = ["ipython (>=5)", "sphinx (>=7)", "sphinx-tabs"]
+test = ["pytest", "pytest-cov (>=2.0)", "pytest-timeout", "pytest-xdist (>=1.22.3)"]
+
+[[package]]
 name = "certifi"
 version = "2024.8.30"
 description = "Python package for providing Mozilla's CA Bundle."
@@ -421,6 +463,25 @@ docs = ["furo", "sphinx (>=7.2)", "sphinx-copybutton"]
 mypy = ["contourpy[bokeh,docs]", "docutils-stubs", "mypy (==1.11.1)", "types-Pillow"]
 test = ["Pillow", "contourpy[test-no-images]", "matplotlib"]
 test-no-images = ["pytest", "pytest-cov", "pytest-rerunfailures", "pytest-xdist", "wurlitzer"]
+
+[[package]]
+name = "corner"
+version = "2.2.2"
+description = "Make some beautiful corner plots"
+optional = false
+python-versions = ">=3.9"
+files = [
+    {file = "corner-2.2.2-py3-none-any.whl", hash = "sha256:e7577cdb59cfa304effa243b0c7ac0e3777030d3dc2f2e217a387e87a47074bb"},
+    {file = "corner-2.2.2.tar.gz", hash = "sha256:4bc79f3b6778c270103f0926e64ef2606c48c3b6f92daf5382fc4babf5d608d1"},
+]
+
+[package.dependencies]
+matplotlib = ">=2.1"
+
+[package.extras]
+arviz = ["arviz (>=0.9)"]
+docs = ["arviz (>=0.9)", "ipython", "myst-nb", "pandoc", "sphinx (>=1.7.5)", "sphinx-book-theme"]
+test = ["arviz (>=0.9)", "pytest", "scipy"]
 
 [[package]]
 name = "cycler"
@@ -2538,6 +2599,17 @@ files = [
 tests = ["pytest"]
 
 [[package]]
+name = "py-cpuinfo"
+version = "9.0.0"
+description = "Get CPU info with pure Python"
+optional = false
+python-versions = "*"
+files = [
+    {file = "py-cpuinfo-9.0.0.tar.gz", hash = "sha256:3cdbbf3fac90dc6f118bfd64384f309edeadd902d7c8fb17f02ffa1fc3f49690"},
+    {file = "py_cpuinfo-9.0.0-py3-none-any.whl", hash = "sha256:859625bc251f64e21f077d099d4162689c762b5d6a4c3c97553d56241c9674d5"},
+]
+
+[[package]]
 name = "pyabc"
 version = "0.12.13"
 description = "Distributed, likelihood-free ABC-SMC inference"
@@ -3361,6 +3433,27 @@ doc = ["jupytext", "matplotlib (>2)", "myst-nb", "numpydoc", "pooch", "pydata-sp
 test = ["asv", "gmpy2", "hypothesis", "mpmath", "pooch", "pytest", "pytest-cov", "pytest-timeout", "pytest-xdist", "scikit-umfpack", "threadpoolctl"]
 
 [[package]]
+name = "seaborn"
+version = "0.13.2"
+description = "Statistical data visualization"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "seaborn-0.13.2-py3-none-any.whl", hash = "sha256:636f8336facf092165e27924f223d3c62ca560b1f2bb5dff7ab7fad265361987"},
+    {file = "seaborn-0.13.2.tar.gz", hash = "sha256:93e60a40988f4d65e9f4885df477e2fdaff6b73a9ded434c1ab356dd57eefff7"},
+]
+
+[package.dependencies]
+matplotlib = ">=3.4,<3.6.1 || >3.6.1"
+numpy = ">=1.20,<1.24.0 || >1.24.0"
+pandas = ">=1.2"
+
+[package.extras]
+dev = ["flake8", "flit", "mypy", "pandas-stubs", "pre-commit", "pytest", "pytest-cov", "pytest-xdist"]
+docs = ["ipykernel", "nbconvert", "numpydoc", "pydata_sphinx_theme (==0.10.0rc2)", "pyyaml", "sphinx (<6.0.0)", "sphinx-copybutton", "sphinx-design", "sphinx-issues"]
+stats = ["scipy (>=1.7)", "statsmodels (>=0.12)"]
+
+[[package]]
 name = "selenium"
 version = "4.25.0"
 description = "Official Python bindings for Selenium WebDriver"
@@ -3442,6 +3535,37 @@ files = [
     {file = "sortedcontainers-2.4.0-py2.py3-none-any.whl", hash = "sha256:a163dcaede0f1c021485e957a39245190e74249897e2ae4b2aa38595db237ee0"},
     {file = "sortedcontainers-2.4.0.tar.gz", hash = "sha256:25caa5a06cc30b6b83d11423433f65d1f9d76c4c6a0c90e3379eaa43b9bfdb88"},
 ]
+
+[[package]]
+name = "sourcerer"
+version = "0.1.0"
+description = "Sample-based Maximum Entropy Source Distribution Estimation"
+optional = false
+python-versions = ">=3.8.0"
+files = []
+develop = false
+
+[package.dependencies]
+brian2 = "*"
+corner = "*"
+hydra-core = "*"
+matplotlib = "*"
+numpy = "*"
+pandas = "*"
+scikit-learn = "*"
+scipy = "*"
+seaborn = "*"
+torch = "*"
+torchdiffeq = "*"
+
+[package.extras]
+dev = ["autoflake", "black", "deepdiff", "flake8", "ipykernel", "isort", "jupyter", "pep517", "pytest", "pyyaml"]
+
+[package.source]
+type = "git"
+url = "git@github.com:RobinU434/sourcerer.git"
+reference = "HEAD"
+resolved_reference = "be9cc472f1a04cb98a07e0d0284c3127a30e96b1"
 
 [[package]]
 name = "sqlalchemy"
@@ -3692,6 +3816,21 @@ typing-extensions = ">=4.8.0"
 [package.extras]
 opt-einsum = ["opt-einsum (>=3.3)"]
 optree = ["optree (>=0.12.0)"]
+
+[[package]]
+name = "torchdiffeq"
+version = "0.2.4"
+description = "ODE solvers and adjoint sensitivity analysis in PyTorch."
+optional = false
+python-versions = "~=3.6"
+files = [
+    {file = "torchdiffeq-0.2.4-py3-none-any.whl", hash = "sha256:70b7e5afb373af0aded660588aaeb63c2a56c7064ae7c3037ffc12a1bad16b28"},
+    {file = "torchdiffeq-0.2.4.tar.gz", hash = "sha256:c0e57c3c889fedda7f23a6015dbfcd6dae5072a06dd6ed10e8200c2009844043"},
+]
+
+[package.dependencies]
+scipy = ">=1.4.0"
+torch = ">=1.5.0"
 
 [[package]]
 name = "tornado"
@@ -3997,4 +4136,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "7e4bf237a109d262fe1f43b3f92f6a715d25a138419def1adc4ba66d57fae79e"
+content-hash = "2c87c21328117518925f93c57602ee88df463b5f57ff698d9a531d4f79f839ec"
