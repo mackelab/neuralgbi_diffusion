@@ -1,0 +1,17 @@
+results_dir: "results"
+check_val_every_n_epochs: 5 
+num_worker: 8
+
+train_file: "data/moon_100000.pt"
+val_file: "data/moon_10000.pt"
+n_target: 100
+
+max_epochs: 100
+batch_size: 2048
+precision: 32 # 64: extended, 32: standard, 16: half
+
+optimizer:
+    name: Adam
+    lr: 0.0001
+    weight_decay: 0
+

@@ -1,10 +1,10 @@
 from argparse import ArgumentParser
-from gbi_diff.experiment import Experiment
+from gbi_diff.process import Process
 from gbi_diff.utils.parser import setup_parser
 
 
 def execute(args: dict) -> bool:
-    module = Experiment()
+    module = Process()
     match args["command"]:
         case "generate-data":
             module.generate_data(
@@ -13,6 +13,9 @@ def execute(args: dict) -> bool:
                 path=args["path"],
                 noise_std=args["noise_std"],
             )
+
+        case "train":
+            module.train(config_file=args["config_file"])
 
         case _:
             return False

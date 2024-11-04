@@ -1,6 +1,18 @@
 from argparse import ArgumentParser
 
 
+def add_train_args(parser: ArgumentParser) -> ArgumentParser:
+    parser.add_argument(
+        "--config-file",
+        help='path to config file (allowed are yaml, toml and json). Defaults to: "config.train.yaml"',
+        dest="config_file",
+        type=str,
+        default="config/train.yaml",
+        required=False,
+    )
+    return parser
+
+
 def add_generate_data_args(parser: ArgumentParser) -> ArgumentParser:
     parser.add_argument(
         "--dataset-type",
@@ -35,16 +47,20 @@ def add_generate_data_args(parser: ArgumentParser) -> ArgumentParser:
     return parser
 
 
-def setup_experiment_parser(parser: ArgumentParser) -> ArgumentParser:
+def setup_process_parser(parser: ArgumentParser) -> ArgumentParser:
     command_subparser = parser.add_subparsers(dest="command", title="command")
     generate_data = command_subparser.add_parser(
         "generate-data",
         help="creates a specified dataset and stores it into the file system.",
     )
     generate_data = add_generate_data_args(generate_data)
+    train = command_subparser.add_parser(
+        "train", help="start training process as defined in your config file"
+    )
+    train = add_train_args(train)
     return parser
 
 
 def setup_parser(parser: ArgumentParser) -> ArgumentParser:
-    parser = setup_experiment_parser(parser)
+    parser = setup_process_parser(parser)
     return parser

@@ -38,8 +38,9 @@ class SBIDataset(Dataset):
 
     @classmethod
     def from_file(cls, path: str) -> "SBIDataset":
-        content: Dict[str, Tensor] = torch.load(path, weights_only=False, map_location=torch.device("cpu"))
-        print(content)
+        content: Dict[str, Tensor] = torch.load(
+            path, weights_only=False, map_location=torch.device("cpu")
+        )
         obj = cls(**content)
         for key, value in content.items():
             setattr(obj, key, value)
@@ -55,6 +56,7 @@ class SBIDataset(Dataset):
             "_theta": self._theta,
             "_x": self._x,
             "_target": self._target,
+            "_all": self._all,
             "_measured": self._measured,
             "_target_noise_std": self._target_noise_std,
         }
@@ -74,6 +76,12 @@ class SBIDataset(Dataset):
         if self._measured is not None:
             self._all = torch.cat([self._all, self._measured], dim=0)
 
+    def get_prior_dim(self) -> int:
+        return self._theta.shape[1]
+
+    def get_sim_out_dim(self) -> int:
+        return self._x.shape[1]
+
     def __getitem__(self, index: int) -> Tuple[Tensor, Tensor, Tensor]:
         target_sample = self._all[
             np.random.choice(len(self._all), size=self._n_target, replace=False)
@@ -90,3 +98,6 @@ class SBIDataset(Dataset):
             return len(self._theta)
         except AttributeError:
             return 0
+
+    def set_n_target(self, value: int):
+        self._n_target = value
