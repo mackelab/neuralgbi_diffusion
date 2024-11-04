@@ -1,3 +1,0 @@
-name: 'eGBI'
-density_estimator: 'nsf'
-n_emulator_samples: 10

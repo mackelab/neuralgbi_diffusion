@@ -1,9 +1,0 @@
-beta: [25.0, 50.0, 100.0]
-observation: "allen"
-
-hydra:
-  run:
-    dir: ../../results/hh_allen/gbi_pred/
-  sweep:
-    dir: ../../results/hh_allen/gbi_pred_m/
-    subdir: ${hydra.job.num}_${observation}
