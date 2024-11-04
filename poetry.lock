@@ -530,6 +530,25 @@ traitlets = ">=4"
 test = ["pytest"]
 
 [[package]]
+name = "config2class"
+version = "0.1.1"
+description = "Config2Code simplifies configuration management by automatically generating Python dataclasses from YAML or JSON files. This tool enhances code readability, maintainability, and type safety, saving you time and effort."
+optional = false
+python-versions = "^3.10"
+files = []
+develop = false
+
+[package.dependencies]
+pyaml = "^23.0.0"
+toml = "^0.10.2"
+
+[package.source]
+type = "git"
+url = "git@github.com:RobinU434/Config2Class.git"
+reference = "HEAD"
+resolved_reference = "70f959390ff68ef4a6c0fc7ecb152c37144b5917"
+
+[[package]]
 name = "contourpy"
 version = "1.3.0"
 description = "Python library for calculating contours of 2D quadrilateral grids"
@@ -4305,6 +4324,17 @@ files = [
 ]
 
 [[package]]
+name = "toml"
+version = "0.10.2"
+description = "Python Library for Tom's Obvious, Minimal Language"
+optional = false
+python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
+files = [
+    {file = "toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b"},
+    {file = "toml-0.10.2.tar.gz", hash = "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f"},
+]
+
+[[package]]
 name = "toolz"
 version = "1.0.0"
 description = "List processing tools and functional utilities"
@@ -4811,4 +4841,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "c4bf0956bb6cd66cf527a54b1f49ccd4678ebaa9c6f72babfae88d3e308ccbd6"
+content-hash = "914f983c8f007423a2cdbb23e8bc739d9e39142a64aa13bdeea1712ab47f5bf4"
