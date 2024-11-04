@@ -17,7 +17,7 @@ class SBIDataset(Dataset):
         *args,
         **kwargs,
     ):
-        super().__init__(*args, **kwargs)
+        super().__init__()
 
         self._theta: Tensor
         """simulator parameter"""
@@ -38,7 +38,8 @@ class SBIDataset(Dataset):
 
     @classmethod
     def from_file(cls, path: str) -> "SBIDataset":
-        content: Dict[str, Tensor] = torch.load(path, map_location=torch.device("cpu"))
+        content: Dict[str, Tensor] = torch.load(path, weights_only=False, map_location=torch.device("cpu"))
+        print(content)
         obj = cls(**content)
         for key, value in content.items():
             setattr(obj, key, value)
