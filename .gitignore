@@ -143,5 +143,5 @@ dmypy.json
 
 
 # generated data
-./gbi/benchmark/tasks/**/xos/
+gbi/benchmark/tasks/**/xos/
 data/
