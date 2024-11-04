@@ -11,7 +11,7 @@ class FeedForwardNetwork(Module):
         self,
         input_dim: int,
         output_dim: int,
-        architecture: List[int] = [],
+        architecture: List[int] = None,
         activation_function: str = "ReLU",
         device: str = "cpu",
         *args,
@@ -24,7 +24,7 @@ class FeedForwardNetwork(Module):
         self._activation_function_type = getattr(nn, activation_function)
         self._linear = self._create_linear_unit(architecture).to(device)
 
-    def _create_linear_unit(self, architecture: List[int]) -> Sequential:
+    def _create_linear_unit(self, architecture: List[int] = None) -> Sequential:
         """creates a linear unit specified with architecture and self._activation_function_type
 
         Args:
@@ -34,7 +34,7 @@ class FeedForwardNetwork(Module):
             Sequential: sequential linear unit
         """
         # input layer
-        if len(architecture) == 0:
+        if len(architecture) is None:
             return Linear(self._input_dim, self._output_dim)
 
         layers = [

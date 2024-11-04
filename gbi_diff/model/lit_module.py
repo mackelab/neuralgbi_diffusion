@@ -51,7 +51,6 @@ class SBI(LightningModule):
 
     def configure_optimizers(self):
         optimizer_cls = getattr(optim, self._optimizer_config.pop("name"))
-        print(self._optimizer_config)
         optimizer = optimizer_cls(
             self.parameters(), **self._optimizer_config
         )
