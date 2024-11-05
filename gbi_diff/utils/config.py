@@ -4,21 +4,21 @@ from typing import Dict, Any
 import yaml
 import json
 import toml
- 
 
-def _load_yaml(path: str, encoding: str = 'utf-8') -> Dict[Any, Any]:
+
+def _load_yaml(path: str, encoding: str = "utf-8") -> Dict[Any, Any]:
     with open(path, encoding=encoding) as file:
         content = yaml.safe_load(file)
     return content
 
 
-def _load_json(path: str, encoding: str = 'utf-8') -> Dict[Any, Any]:
+def _load_json(path: str, encoding: str = "utf-8") -> Dict[Any, Any]:
     with open(path, encoding=encoding) as file:
         content = json.load(file)
     return content
 
 
-def _load_toml(path: str, encoding: str = 'utf-8') -> Dict[Any, Any]:
+def _load_toml(path: str, encoding: str = "utf-8") -> Dict[Any, Any]:
     with open(path, encoding=encoding) as file:
         content = toml.load(file)
     return content
@@ -32,8 +32,8 @@ class _Optimizer:
 
     @classmethod
     def from_file(cls, file: str) -> "_Optimizer":
-        ending = file.split('.')[-1]
-        content = globals()[f'_load_{ending}'](file)
+        ending = file.split(".")[-1]
+        content = globals()[f"_load_{ending}"](file)
         first_key, first_value = content.popitem()
         if len(content) == 0 and isinstance(first_value, dict):
             return cls(**first_value)
@@ -57,8 +57,8 @@ class Config:
 
     @classmethod
     def from_file(cls, file: str) -> "Config":
-        ending = file.split('.')[-1]
-        content = globals()[f'_load_{ending}'](file)
+        ending = file.split(".")[-1]
+        content = globals()[f"_load_{ending}"](file)
         first_key, first_value = content.popitem()
         if len(content) == 0 and isinstance(first_value, dict):
             return cls(**first_value)

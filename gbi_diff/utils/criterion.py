@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch import Tensor
+import torch.linalg as LA
 
 
 class SBICriterion:
@@ -38,5 +39,5 @@ class SBICriterion:
             Tensor: (batch_size, n_target)
         """
         d = x[:, None] - x_target
-        distance = torch.linalg.norm(d, ord=self._distance_order, dim=-1)
+        distance = LA.norm(d, ord=self._distance_order, dim=-1)
         return distance

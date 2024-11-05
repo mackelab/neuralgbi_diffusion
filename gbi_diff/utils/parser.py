@@ -4,10 +4,18 @@ from argparse import ArgumentParser
 def add_train_args(parser: ArgumentParser) -> ArgumentParser:
     parser.add_argument(
         "--config-file",
-        help='path to config file (allowed are yaml, toml and json). Defaults to: "config.train.yaml"',
+        help='path to config file (allowed are yaml, toml and json). Defaults to: "config/train.yaml"',
         dest="config_file",
         type=str,
         default="config/train.yaml",
+        required=False,
+    )
+    parser.add_argument(
+        "--device",
+        help='device to train on. Defaults to "cpu".',
+        dest="device",
+        type=str,
+        default="cpu",
         required=False,
     )
     return parser

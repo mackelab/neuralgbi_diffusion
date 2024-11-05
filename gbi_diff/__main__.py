@@ -15,7 +15,7 @@ def execute(args: dict) -> bool:
             )
 
         case "train":
-            module.train(config_file=args["config_file"])
+            module.train(config_file=args["config_file"], device=args["device"])
 
         case _:
             return False

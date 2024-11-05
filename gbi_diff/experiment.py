@@ -1,5 +1,7 @@
+import logging
 from lightning import Trainer
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
+import torch
 from torch.utils.data import DataLoader
 
 from gbi_diff.dataset import SBIDataset
@@ -7,7 +9,21 @@ from gbi_diff.model.lit_module import SBI
 from gbi_diff.utils.config import Config
 
 
-def train(config: Config):
+
+def train(config: Config, device: str = "cpu"):
+    if not torch.cuda.is_available() and "cuda" in device:
+        logging.warning("cuda device was requested but not available. Fall back to cpu")
+        device = "auto"
+        accelerator = "cpu"
+    
+    
+    if device.isnumeric():
+        device = int(device)
+        accelerator = "cuda"
+    else:
+        accelerator = device
+    
+    device = torch.device(device)
     trainer = Trainer(
         logger=(CSVLogger(config.results_dir), TensorBoardLogger(config.results_dir)),
         precision=config.precision,

@@ -29,12 +29,14 @@ class SBI(LightningModule):
         prior, simulator_out, x_target = batch
         network_res = self.forward(prior, x_target)
         loss = self.criterion.forward(network_res, simulator_out, x_target)
+        self.log("train_loss", loss, on_epoch=True, on_step=True)
         return loss
 
     def validation_step(self, batch: Tuple[Tensor, Tensor, Tensor], batch_idx: int):
         prior, simulator_out, x_target = batch
         network_res = self.forward(prior, x_target)
         loss = self.criterion.forward(network_res, simulator_out, x_target)
+        self.log("val_loss", loss, on_epoch=True, on_step=True)
         return loss
 
     def forward(self, prior: Tensor, x_target: Tensor) -> Tensor:
@@ -51,7 +53,5 @@ class SBI(LightningModule):
 
     def configure_optimizers(self):
         optimizer_cls = getattr(optim, self._optimizer_config.pop("name"))
-        optimizer = optimizer_cls(
-            self.parameters(), **self._optimizer_config
-        )
+        optimizer = optimizer_cls(self.parameters(), **self._optimizer_config)
         return optimizer

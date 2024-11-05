@@ -33,15 +33,16 @@ class Process:
         path = path.rstrip("/") + f"/{dataset_type}_{size}.pt"
         dataset.store(path)
 
-    def train(self, config_file: str = "config/train.yaml"):
+    def train(self, config_file: str = "config/train.yaml", device: str = "cpu"):
         """start training process as defined in your config file
 
         Args:
             config_file (str): path to config file (allowed are yaml, toml and json). Defaults to: "config/train.yaml"
+            device (str, optional): device to train on. Can be also set to a number to indicate multiple devices. Defaults to "cpu".
         """
         # >>>> add import here for faster help message
         from gbi_diff.experiment import train
 
         # <<<<
         config = Config.from_file(config_file)
-        train(config)
+        train(config, device)
