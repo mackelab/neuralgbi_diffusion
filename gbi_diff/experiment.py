@@ -11,6 +11,7 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 
 
 def train(config: Config, device: str = "cpu"):
+    # TODO: fixup device config 
     if not torch.cuda.is_available() and "cuda" in device:
         logging.warning("cuda device was requested but not available. Fall back to cpu")
         device = "auto"
@@ -21,8 +22,9 @@ def train(config: Config, device: str = "cpu"):
         accelerator = "cuda"
     else:
         accelerator = device
-
     device = torch.device(device)
+
+    #TODO: log config construct as hyperparameter for the whole pipeline
     trainer = Trainer(
         logger=(CSVLogger(config.results_dir), TensorBoardLogger(config.results_dir, log_graph=True)),
         precision=config.precision,

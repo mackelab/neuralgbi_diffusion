@@ -25,6 +25,7 @@ class SBICriterion:
         # distance matrix
         d = self.sample_distance(x, x_target)
         squared_distance = torch.float_power(pred[..., None] - d, 2)
+        # NOTE:@Julius why sum it and not taking the mean??? -> better for logging  
         squared_distance = torch.sum(squared_distance, dim=-1)
         return torch.mean(squared_distance)
 
