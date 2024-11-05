@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from gbi_diff.dataset import SBIDataset
 from gbi_diff.model.lit_module import SBI
 from gbi_diff.utils.config import Config
-
+from lightning.pytorch.callbacks import ModelCheckpoint
 
 
 def train(config: Config, device: str = "cpu"):
@@ -15,20 +15,22 @@ def train(config: Config, device: str = "cpu"):
         logging.warning("cuda device was requested but not available. Fall back to cpu")
         device = "auto"
         accelerator = "cpu"
-    
-    
+
     if device.isnumeric():
         device = int(device)
         accelerator = "cuda"
     else:
         accelerator = device
-    
+
     device = torch.device(device)
     trainer = Trainer(
-        logger=(CSVLogger(config.results_dir), TensorBoardLogger(config.results_dir)),
+        logger=(CSVLogger(config.results_dir), TensorBoardLogger(config.results_dir, log_graph=True)),
         precision=config.precision,
         max_epochs=config.max_epochs,
         check_val_every_n_epoch=config.check_val_every_n_epochs,
+        callbacks=ModelCheckpoint(
+            config.results_dir, monitor="val_loss_epoch", save_top_k=3
+        ),
     )
 
     train_set = SBIDataset.from_file(config.train_file)
