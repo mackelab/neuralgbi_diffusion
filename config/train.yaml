@@ -1,12 +1,12 @@
 results_dir: "results"
-check_val_every_n_epochs: 5 
+check_val_every_n_epochs: 2 
 num_worker: 8
 
 train_file: "data/moon_1000.pt"
 val_file: "data/moon_100.pt"
-n_target: 100
+n_target: 10
 
-max_epochs: 100
+max_epochs: 20
 batch_size: 128
 precision: 32 # 64: extended, 32: standard, 16: half
 
