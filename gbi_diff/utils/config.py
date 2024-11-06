@@ -67,4 +67,4 @@ class Config:
         return cls(**content)
 
     def __post_init__(self):
-        self.optimizer = _Optimizer(**self.optimizer)  #pylint: disable=E1134
+        self.optimizer = _Optimizer(**self.optimizer)  # pylint: disable=E1134

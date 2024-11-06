@@ -24,7 +24,7 @@ def execute(args: dict) -> bool:
 
 
 def create_parser() -> ArgumentParser:
-    parser = ArgumentParser(description="")
+    parser = ArgumentParser(description="CLI Process to handle GBI pipeline")
 
     parser = setup_parser(parser)
 

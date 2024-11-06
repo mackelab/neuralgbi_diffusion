@@ -20,7 +20,7 @@ class Process:
             noise_std (float, optional): hwo to noise the data. Defaults to 0.01.
         """
         # >>>> add import here for faster help message
-        from gbi_diff.dataset import SBIDataset  #pylint: disable=C0415
+        from gbi_diff.dataset import SBIDataset  # pylint: disable=C0415
 
         # <<<<
 
@@ -30,16 +30,17 @@ class Process:
         path = path.rstrip("/") + f"/{dataset_type}_{size}.pt"
         dataset.store(path)
 
-    def train(self, config_file: str = "config/train.yaml", device: str = "cpu"):
+    def train(self, config_file: str = "config/train.yaml", device: int = 1):
         """start training process as defined in your config file
 
         Args:
             config_file (str): path to config file (allowed are yaml, toml and json). Defaults to: "config/train.yaml"
-            device (str, optional): device to train on. Can be also set to a number to indicate multiple devices. Defaults to "cpu".
+            device (int, optional): set to a number to indicate multiple devices. Defaults to 1.
         """
         # >>>> add import here for faster help message
-        from gbi_diff.experiment import train  #pylint: disable=C0415
-        from gbi_diff.utils.config import Config  #pylint: disable=C0415
+        from gbi_diff.experiment import train  # pylint: disable=C0415
+        from gbi_diff.utils.config import Config  # pylint: disable=C0415
+
         # <<<<
         config = Config.from_file(config_file)
         train(config, device)

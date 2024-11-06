@@ -7,32 +7,38 @@ from torch.utils.data import DataLoader
 from gbi_diff.dataset import SBIDataset
 from gbi_diff.model.lit_module import SBI
 from gbi_diff.utils.config import Config
-from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 
 
-def train(config: Config, device: str = "cpu"):
-    # TODO: fixup device config 
-    if not torch.cuda.is_available() and "cuda" in device:
+def train(config: Config, devices: int = 1):
+    # TODO: fixup device config
+    accelerator = "auto"
+    if not torch.cuda.is_available() and devices > 1:
         logging.warning("cuda device was requested but not available. Fall back to cpu")
-        device = "auto"
+        devices = 1
         accelerator = "cpu"
 
-    if device.isnumeric():
-        device = int(device)
-        accelerator = "cuda"
-    else:
-        accelerator = device
-    device = torch.device(device)
-
-    #TODO: log config construct as hyperparameter for the whole pipeline
+    # TODO: log config construct as hyperparameter for the whole pipeline
     trainer = Trainer(
-        logger=(CSVLogger(config.results_dir), TensorBoardLogger(config.results_dir, log_graph=True)),
+        default_root_dir=config.results_dir,
+        logger=(
+            CSVLogger(config.results_dir),
+            TensorBoardLogger(config.results_dir, log_graph=True),
+        ),
         precision=config.precision,
         max_epochs=config.max_epochs,
         check_val_every_n_epoch=config.check_val_every_n_epochs,
-        callbacks=ModelCheckpoint(
-            config.results_dir, monitor="val_loss_epoch", save_top_k=3
-        ),
+        callbacks=[
+            ModelCheckpoint(
+                config.results_dir,
+                monitor="val_loss_epoch",
+                save_top_k=3,
+                mode="max",
+            ),
+            LearningRateMonitor("epoch"),
+        ],
+        accelerator=accelerator,
+        devices=devices,
     )
 
     train_set = SBIDataset.from_file(config.train_file)
@@ -58,3 +64,10 @@ def train(config: Config, device: str = "cpu"):
     )
 
     trainer.fit(model, train_loader, val_loader)
+
+    model = SBI.load_from_checkpoint(
+        trainer.checkpoint_callback.best_model_path
+    )  # Load best checkpoint after training
+    # Test best model on validation and test set
+    # val_result = trainer.test(model, datamodule=val_loader, verbose=False)
+    # result = {"test": test_result[0]["test_acc"], "val": val_result[0]["test_acc"]}

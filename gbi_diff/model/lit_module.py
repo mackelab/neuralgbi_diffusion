@@ -23,8 +23,11 @@ class SBI(LightningModule):
             theta_dim=prior_dim, simulator_out_dim=simulator_out_dim, latent_dim=256
         )
 
-        self.example_input_array = (torch.zeros(1, prior_dim), torch.zeros(1, 1, simulator_out_dim))
-        
+        self.example_input_array = (
+            torch.zeros(1, prior_dim),
+            torch.zeros(1, 1, simulator_out_dim),
+        )
+
         self.criterion = SBICriterion(distance_order=2)
         self._optimizer_config = optimizer_config
 

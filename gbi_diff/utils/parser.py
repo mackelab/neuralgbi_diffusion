@@ -12,10 +12,10 @@ def add_train_args(parser: ArgumentParser) -> ArgumentParser:
     )
     parser.add_argument(
         "--device",
-        help='device to train on. Defaults to "cpu".',
+        help="set to a number to indicate multiple devices. Defaults to 1.",
         dest="device",
-        type=str,
-        default="cpu",
+        type=int,
+        default=1,
         required=False,
     )
     return parser
