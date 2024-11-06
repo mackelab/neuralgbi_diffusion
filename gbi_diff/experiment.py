@@ -22,8 +22,9 @@ def train(config: Config, devices: int = 1):
     trainer = Trainer(
         default_root_dir=config.results_dir,
         logger=(
-            CSVLogger(config.results_dir),
+            # NOTE: make sure tensor board stays at first places
             TensorBoardLogger(config.results_dir, log_graph=True),
+            CSVLogger(config.results_dir),
         ),
         precision=config.precision,
         max_epochs=config.max_epochs,
@@ -31,7 +32,7 @@ def train(config: Config, devices: int = 1):
         callbacks=[
             ModelCheckpoint(
                 config.results_dir,
-                monitor="val_loss_epoch",
+                monitor="val/loss",
                 save_top_k=3,
                 mode="max",
             ),
