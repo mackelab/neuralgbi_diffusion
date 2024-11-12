@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from gbi_diff.process import Process
+from gbi_diff.entrypoint import Process
 from gbi_diff.utils.parser import setup_parser
 
 
@@ -15,7 +15,11 @@ def execute(args: dict) -> bool:
             )
 
         case "train":
-            module.train(config_file=args["config_file"], device=args["device"])
+            module.train(
+                config_file=args["config_file"],
+                device=args["device"],
+                force=args["force"],
+            )
 
         case _:
             return False
