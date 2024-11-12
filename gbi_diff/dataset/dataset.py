@@ -48,7 +48,7 @@ class SBIDataset(Dataset):
             setattr(obj, key, value)
         setattr(obj, "_target", obj._get_x_target())
         setattr(obj, "_all", obj._get_all())
-        
+
         return obj
 
     def load_file(self, path: str):
@@ -58,15 +58,13 @@ class SBIDataset(Dataset):
         self._target = self._get_x_target()
         self._all = self._get_all()
 
-    def store(self, path: str):
+    def save(self, path: str):
         data = {
             "_theta": self._theta,
             "_x": self._x,
-            # "_target": self._target,
-            # "_all": self._all,
             "_measured": self._measured,
             "_target_noise_std": self._target_noise_std,
-            "_seed": self._seed
+            "_seed": self._seed,
         }
         torch.save(data, path)
 
@@ -110,10 +108,11 @@ class SBIDataset(Dataset):
     def _get_x_target(self):
         random_state = np.random.default_rng(self._seed)
         noise = random_state.normal(0, self._target_noise_std, size=self._x.size())
-        return self._x + noise
+        res = self._x + noise
+        return res.float()
 
     def _get_all(self):
         concat = torch.cat([self._x, self._target], dim=0)
         if self._measured is not None:
             concat = torch.cat([concat, self._measured], dim=0)
-        return concat
+        return concat.float()
