@@ -51,8 +51,19 @@ class SBICriterion:
         Returns:
             Tensor: (batch_size, n_target)
         """
-        d = x[:, None] - x_target
-        distance = LA.norm(d, ord=self._distance_order, dim=-1)
+
+        # L2 distance
+        difference = x[:, None] - x_target
+        distance = torch.linalg.norm(difference, ord=self._distance_order, dim=-1)
+        return distance
+
+        # Cosine similartiy as distance
+        # x = x[:, None]
+        # z = torch.linalg.norm(x, dim=-1) * torch.linalg.norm(x_target, dim=-1)
+        # similarity = (x * x_target).sum(dim=-1) / z
+        # distance = (1 - similarity) / 2
+
+        print(distance)
         return distance
 
     def get_sample_correlation(self) -> Tensor:
