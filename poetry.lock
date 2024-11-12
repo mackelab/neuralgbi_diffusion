@@ -547,7 +547,7 @@ watchdog = "^6.0.0"
 type = "git"
 url = "git@github.com:RobinU434/Config2Class.git"
 reference = "HEAD"
-resolved_reference = "5a08eb17553f5133a4037e27a77a75a798dbb1ac"
+resolved_reference = "1578e68673a37300841cf0b6215285200daf4dba"
 
 [[package]]
 name = "contourpy"
@@ -2271,13 +2271,13 @@ files = [
 
 [[package]]
 name = "narwhals"
-version = "1.13.3"
+version = "1.13.4"
 description = "Extremely lightweight compatibility layer between dataframe libraries"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "narwhals-1.13.3-py3-none-any.whl", hash = "sha256:cde49b59b4540885d822777b747ed3fad65632b3d34648040308afcf08e62547"},
-    {file = "narwhals-1.13.3.tar.gz", hash = "sha256:db95cb5b5a6b99bad9fe7f2e2dacf937d57dee1c76c4544d4354a324084e36b5"},
+    {file = "narwhals-1.13.4-py3-none-any.whl", hash = "sha256:1e3068d69d7801cb26fb8ed7b3032591f0c2281d6392ce020d39186aed422b3d"},
+    {file = "narwhals-1.13.4.tar.gz", hash = "sha256:06f38209717b6586e15cabdccf725bce0374699a2e9778848a829d6e5fcd82b2"},
 ]
 
 [package.extras]
