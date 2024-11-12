@@ -1,3 +1,8 @@
+from typing import List
+
+from tqdm import tqdm
+
+
 class Process:
     """CLI Process to handle GBI pipeline"""
 
@@ -7,28 +12,24 @@ class Process:
     def generate_data(
         self,
         dataset_type: str,
-        size: int,
+        sizes: List[int],
         path: str = "./data",
-        noise_std: float = 0.01,
     ):
         """creates a specified dataset and stores it into the file system.
 
         Args:
             dataset_type (str): dataset_type for dataset: currently available: moon
-            size (int): how many samples you want to create
+            sizes (int): how many samples you want to create
             path (str): directory where you want to store the dataset
-            noise_std (float, optional): hwo to noise the data. Defaults to 0.01.
         """
         # >>>> add import here for faster help message
         from gbi_diff.dataset import SBIDataset  # pylint: disable=C0415
 
         # <<<<
-
-        n_target = size
-        dataset = SBIDataset(noise_std, None, n_target)
-        dataset.generate_dataset(size, dataset_type)
-        path = path.rstrip("/") + f"/{dataset_type}_{size}.pt"
-        dataset.store(path)
+        for size in tqdm(sizes, desc="Create datasets"):
+            dataset = SBIDataset()
+            dataset.generate_dataset(size, dataset_type)
+            dataset.save(path.rstrip("/") + f"/{dataset_type}_{size}.pt")
 
     def train(
         self,

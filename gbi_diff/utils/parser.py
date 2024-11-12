@@ -37,10 +37,11 @@ def add_generate_data_args(parser: ArgumentParser) -> ArgumentParser:
         required=True,
     )
     parser.add_argument(
-        "--size",
+        "--sizes",
         help="how many samples you want to create",
-        dest="size",
+        dest="sizes",
         type=int,
+        nargs="+",
         required=True,
     )
     parser.add_argument(
@@ -49,14 +50,6 @@ def add_generate_data_args(parser: ArgumentParser) -> ArgumentParser:
         dest="path",
         type=str,
         default="./data",
-        required=False,
-    )
-    parser.add_argument(
-        "--noise-std",
-        help="hwo to noise the data. Defaults to 0.01.",
-        dest="noise_std",
-        type=float,
-        default=0.01,
         required=False,
     )
     return parser
