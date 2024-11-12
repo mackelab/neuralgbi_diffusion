@@ -1,27 +1,29 @@
 from dataclasses import dataclass
-
-from typing import Dict, Any
-import yaml
-import json
-import toml
+import config2class.utils.filesystem as fs_utils
 
 
-def _load_yaml(path: str, encoding: str = "utf-8") -> Dict[Any, Any]:
-    with open(path, encoding=encoding) as file:
-        content = yaml.safe_load(file)
-    return content
+from config2class.utils.replacement import replace_tokens
 
 
-def _load_json(path: str, encoding: str = "utf-8") -> Dict[Any, Any]:
-    with open(path, encoding=encoding) as file:
-        content = json.load(file)
-    return content
+@dataclass
+class _Model:
+    latent_dim: int
+    theta_encoder: list
+    simulator_encoder: list
+    latent_mlp: list
+    activation_func: str
 
-
-def _load_toml(path: str, encoding: str = "utf-8") -> Dict[Any, Any]:
-    with open(path, encoding=encoding) as file:
-        content = toml.load(file)
-    return content
+    @classmethod
+    def from_file(cls, file: str) -> "_Model":
+        ending = file.split(".")[-1]
+        content = getattr(fs_utils, f"load_{ending}")(file)
+        content = replace_tokens(content)
+        first_key, first_value = content.popitem()
+        if len(content) == 0 and isinstance(first_value, dict):
+            return cls(**first_value)
+        else:
+            content[first_key] = first_value
+        return cls(**content)
 
 
 @dataclass
@@ -33,7 +35,8 @@ class _Optimizer:
     @classmethod
     def from_file(cls, file: str) -> "_Optimizer":
         ending = file.split(".")[-1]
-        content = globals()[f"_load_{ending}"](file)
+        content = getattr(fs_utils, f"load_{ending}")(file)
+        content = replace_tokens(content)
         first_key, first_value = content.popitem()
         if len(content) == 0 and isinstance(first_value, dict):
             return cls(**first_value)
@@ -53,12 +56,14 @@ class Config:
     max_epochs: int
     batch_size: int
     precision: int
+    model: _Model
     optimizer: _Optimizer
 
     @classmethod
     def from_file(cls, file: str) -> "Config":
         ending = file.split(".")[-1]
-        content = globals()[f"_load_{ending}"](file)
+        content = getattr(fs_utils, f"load_{ending}")(file)
+        content = replace_tokens(content)
         first_key, first_value = content.popitem()
         if len(content) == 0 and isinstance(first_value, dict):
             return cls(**first_value)
@@ -67,4 +72,5 @@ class Config:
         return cls(**content)
 
     def __post_init__(self):
+        self.model = _Model(**self.model)  # pylint: disable=E1134
         self.optimizer = _Optimizer(**self.optimizer)  # pylint: disable=E1134

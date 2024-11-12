@@ -64,16 +64,33 @@ class SBINetwork(Module):
         theta_dim: int,
         simulator_out_dim: int,
         latent_dim: int = 256,
+        theta_encoder: List[int] = [256],
+        simulator_encoder: List[int] = [256],
+        latent_mlp: List[int] = [256, 256, 128],
+        activation_func: str = "ELU",
         *args,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
 
-        self._theta_encoder = FeedForwardNetwork(theta_dim, latent_dim, [256])
-        self._simulator_out_encoder = FeedForwardNetwork(
-            simulator_out_dim, latent_dim, [256]
+        self._theta_encoder = FeedForwardNetwork(
+            input_dim=theta_dim,
+            output_dim=latent_dim,
+            architecture=theta_encoder,
+            activation_function=activation_func,
         )
-        self._collector = FeedForwardNetwork(2 * latent_dim, 1, [256, 256, 128])
+        self._simulator_out_encoder = FeedForwardNetwork(
+            input_dim=simulator_out_dim,
+            output_dim=latent_dim,
+            architecture=simulator_encoder,
+            activation_function=activation_func,
+        )
+        self._collector = FeedForwardNetwork(
+            input_dim=2 * latent_dim,
+            output_dim=1,
+            architecture=latent_mlp,
+            activation_function=activation_func,
+        )
 
     def forward(self, theta: Tensor, x_target: Tensor) -> Tensor:
         """_summary_
