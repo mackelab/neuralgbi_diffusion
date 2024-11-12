@@ -6,7 +6,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-def plot_correlation(pred: torch.Tensor, d: torch.Tensor, as_array: bool = False) -> Tuple[Figure, Axis] | np.ndarray:
+
+def plot_correlation(
+    pred: torch.Tensor, d: torch.Tensor, as_array: bool = False
+) -> Tuple[Figure, Axis] | np.ndarray:
     """plot correlation
 
     Args:
@@ -15,13 +18,15 @@ def plot_correlation(pred: torch.Tensor, d: torch.Tensor, as_array: bool = False
         as_array (bool, optional): If you would like to return an array. Defaults to False.
 
     Returns:
-        Tuple[Figure, Axis] | np.ndarray: the figure in different formats 
+        Tuple[Figure, Axis] | np.ndarray: the figure in different formats
     """
     corr = torch.corrcoef(torch.stack([d.flatten(), pred.flatten()]))[0, 1]
     fig, ax = plt.subplots()
+    
+    maximum = max(torch.max(d), torch.max(pred)) 
     ax.plot(
-        [0, torch.max(d) * 1.05],
-        [0, torch.max(pred) * 1.05],
+        [0, maximum * 1.05],
+        [0, maximum * 1.05],
         "k--",
         alpha=0.5,
     )
