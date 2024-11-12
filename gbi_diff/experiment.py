@@ -3,6 +3,8 @@ from lightning import Trainer
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 import torch
 from torch.utils.data import DataLoader
+import yaml
+from config2class.utils import deconstruct_config
 
 from gbi_diff.dataset import SBIDataset
 from gbi_diff.model.lit_module import SBI
@@ -10,7 +12,7 @@ from gbi_diff.utils.config import Config
 from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 
 
-def train(config: Config, devices: int = 1):
+def train(config: Config, devices: int = 1, force: bool = False):
     # TODO: fixup device config
     accelerator = "auto"
     if not torch.cuda.is_available() and devices > 1:
@@ -18,20 +20,24 @@ def train(config: Config, devices: int = 1):
         devices = 1
         accelerator = "cpu"
 
+    # setup logger
+    tb_logger = TensorBoardLogger(config.results_dir, log_graph=True)
+    csv_logger = CSVLogger(tb_logger.log_dir, name="csv_logs", version="")
+
     # TODO: log config construct as hyperparameter for the whole pipeline
     trainer = Trainer(
         default_root_dir=config.results_dir,
         logger=(
             # NOTE: make sure tensor board stays at first places
-            TensorBoardLogger(config.results_dir, log_graph=True),
-            CSVLogger(config.results_dir),
+            tb_logger,
+            csv_logger,
         ),
         precision=config.precision,
         max_epochs=config.max_epochs,
         check_val_every_n_epoch=config.check_val_every_n_epochs,
         callbacks=[
             ModelCheckpoint(
-                config.results_dir,
+                dirpath=tb_logger.log_dir,
                 monitor="val/loss",
                 save_top_k=3,
                 mode="max",
@@ -61,14 +67,26 @@ def train(config: Config, devices: int = 1):
     model = SBI(
         prior_dim=train_set.get_prior_dim(),
         simulator_out_dim=train_set.get_sim_out_dim(),
-        optimizer_config=config.optimizer.__dict__,
+        optimizer_config=config.optimizer,
+        net_config=config.model,
     )
+
+    print("============= Config ===============")
+    print(yaml.dump(deconstruct_config(config), indent=4))
+    print("============== Net =================")
+    print(model)
+
+    if not force:
+        question = input("Would you like to start to train? [Y, n]")
+        if not (question is None or question.lower().strip() in ["", "y", "yes"]):
+            print("Abort training")
+            return
 
     trainer.fit(model, train_loader, val_loader)
 
-    model = SBI.load_from_checkpoint(
-        trainer.checkpoint_callback.best_model_path
-    )  # Load best checkpoint after training
+    # model = SBI.load_from_checkpoint(
+    #     trainer.checkpoint_callback.best_model_path
+    # )  # Load best checkpoint after training
     # Test best model on validation and test set
     # val_result = trainer.test(model, datamodule=val_loader, verbose=False)
     # result = {"test": test_result[0]["test_acc"], "val": val_result[0]["test_acc"]}
