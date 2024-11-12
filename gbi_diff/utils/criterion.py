@@ -76,14 +76,15 @@ class SBICriterion:
         Returns:
             Tensor: correlation for all samples
         """
-        corr_mat = torch.corrcoef(torch.stack([self._d.flatten(), self._pred.flatten()]))
+        corr_mat = torch.corrcoef(
+            torch.stack([self._d.flatten(), self._pred.flatten()])
+        )
         return corr_mat[0, 1]
-    
 
     @property
     def pred(self) -> Tensor:
         return self._pred
-    
+
     @property
     def d(self) -> Tensor:
         return self._d
