@@ -14,6 +14,7 @@ class SBIDataset(Dataset):
         target_noise_std: float = 0.01,
         measured: Tensor = None,
         n_target: int = 100,
+        seed: int = 42,
         *args,
         **kwargs,
     ):
@@ -35,6 +36,7 @@ class SBIDataset(Dataset):
 
         self._target_noise_std = target_noise_std
         self._n_target = n_target  # how big should be the target subsample -> TODO: same as batch size
+        self._seed = seed
 
     @classmethod
     def from_file(cls, path: str) -> "SBIDataset":
@@ -44,21 +46,27 @@ class SBIDataset(Dataset):
         obj = cls(**content)
         for key, value in content.items():
             setattr(obj, key, value)
+        setattr(obj, "_target", obj._get_x_target())
+        setattr(obj, "_all", obj._get_all())
+        
         return obj
 
     def load_file(self, path: str):
         content: Dict[str, Tensor] = torch.load(path, map_location=torch.device("cpu"))
         for key, value in content.items():
             setattr(self, key, value)
+        self._target = self._get_x_target()
+        self._all = self._get_all()
 
     def store(self, path: str):
         data = {
             "_theta": self._theta,
             "_x": self._x,
-            "_target": self._target,
-            "_all": self._all,
+            # "_target": self._target,
+            # "_all": self._all,
             "_measured": self._measured,
             "_target_noise_std": self._target_noise_std,
+            "_seed": self._seed
         }
         torch.save(data, path)
 
@@ -70,11 +78,8 @@ class SBIDataset(Dataset):
         theta, x = generate_moon(size)
         self._theta = theta
         self._x = x
-        self._target = self._x + torch.randn(self._x.size()) * self._target_noise_std
-
-        self._all = torch.cat([self._x, self._target], dim=0)
-        if self._measured is not None:
-            self._all = torch.cat([self._all, self._measured], dim=0)
+        self._target = self._get_x_target()
+        self._all = self._get_all()
 
     def get_prior_dim(self) -> int:
         return self._theta.shape[1]
@@ -101,3 +106,14 @@ class SBIDataset(Dataset):
 
     def set_n_target(self, value: int):
         self._n_target = value
+
+    def _get_x_target(self):
+        random_state = np.random.default_rng(self._seed)
+        noise = random_state.normal(0, self._target_noise_std, size=self._x.size())
+        return self._x + noise
+
+    def _get_all(self):
+        concat = torch.cat([self._x, self._target], dim=0)
+        if self._measured is not None:
+            concat = torch.cat([concat, self._measured], dim=0)
+        return concat
