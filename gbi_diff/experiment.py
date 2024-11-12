@@ -1,15 +1,18 @@
 import logging
-from lightning import Trainer
-from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
+import os
+
 import torch
-from torch.utils.data import DataLoader
 import yaml
 from config2class.utils import deconstruct_config
+from lightning import Trainer
+from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
+from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
+from torch.utils.data import DataLoader
 
 from gbi_diff.dataset import SBIDataset
 from gbi_diff.model.lit_module import SBI
 from gbi_diff.utils.config import Config
-from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
+from gbi_diff.utils.filesystem import write_yaml
 
 
 def train(config: Config, devices: int = 1, force: bool = False):
@@ -23,8 +26,7 @@ def train(config: Config, devices: int = 1, force: bool = False):
     # setup logger
     tb_logger = TensorBoardLogger(config.results_dir, log_graph=True)
     csv_logger = CSVLogger(tb_logger.log_dir, name="csv_logs", version="")
-
-    # TODO: log config construct as hyperparameter for the whole pipeline
+    
     trainer = Trainer(
         default_root_dir=config.results_dir,
         logger=(
@@ -81,7 +83,8 @@ def train(config: Config, devices: int = 1, force: bool = False):
         if not (question is None or question.lower().strip() in ["", "y", "yes"]):
             print("Abort training")
             return
-
+    
+    write_yaml(deconstruct_config(config), tb_logger.log_dir + "/config.yaml")
     trainer.fit(model, train_loader, val_loader)
 
     # model = SBI.load_from_checkpoint(
