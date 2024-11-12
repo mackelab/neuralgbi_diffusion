@@ -9,9 +9,8 @@ def execute(args: dict) -> bool:
         case "generate-data":
             module.generate_data(
                 dataset_type=args["dataset_type"],
-                size=args["size"],
+                sizes=args["sizes"],
                 path=args["path"],
-                noise_std=args["noise_std"],
             )
 
         case "train":

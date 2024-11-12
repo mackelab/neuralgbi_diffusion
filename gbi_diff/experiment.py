@@ -48,16 +48,16 @@ def train(config: Config, devices: int = 1, force: bool = False):
         devices=devices,
     )
 
-    train_set = SBIDataset.from_file(config.train_file)
-    train_set.set_n_target(config.n_target)
+    train_set = SBIDataset.from_file(config.dataset.train_file)
+    train_set.set_n_target(config.dataset.n_target)
     train_loader = DataLoader(
         train_set,
         batch_size=config.batch_size,
         shuffle=True,
         num_workers=config.num_worker,
     )
-    val_set = SBIDataset.from_file(config.val_file)
-    val_set.set_n_target(config.n_target)
+    val_set = SBIDataset.from_file(config.dataset.val_file)
+    val_set.set_n_target(config.dataset.n_target)
     val_loader = DataLoader(
         val_set,
         batch_size=config.batch_size,
