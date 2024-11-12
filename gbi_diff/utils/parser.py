@@ -18,6 +18,13 @@ def add_train_args(parser: ArgumentParser) -> ArgumentParser:
         default=1,
         required=False,
     )
+    parser.add_argument(
+        "--force",
+        help="If you would like to start training without any questions",
+        dest="force",
+        action="store_true",
+        required=False,
+    )
     return parser
 
 
