@@ -19,7 +19,9 @@ class SBICriterion:
         self._pred: Tensor
         """(batch_size, n_target)"""
         self._d: Tensor
-        """"""
+        """(batch_size, n_target)"""
+
+        self.criterion = nn.MSELoss()
 
     def forward(self, pred: Tensor, x: Tensor, x_target: Tensor) -> Tensor:
         """_summary_
@@ -34,12 +36,13 @@ class SBICriterion:
         """
         # distance matrix
         d = self.sample_distance(x, x_target)
-        squared_distance = torch.float_power(pred[..., None] - d, 2)
+        # print(pred.shape, d.shape)
+        loss = self.criterion.forward(pred[..., 0], d)
 
         # for logging and processing
         self._pred = pred.squeeze()
         self._d = d
-        return torch.mean(squared_distance)
+        return loss
 
     def sample_distance(self, x: Tensor, x_target: Tensor) -> Tensor:
         """compute L2 distance
