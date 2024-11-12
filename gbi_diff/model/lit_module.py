@@ -1,5 +1,6 @@
 from typing import Tuple
 
+from matplotlib import pyplot as plt
 import torch
 from lightning import LightningModule
 from lightning.pytorch.loggers import TensorBoardLogger
@@ -25,6 +26,7 @@ class SBI(LightningModule):
         super().__init__(*args, **kwargs)
         self.save_hyperparameters()
 
+        
         self.net = SBINetwork(
             theta_dim=prior_dim,
             simulator_out_dim=simulator_out_dim,
@@ -88,6 +90,7 @@ class SBI(LightningModule):
         tb_logger.experiment.add_figure(
             "val/corr_plot", fig, global_step=self.global_step
         )
+        plt.close(fig)
 
         self._val_step_outputs = {"pred": [], "d": []}
 
