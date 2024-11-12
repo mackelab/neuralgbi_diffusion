@@ -40,7 +40,7 @@ def train(config: Config, devices: int = 1, force: bool = False):
                 dirpath=tb_logger.log_dir,
                 monitor="val/loss",
                 save_top_k=3,
-                mode="max",
+                mode="min",
             ),
             LearningRateMonitor("epoch"),
         ],
