@@ -22,8 +22,8 @@ def plot_correlation(
     """
     corr = torch.corrcoef(torch.stack([d.flatten(), pred.flatten()]))[0, 1]
     fig, ax = plt.subplots()
-    
-    maximum = max(torch.max(d), torch.max(pred)) 
+
+    maximum = max(torch.max(d), torch.max(pred))
     ax.plot(
         [0, maximum * 1.05],
         [0, maximum * 1.05],
