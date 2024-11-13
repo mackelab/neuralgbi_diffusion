@@ -45,6 +45,7 @@ class SBI(LightningModule):
         self._train_step_outputs = {"pred": [], "d": []}
         self._val_step_outputs = {"pred": [], "d": []}
 
+
     def training_step(self, batch: Tuple[Tensor, Tensor, Tensor], batch_idx: int):
         prior, simulator_out, x_target = batch
         network_res = self.forward(prior, x_target)
@@ -90,8 +91,8 @@ class SBI(LightningModule):
         tb_logger.experiment.add_figure(
             "val/corr_plot", fig, global_step=self.global_step
         )
-        plt.close(fig)
 
+        plt.close(fig)
         self._val_step_outputs = {"pred": [], "d": []}
 
     def forward(self, prior: Tensor, x_target: Tensor) -> Tensor:

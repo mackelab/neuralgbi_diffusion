@@ -26,7 +26,7 @@ def train(config: Config, devices: int = 1, force: bool = False):
     # setup logger
     tb_logger = TensorBoardLogger(config.results_dir, log_graph=True)
     csv_logger = CSVLogger(tb_logger.log_dir, name="csv_logs", version="")
-    
+
     trainer = Trainer(
         default_root_dir=config.results_dir,
         logger=(
