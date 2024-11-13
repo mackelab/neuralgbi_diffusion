@@ -1,13 +1,6 @@
-from typing import Tuple
-from matplotlib import pyplot as plt
-from matplotlib.axis import Axis
-from matplotlib.figure import Figure
-import numpy as np
-from sklearn.metrics import r2_score
 import torch
 import torch.nn as nn
 from torch import Tensor
-import torch.linalg as LA
 
 
 class SBICriterion:
@@ -21,7 +14,7 @@ class SBICriterion:
         self._d: Tensor
         """(batch_size, n_target)"""
 
-        self.criterion = nn.MSELoss()
+        self.mse = nn.MSELoss()
 
     def forward(self, pred: Tensor, x: Tensor, x_target: Tensor) -> Tensor:
         """_summary_
@@ -37,7 +30,7 @@ class SBICriterion:
         # distance matrix
         d = self.sample_distance(x, x_target)
         # print(pred.shape, d.shape)
-        loss = self.criterion.forward(pred[..., 0], d)
+        loss = self.mse.forward(pred[..., 0], d)
 
         # for logging and processing
         self._pred = pred.squeeze()
@@ -57,7 +50,7 @@ class SBICriterion:
 
         # L2 distance
         difference = x[:, None] - x_target
-        distance = torch.linalg.norm(difference, ord=self._distance_order, dim=-1)
+        distance = torch.linalg.norm(difference, ord=self._distance_order, dim=-1)  #pylint: disable=E1102
         return distance
 
         # Cosine similartiy as distance
