@@ -12,14 +12,14 @@ dataset:
     train_file: "data/moon_1000.pt"
     val_file: "data/moon_100.pt"
     n_target: 20
-    noise_std: 0.00  # how strong to noise the augmentations in x_target 
+    noise_std: 0.1  # how strong to noise the augmentations in x_target 
 
 
 model:
     latent_dim: 256
     theta_encoder: [256]
     simulator_encoder: [256]
-    latent_mlp: [256, 128]
+    latent_mlp: [256, 256, 128]
     activation_func: ReLU
     final_activation: null  # Sigmoid only needed for cosine similarity -> otherwise null
 
