@@ -36,7 +36,7 @@ class FeedForwardNetwork(Module):
             Sequential: sequential linear unit
         """
         # input layer
-        if architecture is None or len(architecture) == 0:
+        if architecture is None or (isinstance(architecture, list) and len(architecture) == 0):
             return Linear(self._input_dim, self._output_dim)
 
         layers = [
