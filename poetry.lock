@@ -387,6 +387,17 @@ jupyter = ["ipython (>=7.8.0)", "tokenize-rt (>=3.2.0)"]
 uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
+name = "cachetools"
+version = "5.5.0"
+description = "Extensible memoizing collections and decorators"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "cachetools-5.5.0-py3-none-any.whl", hash = "sha256:02134e8439cdc2ffb62023ce1debca2944c3f289d66bb17ead3ab3dede74b292"},
+    {file = "cachetools-5.5.0.tar.gz", hash = "sha256:2cc24fb4cbe39633fb7badd9db9ca6295d766d9c2995f245725a46715d050f2a"},
+]
+
+[[package]]
 name = "certifi"
 version = "2024.8.30"
 description = "Python package for providing Mozilla's CA Bundle."
@@ -548,6 +559,19 @@ type = "git"
 url = "git@github.com:RobinU434/Config2Class.git"
 reference = "HEAD"
 resolved_reference = "1578e68673a37300841cf0b6215285200daf4dba"
+
+[[package]]
+name = "cons"
+version = "0.4.6"
+description = "An implementation of Lisp/Scheme-like cons in Python."
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "cons-0.4.6.tar.gz", hash = "sha256:669fe9d5ee916d5e42b9cac6acc911df803d04f2e945c1604982a04d27a29b47"},
+]
+
+[package.dependencies]
+logical-unification = ">=0.4.0"
 
 [[package]]
 name = "contourpy"
@@ -845,6 +869,20 @@ toolz = ">=0.8"
 [package.extras]
 doc = ["Sphinx"]
 graphviz = ["graphviz (>=0.7.1)"]
+
+[[package]]
+name = "etuples"
+version = "0.3.9"
+description = "Python S-expression emulation using tuple-like objects."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "etuples-0.3.9.tar.gz", hash = "sha256:a474e586683d8ba8d842ba29305005ceed1c08371a4b4b0e0e232527137e5ea3"},
+]
+
+[package.dependencies]
+cons = "*"
+multipledispatch = "*"
 
 [[package]]
 name = "executing"
@@ -1340,13 +1378,13 @@ files = [
 
 [[package]]
 name = "h5netcdf"
-version = "1.4.0"
+version = "1.4.1"
 description = "netCDF4 via h5py"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "h5netcdf-1.4.0-py3-none-any.whl", hash = "sha256:d1bb96fce5dcf42908903c9798beeef70ac84e97159eb381f1b151459313f228"},
-    {file = "h5netcdf-1.4.0.tar.gz", hash = "sha256:e959c3b5bd3ca7965ce5f4383a4e038ffcb55034c63d791829bd33a5ac38a962"},
+    {file = "h5netcdf-1.4.1-py3-none-any.whl", hash = "sha256:dd86c78ae69b92b16aa8a3c1ff3a14e7622571b5788dcf6d8b68569035bf71ce"},
+    {file = "h5netcdf-1.4.1.tar.gz", hash = "sha256:7c8401ab807ff37c9798edc90d99467595892e6c541a5d5abeb8f53aab5335fe"},
 ]
 
 [package.dependencies]
@@ -1895,6 +1933,20 @@ files = [
 ]
 
 [[package]]
+name = "logical-unification"
+version = "0.4.6"
+description = "Logical unification in Python"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "logical-unification-0.4.6.tar.gz", hash = "sha256:908435123f8a106fa4dcf9bf1b75c7beb309fa2bbecf277868af8f1c212650a0"},
+]
+
+[package.dependencies]
+multipledispatch = "*"
+toolz = "*"
+
+[[package]]
 name = "markdown"
 version = "3.7"
 description = "Python implementation of John Gruber's Markdown."
@@ -1908,6 +1960,30 @@ files = [
 [package.extras]
 docs = ["mdx-gh-links (>=0.2)", "mkdocs (>=1.5)", "mkdocs-gen-files", "mkdocs-literate-nav", "mkdocs-nature (>=0.6)", "mkdocs-section-index", "mkdocstrings[python]"]
 testing = ["coverage", "pyyaml"]
+
+[[package]]
+name = "markdown-it-py"
+version = "3.0.0"
+description = "Python port of markdown-it. Markdown parsing, done right!"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "markdown-it-py-3.0.0.tar.gz", hash = "sha256:e3f60a94fa066dc52ec76661e37c851cb232d92f9886b15cb560aaada2df8feb"},
+    {file = "markdown_it_py-3.0.0-py3-none-any.whl", hash = "sha256:355216845c60bd96232cd8d8c40e8f9765cc86f46880e43a8fd22dc1a1a8cab1"},
+]
+
+[package.dependencies]
+mdurl = ">=0.1,<1.0"
+
+[package.extras]
+benchmarking = ["psutil", "pytest", "pytest-benchmark"]
+code-style = ["pre-commit (>=3.0,<4.0)"]
+compare = ["commonmark (>=0.9,<1.0)", "markdown (>=3.4,<4.0)", "mistletoe (>=1.0,<2.0)", "mistune (>=2.0,<3.0)", "panflute (>=2.3,<3.0)"]
+linkify = ["linkify-it-py (>=1,<3)"]
+plugins = ["mdit-py-plugins"]
+profiling = ["gprof2dot"]
+rtd = ["jupyter_sphinx", "mdit-py-plugins", "myst-parser", "pyyaml", "sphinx", "sphinx-copybutton", "sphinx-design", "sphinx_book_theme"]
+testing = ["coverage", "pytest", "pytest-cov", "pytest-regressions"]
 
 [[package]]
 name = "markupsafe"
@@ -2057,6 +2133,17 @@ files = [
 traitlets = "*"
 
 [[package]]
+name = "mdurl"
+version = "0.1.2"
+description = "Markdown URL utilities"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8"},
+    {file = "mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba"},
+]
+
+[[package]]
 name = "mergedeep"
 version = "1.3.4"
 description = "A deep merge function for 🐍."
@@ -2066,6 +2153,23 @@ files = [
     {file = "mergedeep-1.3.4-py3-none-any.whl", hash = "sha256:70775750742b25c0d8f36c55aed03d24c3384d17c951b3175d898bd778ef0307"},
     {file = "mergedeep-1.3.4.tar.gz", hash = "sha256:0096d52e9dad9939c3d975a774666af186eda617e6ca84df4c94dec30004f2a8"},
 ]
+
+[[package]]
+name = "minikanren"
+version = "1.0.3"
+description = "Relational programming in Python"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "miniKanren-1.0.3.tar.gz", hash = "sha256:1ec8bdb01144ad5e8752c7c297fb8a122db920f859276d25a72d164e998d7f6e"},
+]
+
+[package.dependencies]
+cons = ">=0.4.0"
+etuples = ">=0.3.1"
+logical-unification = ">=0.4.1"
+multipledispatch = "*"
+toolz = "*"
 
 [[package]]
 name = "mpmath"
@@ -2259,6 +2363,17 @@ files = [
 ]
 
 [[package]]
+name = "multipledispatch"
+version = "1.0.0"
+description = "Multiple dispatch"
+optional = false
+python-versions = "*"
+files = [
+    {file = "multipledispatch-1.0.0-py3-none-any.whl", hash = "sha256:0c53cd8b077546da4e48869f49b13164bebafd0c2a5afceb6bb6a316e7fb46e4"},
+    {file = "multipledispatch-1.0.0.tar.gz", hash = "sha256:5c839915465c68206c3e9c473357908216c28383b425361e5d144594bf85a7e0"},
+]
+
+[[package]]
 name = "mypy-extensions"
 version = "1.0.0"
 description = "Type system extensions for programs checked with the mypy type checker."
@@ -2271,13 +2386,13 @@ files = [
 
 [[package]]
 name = "narwhals"
-version = "1.13.4"
+version = "1.13.5"
 description = "Extremely lightweight compatibility layer between dataframe libraries"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "narwhals-1.13.4-py3-none-any.whl", hash = "sha256:1e3068d69d7801cb26fb8ed7b3032591f0c2281d6392ce020d39186aed422b3d"},
-    {file = "narwhals-1.13.4.tar.gz", hash = "sha256:06f38209717b6586e15cabdccf725bce0374699a2e9778848a829d6e5fcd82b2"},
+    {file = "narwhals-1.13.5-py3-none-any.whl", hash = "sha256:91fe95ffdece9e3837780b6cd32f4309a41f39b285bc9d42d60eaff47d48b39a"},
+    {file = "narwhals-1.13.5.tar.gz", hash = "sha256:2e71b70895759af455a83583052bb9dbada9f72efad786d8d1b2f38078054e73"},
 ]
 
 [package.extras]
@@ -3244,6 +3359,29 @@ tqdm = "*"
 dev = ["jupyter", "nbconvert", "pre-commit (==3.5.0)", "pyright", "pytest", "pytest-cov", "pytest-xdist", "pyyaml", "ruff (>=0.3.3)", "torchtestcase"]
 
 [[package]]
+name = "pymc"
+version = "5.18.0"
+description = "Probabilistic Programming in Python: Bayesian Modeling and Probabilistic Machine Learning with PyTensor"
+optional = false
+python-versions = ">=3.10"
+files = [
+    {file = "pymc-5.18.0-py3-none-any.whl", hash = "sha256:e2c1f478ae855395e345edd1ea7fb5b8d65fb34babd22d31af9ee409f4252cf1"},
+    {file = "pymc-5.18.0.tar.gz", hash = "sha256:6e3c2235fa24198a3b1b929b1466cd36c65709822eb48821fb5b0e3684b5fd12"},
+]
+
+[package.dependencies]
+arviz = ">=0.13.0"
+cachetools = ">=4.2.1"
+cloudpickle = "*"
+numpy = ">=1.15.0"
+pandas = ">=0.24.0"
+pytensor = ">=2.25.1,<2.26"
+rich = ">=13.7.1"
+scipy = ">=1.4.1"
+threadpoolctl = ">=3.1.0,<4.0.0"
+typing-extensions = ">=3.7.4"
+
+[[package]]
 name = "pyparsing"
 version = "3.2.0"
 description = "pyparsing module - Classes and methods to define and execute parsing grammars"
@@ -3310,6 +3448,50 @@ files = [
     {file = "PySocks-1.7.1-py3-none-any.whl", hash = "sha256:2725bd0a9925919b9b51739eea5f9e2bae91e83288108a9ad338b2e3a4435ee5"},
     {file = "PySocks-1.7.1.tar.gz", hash = "sha256:3f8804571ebe159c380ac6de37643bb4685970655d3bba243530d6558b799aa0"},
 ]
+
+[[package]]
+name = "pytensor"
+version = "2.25.5"
+description = "Optimizing compiler for evaluating mathematical expressions on CPUs and GPUs."
+optional = false
+python-versions = "<3.13,>=3.10"
+files = [
+    {file = "pytensor-2.25.5-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:23ffac5ce99089abe3b6e1ae0c957f3af2a382209fb5894eb42acba0e01b96bf"},
+    {file = "pytensor-2.25.5-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:29754160a84ade77b63e1690aad8306da3b8f6f8e35c8ac5d36d1b19066b5f8d"},
+    {file = "pytensor-2.25.5-cp310-cp310-musllinux_1_2_i686.whl", hash = "sha256:51ea5083ec4760e6cfda48422d1b69e88d1b68e0f9a4aca41b0a89a4f38a1da7"},
+    {file = "pytensor-2.25.5-cp310-cp310-musllinux_1_2_x86_64.whl", hash = "sha256:343000f352c12ec36f5307d5c9ff7d8aba6dfa651be8c26b824d75cbad29d776"},
+    {file = "pytensor-2.25.5-cp310-cp310-win_amd64.whl", hash = "sha256:50264e6365578ee15298f23578ddc00cec4f015c1cb77dafbb6c3216b11f689c"},
+    {file = "pytensor-2.25.5-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:a97e769900718fea3a0efd2a4c452775786ca3bd7966c6510e89a1356e516d55"},
+    {file = "pytensor-2.25.5-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:eb7f6a370a99095850949798ee0ada38ace5132172fcbb4272398e687de5b417"},
+    {file = "pytensor-2.25.5-cp311-cp311-musllinux_1_2_i686.whl", hash = "sha256:930429bdf5cee35868a06a9d075f2fb40b3471708a61bea62cfafd21aaa0811e"},
+    {file = "pytensor-2.25.5-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:78686d9e26b26da2f0824f1f5a297f153b948a93c46e527d43d7337fe31e5afb"},
+    {file = "pytensor-2.25.5-cp311-cp311-win_amd64.whl", hash = "sha256:8a7b9dc112e3cef8e05641da9429a46fe1cd9d3b3bf11763c3500bc941c49fc7"},
+    {file = "pytensor-2.25.5-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:f15cf74eff5e53854f9e74ac4991ae850e48641ccbb211200d214c599b76d691"},
+    {file = "pytensor-2.25.5-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9c99f2aed904178c59fac57f5a760b547f7c1c14c20d31e41721fbebf9e47cf1"},
+    {file = "pytensor-2.25.5-cp312-cp312-musllinux_1_2_i686.whl", hash = "sha256:0c973a8a682854eb47378db33cfb5bc63ba5a868b5749fe79b2846e6795ff46d"},
+    {file = "pytensor-2.25.5-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:16344b21bd70eb689c7db7ab91eec556012c08e9ad8a7cbeb42812d53f89a64e"},
+    {file = "pytensor-2.25.5-cp312-cp312-win_amd64.whl", hash = "sha256:5edaa549903a8be02e6dcf56110d5cf523b6249460c455138e36686928a6c5a7"},
+    {file = "pytensor-2.25.5-py2.py3-none-any.whl", hash = "sha256:92271932118e4d9e6528eeba1cdd0e9e8f2d05d8493eb394da2cd8cf09c8836e"},
+    {file = "pytensor-2.25.5.tar.gz", hash = "sha256:f8b9f7d637104b2fc7fdd9c50219cc639744b718572c034b7cb8fe8f5051da92"},
+]
+
+[package.dependencies]
+cons = "*"
+etuples = "*"
+filelock = ">=3.15"
+logical-unification = "*"
+miniKanren = "*"
+numpy = ">=1.17.0,<2"
+scipy = ">=1,<2"
+setuptools = ">=59.0.0"
+
+[package.extras]
+complete = ["pytensor[jax]", "pytensor[numba]"]
+development = ["pytensor[complete]", "pytensor[rtd]", "pytensor[tests]"]
+jax = ["jax", "jaxlib"]
+numba = ["llvmlite", "numba (>=0.57)"]
+rtd = ["pydot", "pydot-ng", "pydot2", "pygments", "sphinx (>=5.1.0,<6)"]
+tests = ["coverage (>=5.1)", "pre-commit", "pytest", "pytest-benchmark", "pytest-cov (>=2.6.1)", "pytest-mock", "pytest-sphinx"]
 
 [[package]]
 name = "python-dateutil"
@@ -3713,6 +3895,24 @@ files = [
 ]
 
 [[package]]
+name = "rich"
+version = "13.9.4"
+description = "Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal"
+optional = false
+python-versions = ">=3.8.0"
+files = [
+    {file = "rich-13.9.4-py3-none-any.whl", hash = "sha256:6049d5e6ec054bf2779ab3358186963bac2ea89175919d699e378b99738c2a90"},
+    {file = "rich-13.9.4.tar.gz", hash = "sha256:439594978a49a09530cff7ebc4b5c7103ef57baf48d5ea3184f21d9a2befa098"},
+]
+
+[package.dependencies]
+markdown-it-py = ">=2.2.0"
+pygments = ">=2.13.0,<3.0.0"
+
+[package.extras]
+jupyter = ["ipywidgets (>=7.5.1,<9)"]
+
+[[package]]
 name = "rpds-py"
 version = "0.21.0"
 description = "Python bindings to Rust's persistent data structures (rpds)"
@@ -3983,13 +4183,13 @@ websocket-client = ">=1.8,<2.0"
 
 [[package]]
 name = "setuptools"
-version = "75.4.0"
+version = "75.5.0"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "setuptools-75.4.0-py3-none-any.whl", hash = "sha256:b3c5d862f98500b06ffdf7cc4499b48c46c317d8d56cb30b5c8bce4d88f5c216"},
-    {file = "setuptools-75.4.0.tar.gz", hash = "sha256:1dc484f5cf56fd3fe7216d7b8df820802e7246cfb534a1db2aa64f14fcb9cdcb"},
+    {file = "setuptools-75.5.0-py3-none-any.whl", hash = "sha256:87cb777c3b96d638ca02031192d40390e0ad97737e27b6b4fa831bea86f2f829"},
+    {file = "setuptools-75.5.0.tar.gz", hash = "sha256:5c4ccb41111392671f02bb5f8436dfc5a9a7185e80500531b133f5775c4163ef"},
 ]
 
 [package.extras]
@@ -4811,5 +5011,5 @@ type = ["pytest-mypy"]
 
 [metadata]
 lock-version = "2.0"
-python-versions = "^3.11"
-content-hash = "914f983c8f007423a2cdbb23e8bc739d9e39142a64aa13bdeea1712ab47f5bf4"
+python-versions = ">=3.11,<3.13"
+content-hash = "1a293db421690974518787cbef8d5e83c668631aeee18489b663cdaea3c3ca52"
