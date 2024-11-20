@@ -112,6 +112,13 @@ class SBINetwork(Module):
         Returns:
             Tensor: (batch_size, n_target, 1)
         """
+        batch = True
+        if len(theta.shape) == 1 and len(x_target.shape) == 2:
+            # input without batchsize
+            batch = False
+            theta = theta[None]
+            x_target = x_target[None]
+
         theta_enc = self._theta_encoder.forward(theta)        
         simulator_out_enc = self._simulator_out_encoder.forward(x_target)
 
@@ -121,4 +128,9 @@ class SBINetwork(Module):
         theta_enc = theta_enc[:, None].repeat(theta_repeat_dim)
 
         res = self._latent_mlp(torch.cat([theta_enc, simulator_out_enc], dim=-1))
+        
+        if not batch:
+            # remove artificial batch
+            res = res[0]
+
         return res
