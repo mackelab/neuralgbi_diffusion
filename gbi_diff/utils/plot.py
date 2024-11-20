@@ -1,5 +1,4 @@
 from typing import Tuple
-from arviz import r2_score
 from matplotlib.axis import Axis
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
