@@ -4,7 +4,7 @@ from torch import Tensor
 from torch.utils.data import Dataset
 import numpy as np
 
-from gbi_diff.dataset.utils import generate_moon
+from gbi_diff.dataset import simulator_api
 import logging
 
 
@@ -68,12 +68,15 @@ class SBIDataset(Dataset):
         }
         torch.save(data, path)
 
-    def generate_dataset(self, size: int, type: Literal["moon"] = "moon"):
-        # TODO: add more datasets
-        if type != "moon":
-            msg = f"{type} is not available as type"
-            logging.warning(msg)
-        theta, x = generate_moon(size)
+    def generate_dataset(self, size: int, entity: str = "moon"):
+        prefix = "generate_"
+        generator_func_names = list(filter(lambda x: prefix in x, simulator_api.__dict__.keys()))
+        types = list(map(lambda x: "_".join(x.split("_")[1:]), generator_func_names))
+        if entity not in types:
+            raise NotImplementedError(f"There is not simulator api implemented for the `entity`: {entity}\
+                                      Available are: {types}")
+        func = getattr(simulator_api, prefix + entity)
+        theta, x = func(size)
         self._theta = theta
         self._x = x
         self._target = self._get_x_target()
