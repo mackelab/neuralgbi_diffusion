@@ -22,7 +22,9 @@ class FeedForwardNetwork(Module):
         self._input_dim = input_dim
         self._output_dim = output_dim
 
-        self._final_activation_cls = getattr(nn, final_activation) if final_activation is not None else None 
+        self._final_activation_cls = (
+            getattr(nn, final_activation) if final_activation is not None else None
+        )
         self._activation_function_cls = getattr(nn, activation_function)
         self._linear = self._create_linear_unit(architecture).to(device)
 
@@ -36,7 +38,9 @@ class FeedForwardNetwork(Module):
             Sequential: sequential linear unit
         """
         # input layer
-        if architecture is None or (isinstance(architecture, list) and len(architecture) == 0):
+        if architecture is None or (
+            isinstance(architecture, list) and len(architecture) == 0
+        ):
             return Linear(self._input_dim, self._output_dim)
 
         layers = [
@@ -92,14 +96,14 @@ class SBINetwork(Module):
             output_dim=latent_dim,
             architecture=simulator_encoder,
             activation_function=activation_func,
-            final_activation=activation_func
+            final_activation=activation_func,
         )
         self._latent_mlp = FeedForwardNetwork(
             input_dim=2 * latent_dim,
             output_dim=1,
             architecture=latent_mlp,
             activation_function=activation_func,
-            final_activation=final_activation
+            final_activation=final_activation,
         )
 
     def forward(self, theta: Tensor, x_target: Tensor) -> Tensor:
@@ -119,7 +123,7 @@ class SBINetwork(Module):
             theta = theta[None]
             x_target = x_target[None]
 
-        theta_enc = self._theta_encoder.forward(theta)        
+        theta_enc = self._theta_encoder.forward(theta)
         simulator_out_enc = self._simulator_out_encoder.forward(x_target)
 
         # repeat the theta  encoding along the n_target dimension
@@ -128,7 +132,7 @@ class SBINetwork(Module):
         theta_enc = theta_enc[:, None].repeat(theta_repeat_dim)
 
         res = self._latent_mlp(torch.cat([theta_enc, simulator_out_enc], dim=-1))
-        
+
         if not batch:
             # remove artificial batch
             res = res[0]
