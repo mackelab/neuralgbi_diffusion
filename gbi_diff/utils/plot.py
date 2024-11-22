@@ -1,16 +1,20 @@
-from typing import Tuple
-from matplotlib.axis import Axis
-from matplotlib.figure import Figure
-import matplotlib
+import os
+from typing import Dict, List, Tuple
 
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from matplotlib.axis import Axis
+from matplotlib.figure import Figure
+from typing import Callable
+import seaborn as sns
+import pandas as pd
+from tqdm import tqdm
+from gbi_diff.utils.mcmc_config import Config
+
 
 
 def plot_correlation(
-    pred: torch.Tensor, d: torch.Tensor, as_array: bool = False
+    pred: torch.Tensor, d: torch.Tensor, as_array: bool = False, agg: bool = False,
 ) -> Tuple[Figure, Axis] | np.ndarray:
     """plot correlation
 
@@ -22,6 +26,12 @@ def plot_correlation(
     Returns:
         Tuple[Figure, Axis] | np.ndarray: the figure in different formats
     """
+
+    if agg:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+
     corr = torch.corrcoef(torch.stack([d.flatten(), pred.flatten()]))[0, 1]
     fig, ax = plt.subplots()
 
@@ -49,3 +59,73 @@ def plot_correlation(
         return image
 
     return fig, ax
+
+
+def pair_plot_stack(samples: Dict[str, torch.Tensor], checkpoint: str, config: Config, save_dir: str = None) -> List[sns.PairGrid]:
+    """_summary_
+
+    Args:
+        samples (Dict[str, torch.Tensor]): _description_
+        checkpoint (str): _description_
+        config (Config): _description_
+        save_dir (str, optional): _description_. Defaults to None.
+
+    Returns:
+        List[sns.PairGrid]: _description_
+    """
+    # avoid circular import
+    from gbi_diff.sampling.utils import create_potential_fn, get_sample_path
+    
+    potential_func = create_potential_fn(checkpoint, config)
+
+    figures = []
+    n_samples = samples["theta"].shape[0]
+    for idx in tqdm(range(n_samples), desc="Pair plot"):
+        potential_func.update_x_o(samples["x_o"][idx])
+        grid = pair_plot(samples["theta"][idx], potential_fn=potential_func, title=f"Index: {idx}")
+        figures.append(grid)
+        
+        save_path = get_sample_path(checkpoint, f"pair_plot_{idx}.png", save_dir)
+        directory = "/".join(save_path.split("/")[:-1])
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        grid.savefig(save_path)
+    return figures
+    
+
+
+def pair_plot(
+    theta: torch.Tensor,
+    potential_fn: Callable[[torch.Tensor], torch.Tensor] = None,
+    s: int = 10,
+    alpha: float = 1,
+    title: str = None,
+    save_path: str = None
+):
+    """_summary_
+
+    Args:
+        theta (torch.Tensor): (n_samples, feature_dim)
+        potential_fn (str optional): potential function for log posterior. Defaults to None.
+        s (int, optional): marker size. Defaults to 10.
+        alpha (float, optional): maker transparency. Defaults to 1.
+        title (str, optional): figure title. Defaults to None
+    """
+    n_feautures = theta.shape[1]
+    columns = ["theta_" + str(idx) for idx in range(n_feautures)]
+    plot_kws = {"s": s, "alpha": alpha}
+
+    if potential_fn is not None:
+        with torch.no_grad():
+            p = torch.exp(potential_fn.log_posterior(theta))
+        plot_kws["c"] = p
+    df = pd.DataFrame(torch.cat([theta, p], dim=1), columns=columns + ["p"])
+    grid = sns.pairplot(df, vars=columns, corner=True, plot_kws=plot_kws)
+    
+    if title is not None:
+        grid.figure.suptitle(title)
+
+    if save_path is not None:
+        grid.savefig(save_path)
+
+    return grid

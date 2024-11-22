@@ -1,6 +1,5 @@
 from typing import List
 
-
 class Process:
     """CLI Process to handle GBI pipeline"""
 
@@ -74,11 +73,10 @@ class Process:
         import torch  # pylint: disable=C0415
         from gbi_diff.scripts.sampling import (
             sample_posterior,
-            load_observed_data,
-            save_samples
         )  # pylint: disable=C0415
+        from gbi_diff.sampling.utils import load_observed_data, save_samples # pylint: disable=C0415
         from gbi_diff.utils.mcmc_config import Config  # pylint: disable=C0415
-
+        from gbi_diff.utils.plot import pair_plot_stack # pylint: disable=C0415
         # <<<<
 
         config = Config.from_file(config_file)
@@ -89,4 +87,4 @@ class Process:
         save_samples(samples, checkpoint, output)
 
         if plot:
-            print("plot results not implemented yet")
+            pair_plot_stack(samples, checkpoint, config, output)

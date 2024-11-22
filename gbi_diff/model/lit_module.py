@@ -83,7 +83,7 @@ class SBI(LightningModule):
             return
         pred = torch.cat(self._val_step_outputs["pred"], dim=0)
         d = torch.cat(self._val_step_outputs["d"], dim=0)
-        fig, _ = plot_correlation(pred, d)
+        fig, _ = plot_correlation(pred, d, agg=True)
 
         tb_logger: TensorBoardLogger = self.loggers[0]
         tb_logger.experiment.add_figure(
