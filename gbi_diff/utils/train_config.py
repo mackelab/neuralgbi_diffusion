@@ -18,8 +18,8 @@ class _Dataset:
 
     @classmethod
     def from_file(cls, file: str) -> "_Dataset":
-        ending = file.split('.')[-1]
-        content = getattr(fs_utils, f'load_{ending}')(file)
+        ending = file.split(".")[-1]
+        content = getattr(fs_utils, f"load_{ending}")(file)
         content = replace_tokens(content)
         first_key, first_value = content.popitem()
         if len(content) == 0 and isinstance(first_value, dict):
@@ -29,8 +29,8 @@ class _Dataset:
         return cls(**content)
 
     def to_file(self, file: str):
-        ending = file.split('.')[-1]
-        write_func = getattr(fs_utils, f'write_{ending}')
+        ending = file.split(".")[-1]
+        write_func = getattr(fs_utils, f"write_{ending}")
         content = deconstruct_config(self)
         write_func(file, content)
 
@@ -46,8 +46,8 @@ class _Model:
 
     @classmethod
     def from_file(cls, file: str) -> "_Model":
-        ending = file.split('.')[-1]
-        content = getattr(fs_utils, f'load_{ending}')(file)
+        ending = file.split(".")[-1]
+        content = getattr(fs_utils, f"load_{ending}")(file)
         content = replace_tokens(content)
         first_key, first_value = content.popitem()
         if len(content) == 0 and isinstance(first_value, dict):
@@ -57,8 +57,8 @@ class _Model:
         return cls(**content)
 
     def to_file(self, file: str):
-        ending = file.split('.')[-1]
-        write_func = getattr(fs_utils, f'write_{ending}')
+        ending = file.split(".")[-1]
+        write_func = getattr(fs_utils, f"write_{ending}")
         content = deconstruct_config(self)
         write_func(file, content)
 
@@ -71,8 +71,8 @@ class _Optimizer:
 
     @classmethod
     def from_file(cls, file: str) -> "_Optimizer":
-        ending = file.split('.')[-1]
-        content = getattr(fs_utils, f'load_{ending}')(file)
+        ending = file.split(".")[-1]
+        content = getattr(fs_utils, f"load_{ending}")(file)
         content = replace_tokens(content)
         first_key, first_value = content.popitem()
         if len(content) == 0 and isinstance(first_value, dict):
@@ -82,8 +82,8 @@ class _Optimizer:
         return cls(**content)
 
     def to_file(self, file: str):
-        ending = file.split('.')[-1]
-        write_func = getattr(fs_utils, f'write_{ending}')
+        ending = file.split(".")[-1]
+        write_func = getattr(fs_utils, f"write_{ending}")
         content = deconstruct_config(self)
         write_func(file, content)
 
@@ -102,8 +102,8 @@ class Config:
 
     @classmethod
     def from_file(cls, file: str) -> "Config":
-        ending = file.split('.')[-1]
-        content = getattr(fs_utils, f'load_{ending}')(file)
+        ending = file.split(".")[-1]
+        content = getattr(fs_utils, f"load_{ending}")(file)
         content = replace_tokens(content)
         first_key, first_value = content.popitem()
         if len(content) == 0 and isinstance(first_value, dict):
@@ -113,12 +113,12 @@ class Config:
         return cls(**content)
 
     def to_file(self, file: str):
-        ending = file.split('.')[-1]
-        write_func = getattr(fs_utils, f'write_{ending}')
+        ending = file.split(".")[-1]
+        write_func = getattr(fs_utils, f"write_{ending}")
         content = deconstruct_config(self)
         write_func(file, content)
 
     def __post_init__(self):
-        self.dataset = _Dataset(**self.dataset)  #pylint: disable=E1134
-        self.model = _Model(**self.model)  #pylint: disable=E1134
-        self.optimizer = _Optimizer(**self.optimizer)  #pylint: disable=E1134
+        self.dataset = _Dataset(**self.dataset)  # pylint: disable=E1134
+        self.model = _Model(**self.model)  # pylint: disable=E1134
+        self.optimizer = _Optimizer(**self.optimizer)  # pylint: disable=E1134

@@ -47,6 +47,14 @@ def add_mcmc_sample_args(parser: ArgumentParser) -> ArgumentParser:
         action="store_true",
         required=False,
     )
+    parser.add_argument(
+        "--num-worker",
+        help="How many threads you would like to use to sample from mcmc",
+        dest="num_worker",
+        type=int,
+        default=1,
+        required=False,
+    )
     return parser
 
 

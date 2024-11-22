@@ -1,5 +1,6 @@
 from typing import List
 
+
 class Process:
     """CLI Process to handle GBI pipeline"""
 
@@ -58,6 +59,7 @@ class Process:
         config_file: str = "config/mcmc.yaml",
         output: str = None,
         plot: bool = False,
+        num_worker: int = 1
     ):
         """sample mcmc
 
@@ -68,21 +70,29 @@ class Process:
             config_file (str, optional): path to config file. Defaults to "config/mcmc.yaml".
             output (str, optional): Directory where to store the sampled results. If this is None it will be a subdirectory in the checkpoint directory. Defaults to None
             plot (bool, optional): would like to create a pair-plot with your sampled data. Defaults to False
+            num_worker (int): How many threads you would like to use to sample from mcmc
         """
+        if num_worker > 1:
+            raise NotImplementedError("Multithread for parallel sampling is not done yet. ")
+        
         # >>>> add import here for faster help message
         import torch  # pylint: disable=C0415
-        from gbi_diff.scripts.sampling import (
-            sample_posterior,
-        )  # pylint: disable=C0415
-        from gbi_diff.sampling.utils import load_observed_data, save_samples # pylint: disable=C0415
-        from gbi_diff.utils.mcmc_config import Config  # pylint: disable=C0415
-        from gbi_diff.utils.plot import pair_plot_stack # pylint: disable=C0415
-        # <<<<
 
+        from gbi_diff.sampling.utils import (  # pylint: disable=C0415
+            load_observed_data,
+            save_samples,
+        )
+        from gbi_diff.scripts.sampling import (  # pylint: disable=C0415
+            sample_posterior,
+        )
+        from gbi_diff.utils.mcmc_config import Config  # pylint: disable=C0415
+        from gbi_diff.utils.plot import pair_plot_stack  # pylint: disable=C0415
+        # <<<<
+        
         config = Config.from_file(config_file)
         x_o = load_observed_data(observed_data)
         samples = sample_posterior(checkpoint, x_o, config, size)
-
+        
         # save output
         save_samples(samples, checkpoint, output)
 

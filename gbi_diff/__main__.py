@@ -28,6 +28,7 @@ def execute(args: dict) -> bool:
                 config_file=args["config_file"],
                 output=args["output"],
                 plot=args["plot"],
+                num_worker=args["num_worker"],
             )
 
         case _:

@@ -12,9 +12,11 @@ from tqdm import tqdm
 from gbi_diff.utils.mcmc_config import Config
 
 
-
 def plot_correlation(
-    pred: torch.Tensor, d: torch.Tensor, as_array: bool = False, agg: bool = False,
+    pred: torch.Tensor,
+    d: torch.Tensor,
+    as_array: bool = False,
+    agg: bool = False,
 ) -> Tuple[Figure, Axis] | np.ndarray:
     """plot correlation
 
@@ -29,6 +31,7 @@ def plot_correlation(
 
     if agg:
         import matplotlib
+
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
 
@@ -61,7 +64,12 @@ def plot_correlation(
     return fig, ax
 
 
-def pair_plot_stack(samples: Dict[str, torch.Tensor], checkpoint: str, config: Config, save_dir: str = None) -> List[sns.PairGrid]:
+def pair_plot_stack(
+    samples: Dict[str, torch.Tensor],
+    checkpoint: str,
+    config: Config,
+    save_dir: str = None,
+) -> List[sns.PairGrid]:
     """_summary_
 
     Args:
@@ -75,23 +83,24 @@ def pair_plot_stack(samples: Dict[str, torch.Tensor], checkpoint: str, config: C
     """
     # avoid circular import
     from gbi_diff.sampling.utils import create_potential_fn, get_sample_path
-    
+
     potential_func = create_potential_fn(checkpoint, config)
 
     figures = []
     n_samples = samples["theta"].shape[0]
     for idx in tqdm(range(n_samples), desc="Pair plot"):
         potential_func.update_x_o(samples["x_o"][idx])
-        grid = pair_plot(samples["theta"][idx], potential_fn=potential_func, title=f"Index: {idx}")
+        grid = pair_plot(
+            samples["theta"][idx], potential_fn=potential_func, title=f"Index: {idx}"
+        )
         figures.append(grid)
-        
+
         save_path = get_sample_path(checkpoint, f"pair_plot_{idx}.png", save_dir)
         directory = "/".join(save_path.split("/")[:-1])
         if not os.path.exists(directory):
             os.makedirs(directory)
         grid.savefig(save_path)
     return figures
-    
 
 
 def pair_plot(
@@ -100,7 +109,7 @@ def pair_plot(
     s: int = 10,
     alpha: float = 1,
     title: str = None,
-    save_path: str = None
+    save_path: str = None,
 ):
     """_summary_
 
@@ -121,7 +130,7 @@ def pair_plot(
         plot_kws["c"] = p
     df = pd.DataFrame(torch.cat([theta, p], dim=1), columns=columns + ["p"])
     grid = sns.pairplot(df, vars=columns, corner=True, plot_kws=plot_kws)
-    
+
     if title is not None:
         grid.figure.suptitle(title)
 
