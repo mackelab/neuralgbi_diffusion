@@ -1,6 +1,55 @@
 from argparse import ArgumentParser
 
 
+def add_mcmc_sample_args(parser: ArgumentParser) -> ArgumentParser:
+    parser.add_argument(
+        "--checkpoint",
+        help="path to checkpoint",
+        dest="checkpoint",
+        type=str,
+        required=True,
+    )
+    parser.add_argument(
+        "--observed-data",
+        help="path to observed data.",
+        dest="observed_data",
+        type=str,
+        required=True,
+    )
+    parser.add_argument(
+        "--size",
+        help="how many samples you would like to sample. Defaults to 100.",
+        dest="size",
+        type=int,
+        default=100,
+        required=False,
+    )
+    parser.add_argument(
+        "--config-file",
+        help='path to config file. Defaults to "config/mcmc.yaml".',
+        dest="config_file",
+        type=str,
+        default="config/mcmc.yaml",
+        required=False,
+    )
+    parser.add_argument(
+        "--output",
+        help="Directory where to store the sampled results. If this is None it will be a subdirectory in the checkpoint directory. Defaults to None",
+        dest="output",
+        type=str,
+        default=None,
+        required=False,
+    )
+    parser.add_argument(
+        "--plot",
+        help="would like to create a pair-plot with your sampled data. Defaults to False",
+        dest="plot",
+        action="store_true",
+        required=False,
+    )
+    return parser
+
+
 def add_train_args(parser: ArgumentParser) -> ArgumentParser:
     parser.add_argument(
         "--config-file",
@@ -66,6 +115,8 @@ def setup_process_parser(parser: ArgumentParser) -> ArgumentParser:
         "train", help="start training process as defined in your config file"
     )
     train = add_train_args(train)
+    mcmc_sample = command_subparser.add_parser("mcmc-sample", help="sample mcmc")
+    mcmc_sample = add_mcmc_sample_args(mcmc_sample)
     return parser
 
 

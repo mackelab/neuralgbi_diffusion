@@ -20,6 +20,16 @@ def execute(args: dict) -> bool:
                 force=args["force"],
             )
 
+        case "mcmc-sample":
+            module.mcmc_sample(
+                checkpoint=args["checkpoint"],
+                observed_data=args["observed_data"],
+                size=args["size"],
+                config_file=args["config_file"],
+                output=args["output"],
+                plot=args["plot"],
+            )
+
         case _:
             return False
 

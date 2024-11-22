@@ -1,6 +1,9 @@
 from typing import Tuple
 from matplotlib.axis import Axis
 from matplotlib.figure import Figure
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import torch

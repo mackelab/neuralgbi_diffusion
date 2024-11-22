@@ -50,7 +50,9 @@ class SBICriterion:
 
         # L2 distance
         difference = x[:, None] - x_target
-        distance = torch.linalg.norm(difference, ord=self._distance_order, dim=-1)  #pylint: disable=E1102
+        distance = torch.linalg.norm(
+            difference, ord=self._distance_order, dim=-1
+        )  # pylint: disable=E1102
         return distance
 
         # Cosine similartiy as distance

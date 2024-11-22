@@ -3,6 +3,7 @@ import os
 
 import torch
 import yaml
+import matplotlib
 from config2class.utils import deconstruct_config
 from lightning import Trainer
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
@@ -11,7 +12,7 @@ from torch.utils.data import DataLoader
 
 from gbi_diff.dataset import SBIDataset
 from gbi_diff.model.lit_module import SBI
-from gbi_diff.utils.config import Config
+from gbi_diff.utils.train_config import Config
 from gbi_diff.utils.filesystem import write_yaml
 
 
@@ -83,7 +84,7 @@ def train(config: Config, devices: int = 1, force: bool = False):
         if not (question is None or question.lower().strip() in ["", "y", "yes"]):
             print("Abort training")
             return
-    
+
     write_yaml(deconstruct_config(config), tb_logger.log_dir + "/config.yaml")
     trainer.fit(model, train_loader, val_loader)
 

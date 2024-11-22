@@ -1,0 +1,1 @@
+from gbi_diff.sampling.potential_func import PotentialFunc
