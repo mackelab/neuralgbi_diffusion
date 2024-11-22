@@ -54,7 +54,7 @@ def save_samples(samples: Dict[str, torch.Tensor], checkpoint: str, output: str 
     directory = "/".join(output.split("/")[:-1])
     if not os.path.exists(directory):
         os.makedirs(directory)
-    
+
     torch.save(samples, output)
 
 

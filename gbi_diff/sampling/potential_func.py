@@ -6,7 +6,11 @@ from torch.distributions import Distribution
 
 class PotentialFunc:
     def __init__(
-        self, checkpoint: str, prior: Distribution, x_o: torch.Tensor = None, beta: float = 1
+        self,
+        checkpoint: str,
+        prior: Distribution,
+        x_o: torch.Tensor = None,
+        beta: float = 1,
     ):
         """_summary_
 
@@ -23,7 +27,7 @@ class PotentialFunc:
         self.x_o = x_o
         if self.x_o is not None:
             self.update_x_o(self.x_o)
-        
+
     def log_likelihood(self, theta: torch.Tensor) -> torch.Tensor:
         x_o = self.x_o
         batched = False
@@ -59,7 +63,6 @@ class PotentialFunc:
             # nest value if it is not a batch
             value = value[None]
         self.x_o = value
-
 
     def __call__(self, args: Dict[str, torch.Tensor]):
         theta = args["theta"]
