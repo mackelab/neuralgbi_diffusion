@@ -7,8 +7,8 @@ from lightning.pytorch.loggers import TensorBoardLogger
 from torch import Tensor, optim
 
 from gbi_diff.model.networks import SBINetwork
-from gbi_diff.utils.config import _Model as ModelConfig
-from gbi_diff.utils.config import _Optimizer as OptimizerConfig
+from gbi_diff.utils.train_config import _Model as ModelConfig
+from gbi_diff.utils.train_config import _Optimizer as OptimizerConfig
 from gbi_diff.utils.criterion import SBICriterion
 from gbi_diff.utils.plot import plot_correlation
 
@@ -26,7 +26,6 @@ class SBI(LightningModule):
         super().__init__(*args, **kwargs)
         self.save_hyperparameters()
 
-        
         self.net = SBINetwork(
             theta_dim=prior_dim,
             simulator_out_dim=simulator_out_dim,
@@ -44,7 +43,6 @@ class SBI(LightningModule):
         # this thing should not leave the class. Inconsistencies with strings feared
         self._train_step_outputs = {"pred": [], "d": []}
         self._val_step_outputs = {"pred": [], "d": []}
-
 
     def training_step(self, batch: Tuple[Tensor, Tensor, Tensor], batch_idx: int):
         prior, simulator_out, x_target = batch

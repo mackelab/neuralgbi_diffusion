@@ -3,6 +3,9 @@ from types import NoneType
 import config2class.utils.filesystem as fs_utils
 
 
+from config2class.utils import deconstruct_config
+
+
 from config2class.utils.replacement import replace_tokens
 
 
@@ -24,6 +27,12 @@ class _Dataset:
         else:
             content[first_key] = first_value
         return cls(**content)
+
+    def to_file(self, file: str):
+        ending = file.split('.')[-1]
+        write_func = getattr(fs_utils, f'write_{ending}')
+        content = deconstruct_config(self)
+        write_func(file, content)
 
 
 @dataclass
@@ -47,6 +56,12 @@ class _Model:
             content[first_key] = first_value
         return cls(**content)
 
+    def to_file(self, file: str):
+        ending = file.split('.')[-1]
+        write_func = getattr(fs_utils, f'write_{ending}')
+        content = deconstruct_config(self)
+        write_func(file, content)
+
 
 @dataclass
 class _Optimizer:
@@ -65,6 +80,12 @@ class _Optimizer:
         else:
             content[first_key] = first_value
         return cls(**content)
+
+    def to_file(self, file: str):
+        ending = file.split('.')[-1]
+        write_func = getattr(fs_utils, f'write_{ending}')
+        content = deconstruct_config(self)
+        write_func(file, content)
 
 
 @dataclass
@@ -90,6 +111,12 @@ class Config:
         else:
             content[first_key] = first_value
         return cls(**content)
+
+    def to_file(self, file: str):
+        ending = file.split('.')[-1]
+        write_func = getattr(fs_utils, f'write_{ending}')
+        content = deconstruct_config(self)
+        write_func(file, content)
 
     def __post_init__(self):
         self.dataset = _Dataset(**self.dataset)  #pylint: disable=E1134
