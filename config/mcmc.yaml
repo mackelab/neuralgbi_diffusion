@@ -1,10 +1,10 @@
 kernel: "NUTS"  # also HMC possible
-beta: 1
+beta: 10
 prior: "SymmetricUniform" 
 warmup_steps: 200
 
 # Collection of prior distributions
 
 SymmetricUniform:
-  amplitude: 1
+  amplitude: 3
   n_dims: 2  # depended on the parameter dimension of a simulator. 
