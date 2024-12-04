@@ -2,7 +2,7 @@ results_dir: "results/two_moons"
 check_val_every_n_epochs: 5
 num_worker: 12
 
-max_epochs: 200
+max_epochs: 100
 batch_size: 256
 precision: 32 # 64: extended, 32: standard, 16: half
 
@@ -22,17 +22,18 @@ model:
 
 diffusion:
     enabled: True
-    steps: 10
+    steps: 100
+    include_t: True
     diffusion_time_sampler: "UniformSampler"
     diffusion_schedule: "VPSchedule"
     # Diffusion sampler
     UniformSampler:
-        p: 1  # influences memory usage of training process linearly
+        p: 0.1  # influences memory usage of training process linearly -> less improves training because of less mixed signals -> std should rise
 
     # Variance Preserving Schedule
     VPSchedule:
-        beta_min: 0.3
-        beta_max: 0.3
+        beta_min: 0.03
+        beta_max: 0.03
         beta_schedule_cls: LinearSchedule
 
 optimizer:

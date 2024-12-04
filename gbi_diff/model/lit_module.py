@@ -125,6 +125,10 @@ class DiffSBI(SBI):
         *args,
         **kwargs
     ):
+        if diff_config.include_t:
+            # TODO: make this dependent on the diffusion time encoding
+            theta_dim += 1
+
         super().__init__(
             theta_dim,
             simulator_out_dim,
@@ -138,6 +142,7 @@ class DiffSBI(SBI):
         self.diff_schedule = self._build_schedule(diff_config)
         self.sampler = self._build_sampler(diff_config)
         self.diffusion_steps = diff_config.steps
+        self.include_t = diff_config.include_t
         self.t = torch.linspace(0, 1, self.diffusion_steps)
         
     
@@ -156,12 +161,13 @@ class DiffSBI(SBI):
         sampler = sampler_cls(**sampler_config.__dict__)
         return sampler
     
-    def _sample_diffusions(self, theta: Tensor) -> Tensor:
+    def _sample_diffusions(self, theta: Tensor, include_t: bool = False) -> Tensor:
         """ sample a subset of thetas according to `self.sampler` and diffuse the samples 
         according to `self.schedule`
 
         Args:
             theta (Tensor): (batch_size, theta_dim)
+            include_t: (optional, bool): Would you like to append the time encoding into the sampled
 
         Returns:
             Tensor: (batch_size, sampled_diffs, theta_dim)
@@ -180,18 +186,25 @@ class DiffSBI(SBI):
         insert_slice = slice(0, None)
         if sampled_t[0] == 0:
             # include the undiffused sample
-            sampled_t = sampled_t[1:]
+            # sampled_t = sampled_t[1:]
             res[:, 0] = theta
             insert_slice = slice(1, None)
-        diffused_theta = torch.normal(*self.diff_schedule.forward(theta, sampled_t))
+        diffused_theta = torch.normal(*self.diff_schedule.forward(theta, sampled_t[insert_slice]))
         res[:, insert_slice] = diffused_theta
+
+        if include_t:
+            # TODO: write a get_time_enc function for more complex time-encodings
+            batch_size = len(theta)
+            sampled_t = sampled_t[None, :, None].repeat((batch_size, 1, 1))
+            res = torch.cat([res, sampled_t], dim=-1)
+
         return res
 
     def training_step(self, batch, batch_idx):
         theta, simulator_out, x_target = batch
 
-        theta = self._sample_diffusions(theta)
-        network_res = self.forward(theta, x_target)
+        theta_t = self._sample_diffusions(theta, include_t=self.include_t)
+        network_res = self.forward(theta_t, x_target)
         loss = self.criterion.forward(network_res, simulator_out, x_target)
         self.log("train/loss", loss, on_epoch=True, on_step=False)
         self.log(
@@ -204,13 +217,15 @@ class DiffSBI(SBI):
         self._train_step_outputs["pred"].append(self.criterion.pred)
         self._train_step_outputs["d"].append(self.criterion.d)
 
+        # import sys
+        # sys.exit()
         return loss
 
     def validation_step(self, batch, batch_idx):
         theta, simulator_out, x_target = batch
 
-        theta = self._sample_diffusions(theta)
-        network_res = self.forward(theta, x_target)
+        theta_t = self._sample_diffusions(theta, include_t=self.include_t)
+        network_res = self.forward(theta_t, x_target)
         loss = self.criterion.forward(network_res, simulator_out, x_target)
         self.log("val/loss", loss, on_epoch=True, on_step=False)
         self.log(
@@ -223,6 +238,8 @@ class DiffSBI(SBI):
         self._val_step_outputs["pred"].append(self.criterion.pred)
         self._val_step_outputs["d"].append(self.criterion.d)
 
+        # import sys
+        # sys.exit()
         return loss
     
     def on_validation_epoch_end(self):

@@ -115,6 +115,7 @@ class _VPSchedule:
 class _Diffusion:
     enabled: bool
     steps: int
+    include_t: bool
     diffusion_time_sampler: str
     diffusion_schedule: str
     UniformSampler: _UniformSampler
