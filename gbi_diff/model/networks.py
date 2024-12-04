@@ -5,6 +5,8 @@ import torch.nn as nn
 from torch import Tensor
 from torch.nn import Linear, Sequential, Module
 
+from gbi_diff.utils.reshape import dim_repeat
+
 
 class FeedForwardNetwork(Module):
     def __init__(
@@ -107,14 +109,14 @@ class SBINetwork(Module):
         )
 
     def forward(self, theta: Tensor, x_target: Tensor) -> Tensor:
-        """_summary_
+        """
 
         Args:
-            theta (Tensor): (batch_size, theta_dim)
+            theta (Tensor): (batch_size, (diff_steps, ) theta_dim)
             x_target (Tensor): (batch_size, n_target, simulator_dim)
 
         Returns:
-            Tensor: (batch_size, n_target, 1)
+            Tensor: (batch_size, (diff_steps, ) n_target, 1)
         """
         batch = True
         if len(theta.shape) == 1 and len(x_target.shape) == 2:
@@ -123,15 +125,22 @@ class SBINetwork(Module):
             theta = theta[None]
             x_target = x_target[None]
 
-        theta_enc = self._theta_encoder.forward(theta)
+        # out shape: (batch_size, (diff_steps, ), latent_dim / 2)
+        theta_enc = self._theta_encoder.forward(theta)  
+        # out shape: (batch_size, n_target, latent_dim / 2)
         simulator_out_enc = self._simulator_out_encoder.forward(x_target)
 
         # repeat the theta  encoding along the n_target dimension
         n_target = x_target.shape[1]
-        theta_repeat_dim = (1, n_target, 1)
-        theta_enc = theta_enc[:, None].repeat(theta_repeat_dim)
+        theta_enc = dim_repeat(theta_enc, n_target, -2)
+        
+        if len(theta_enc.shape) == 4:
+            # diffusion steps in theta are apparent
+            diffusion_steps = theta_enc.shape[1]
+            simulator_out_enc = dim_repeat(simulator_out_enc, diffusion_steps, 1)
 
-        res = self._latent_mlp(torch.cat([theta_enc, simulator_out_enc], dim=-1))
+        latent_input = torch.cat([theta_enc, simulator_out_enc], dim=-1)
+        res = self._latent_mlp(latent_input)
 
         if not batch:
             # remove artificial batch

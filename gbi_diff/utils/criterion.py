@@ -1,6 +1,11 @@
+from typing import Any, Dict
+import numpy as np
 import torch
 import torch.nn as nn
 from torch import Tensor
+
+from gbi_diff.diffusion.sampler import DiffSampler, UniformSampler
+from gbi_diff.utils.metrics import batch_correlation
 
 
 class SBICriterion:
@@ -20,7 +25,7 @@ class SBICriterion:
         """_summary_
 
         Args:
-            pred (Tensor): (batch_size, n_target, 1)
+            pred (Tensor): (batch_size, n_target, 1) | (batch_size, n_diffusion_steps, n_target, 1)
             x (Tensor): (batch_size, n_sim_features)
             x_target (Tensor): (batch_size, n_target, n_sim_features)
 
@@ -29,11 +34,20 @@ class SBICriterion:
         """
         # distance matrix
         d = self.sample_distance(x, x_target)
-        # print(pred.shape, d.shape)
-        loss = self.mse.forward(pred[..., 0], d)
+        
+        if len(pred.shape) == 4: 
+            # diffusion steps are included. 
+            # Add an additional dimension in the distance matrix for broadcasting
+            d = d[:, None]
+            n_diffusion_steps = pred.shape[1]
+            repeat_dim = np.ones(len(d.shape), dtype=int)
+            repeat_dim[1] = n_diffusion_steps
+            d_target = d.repeat(*repeat_dim)
+
+        loss = self.mse.forward(pred[..., 0], d_target)
 
         # for logging and processing
-        self._pred = pred.squeeze()
+        self._pred = pred[..., 0]
         self._d = d
         return loss
 
@@ -55,28 +69,23 @@ class SBICriterion:
         )  # pylint: disable=E1102
         return distance
 
-        # Cosine similartiy as distance
-        # x = x[:, None]
-        # z = torch.linalg.norm(x, dim=-1) * torch.linalg.norm(x_target, dim=-1)
-        # similarity = (x * x_target).sum(dim=-1) / z
-        # distance = (1 - similarity) / 2
-
-        print(distance)
-        return distance
-
     def get_sample_correlation(self) -> Tensor:
         """computes Pearson correlation between network prediction and  distance matrix per sample in batchsize
 
         Returns:
-            Tensor: (batch_size)
+            Tensor: (batch_size, )
         """
-        x = torch.stack([self._pred, self._d])
-        x = x - x.mean(axis=-1, keepdim=True)
-        cov = torch.bmm(x.permute(1, 0, 2), x.permute(1, 2, 0))
-
-        denominator = cov[:, 0, 1]
-        numerator = torch.sqrt(cov[:, 0, 0] * cov[:, 1, 1])
-        corr = denominator / numerator
+        if len(self._pred.shape) == 3 and len(self._d.shape) == 3:
+            # repeat d at the diffusion time axis
+            # use a for loop to save memory. this requires more computation time.
+            n_diff_steps = self._pred.shape[1]
+            acc = 0
+            for pred_idx in range(n_diff_steps):
+                acc += batch_correlation(self._pred[:, pred_idx], self._d[:, 0])
+            corr = acc / n_diff_steps
+        else:
+            corr = batch_correlation(self._pred, self._d)
+        
         return corr
 
     def get_correlation(self) -> Tensor:
@@ -97,3 +106,8 @@ class SBICriterion:
     @property
     def d(self) -> Tensor:
         return self._d
+
+
+        
+
+

@@ -86,7 +86,7 @@ class SBIDataset(Dataset):
         self._target = self._get_x_target()
         self._all = self._get_all()
 
-    def get_prior_dim(self) -> int:
+    def get_theta_dim(self) -> int:
         return self._theta.shape[1]
 
     def get_sim_out_dim(self) -> int:

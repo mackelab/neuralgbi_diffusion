@@ -1,15 +1,18 @@
 import os
-from typing import Dict, List, Tuple
+from typing import Callable, Dict, List, Tuple
 
 import numpy as np
+import pandas as pd
+import seaborn as sns
 import torch
+from einops import rearrange
+from matplotlib.axes import Axes
 from matplotlib.axis import Axis
 from matplotlib.figure import Figure
-from typing import Callable
-import seaborn as sns
-import pandas as pd
 from tqdm import tqdm
+
 from gbi_diff.utils.mcmc_config import Config
+from gbi_diff.utils.metrics import batch_correlation
 
 
 def plot_correlation(
@@ -61,6 +64,87 @@ def plot_correlation(
         image = np.frombuffer(buf, dtype=np.uint8).reshape(nrows, ncols, 3)
         return image
 
+    return fig, ax
+
+
+def plot_diffusion_step_loss(
+    pred: torch.Tensor, target: torch.Tensor, agg: bool = False
+) -> Tuple[Figure, Axes]:
+    """plot squared error over diffusion time
+
+    Args:
+        pred (Tensor): (batch_size, n_diffusion_steps, n_target)
+        target (Tensor): (batch_size, n_target)
+
+    Returns:
+        Tuple[Figure, Axes]:
+    """
+
+    if agg:
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+
+    diff = torch.square(pred - target[:, None])
+    diff = rearrange(diff, "B D T -> (B T) D")
+
+    fig, ax = plt.subplots()
+
+    mean = diff.mean(dim=0)
+    std = diff.std(dim=0)
+    x = torch.arange(pred.shape[1])
+
+    ax.fill_between(x, mean - std, mean + std, alpha=0.6, label="std")
+    ax.plot(diff.mean(dim=0), label="mean")
+    ax.legend()
+
+    ax.set_ylabel(r"Squared Loss.")
+    ax.set_xlabel("Diffusion steps")
+    ax.set_title("Squared Loss over Diffusion Steps")
+
+    return fig, ax
+
+def plot_diffusion_step_corr(
+    pred: torch.Tensor, target: torch.Tensor, agg: bool = False
+) -> Tuple[Figure, Axes]:
+    """plot correlation with target over diffusion time
+
+    Args:
+        pred (Tensor): (batch_size, n_diffusion_steps, n_target)
+        target (Tensor): (batch_size, n_target)
+
+    Returns:
+        Tuple[Figure, Axes]:
+    """
+
+    if agg:
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+
+    batch_size = pred.shape[0]
+    n_diff_steps = pred.shape[1]
+    res = torch.empty((batch_size, n_diff_steps))
+    for diff_idx in range(n_diff_steps):
+        res[:, diff_idx] = batch_correlation(pred[:, diff_idx], target)
+    
+
+    mean = res.mean(dim=0)
+    std = res.std(dim=0)
+    fig, ax = plt.subplots()
+
+    x = torch.arange(n_diff_steps)
+
+    ax.fill_between(x, mean - std, mean + std, alpha=0.6, label="std")
+    ax.plot(mean, label="mean")
+    ax.legend()
+
+    ax.set_ylim([-0.05, 1.05])
+    ax.set_ylabel(r"Correlation")
+    ax.set_xlabel("Diffusion steps")
+    ax.set_title("Correlation with target over Diffusion Steps")
     return fig, ax
 
 

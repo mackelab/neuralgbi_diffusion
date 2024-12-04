@@ -67,3 +67,16 @@ class PotentialFunc:
     def __call__(self, args: Dict[str, torch.Tensor]):
         theta = args["theta"]
         return self.potential_energy(theta)
+
+    def is_valid(self) -> bool:
+        """check if the potential function is consistent
+
+        Returns:
+            bool: if the potential function will work as specified
+        """
+        prior_dim = len(self.prior.sample())
+        if self.nn.net._theta_encoder._input_dim != prior_dim:
+            raise ValueError(
+                f"Theta dim from prior does not fit to theta dim from likelihood:{self.nn.net._theta_encoder._input_dim} != {prior_dim}"
+            )
+        return True

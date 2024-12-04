@@ -1,9 +1,7 @@
 import logging
-import os
 
 import torch
 import yaml
-import matplotlib
 from config2class.utils import deconstruct_config
 from lightning import Trainer
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
@@ -11,7 +9,7 @@ from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from torch.utils.data import DataLoader
 
 from gbi_diff.dataset import SBIDataset
-from gbi_diff.model.lit_module import SBI
+from gbi_diff.model.lit_module import SBI, DiffSBI
 from gbi_diff.utils.train_config import Config
 from gbi_diff.utils.filesystem import write_yaml
 
@@ -67,12 +65,22 @@ def train(config: Config, devices: int = 1, force: bool = False):
         shuffle=False,
         num_workers=config.num_worker,
     )
-    model = SBI(
-        prior_dim=train_set.get_prior_dim(),
-        simulator_out_dim=train_set.get_sim_out_dim(),
-        optimizer_config=config.optimizer,
-        net_config=config.model,
-    )
+
+    if config.diffusion.enabled:
+        model = DiffSBI(
+            theta_dim=train_set.get_theta_dim(),
+            simulator_out_dim=train_set.get_sim_out_dim(),
+            optimizer_config=config.optimizer,
+            net_config=config.model,
+            diff_config=config.diffusion
+        )
+    else:    
+        model = SBI(
+            theta_dim=train_set.get_theta_dim(),
+            simulator_out_dim=train_set.get_sim_out_dim(),
+            optimizer_config=config.optimizer,
+            net_config=config.model,
+        )
 
     print("============= Config ===============")
     print(yaml.dump(deconstruct_config(config), indent=4))
