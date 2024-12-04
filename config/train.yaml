@@ -2,18 +2,15 @@ results_dir: "results/two_moons"
 check_val_every_n_epochs: 5
 num_worker: 12
 
-
-max_epochs: 100
+max_epochs: 200
 batch_size: 256
 precision: 32 # 64: extended, 32: standard, 16: half
-
 
 dataset:
     train_file: "data/two_moons_1000.pt"
     val_file: "data/two_moons_100.pt"
     n_target: 20
-    noise_std: 0.1  # how strong to noise the augmentations in x_target 
-
+    noise_std: 0.1 # how strong to noise the augmentations in x_target
 
 model:
     latent_dim: 256
@@ -21,11 +18,24 @@ model:
     simulator_encoder: [256]
     latent_mlp: [256, 256, 128]
     activation_func: ReLU
-    final_activation: null  # Sigmoid only needed for cosine similarity -> otherwise null
+    final_activation: null # Sigmoid only needed for cosine similarity -> otherwise null
 
+diffusion:
+    enabled: True
+    steps: 10
+    diffusion_time_sampler: "UniformSampler"
+    diffusion_schedule: "VPSchedule"
+    # Diffusion sampler
+    UniformSampler:
+        p: 1  # influences memory usage of training process linearly
+
+    # Variance Preserving Schedule
+    VPSchedule:
+        beta_min: 0.3
+        beta_max: 0.3
+        beta_schedule_cls: LinearSchedule
 
 optimizer:
     name: Adam
     lr: 0.0001
     weight_decay: 0
-
