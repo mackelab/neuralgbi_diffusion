@@ -65,7 +65,7 @@ class _Model:
 
 @dataclass
 class _UniformSampler:
-    p: int
+    p: float
 
     @classmethod
     def from_file(cls, file: str) -> "_UniformSampler":
@@ -113,7 +113,6 @@ class _VPSchedule:
 
 @dataclass
 class _Diffusion:
-    enabled: bool
     steps: int
     include_t: bool
     diffusion_time_sampler: str

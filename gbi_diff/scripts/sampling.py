@@ -27,14 +27,14 @@ def sample_posterior(
     """
     potential_func = create_potential_fn(checkpoint, config, x_o=None)
     n_samples = x_o.shape[0]
-    
+
     samples = []
     for idx, x in enumerate(x_o):
         potential_func.update_x_o(x)
 
         kernel_cls = getattr(infer, config.kernel)
         kernel = kernel_cls(potential_fn=potential_func)
-        
+
         mcmc = MCMC(
             kernel,
             num_samples=size,

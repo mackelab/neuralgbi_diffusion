@@ -51,6 +51,30 @@ class Process:
         config = Config.from_file(config_file)
         train(config, device, force)
 
+    def train_theta_noise(
+        self,
+        config_file: str = "config/train_theta_noise.yaml",
+        device: int = 1,
+        force: bool = False,
+    ):
+        """start training process as defined in your config file
+
+        Args:
+            config_file (str): path to config file (allowed are yaml, toml and json). Defaults to: "config/train.yaml"
+            device (int, optional): set to a number to indicate multiple devices. Defaults to 1.
+            force (bool, optional): If you would like to start training without any questions
+        """
+        # >>>> add import here for faster help message
+        from gbi_diff.scripts.train import train_theta_noise  # pylint: disable=C0415
+        from gbi_diff.utils.train_theta_noise_config import (
+            Config,
+        )  # pylint: disable=C0415
+
+        # <<<<
+
+        config = Config.from_file(config_file)
+        train_theta_noise(config, device, force)
+
     def mcmc_sample(
         self,
         checkpoint: str,
@@ -59,7 +83,7 @@ class Process:
         config_file: str = "config/mcmc.yaml",
         output: str = None,
         plot: bool = False,
-        num_worker: int = 1
+        num_worker: int = 1,
     ):
         """sample mcmc
 
@@ -73,8 +97,10 @@ class Process:
             num_worker (int): How many threads you would like to use to sample from mcmc
         """
         if num_worker > 1:
-            raise NotImplementedError("Multithread for parallel sampling is not done yet. ")
-        
+            raise NotImplementedError(
+                "Multithread for parallel sampling is not done yet. "
+            )
+
         # >>>> add import here for faster help message
         import torch  # pylint: disable=C0415
 
@@ -87,12 +113,13 @@ class Process:
         )
         from gbi_diff.utils.mcmc_config import Config  # pylint: disable=C0415
         from gbi_diff.utils.plot import pair_plot_stack  # pylint: disable=C0415
+
         # <<<<
-        
+
         config = Config.from_file(config_file)
         x_o = load_observed_data(observed_data)
         samples = sample_posterior(checkpoint, x_o, config, size)
-        
+
         # save output
         save_samples(samples, checkpoint, output)
 

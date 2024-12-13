@@ -20,6 +20,13 @@ def execute(args: dict) -> bool:
                 force=args["force"],
             )
 
+        case "train-theta-noise":
+            module.train_theta_noise(
+                config_file=args["config_file"],
+                device=args["device"],
+                force=args["force"],
+            )
+
         case "mcmc-sample":
             module.mcmc_sample(
                 checkpoint=args["checkpoint"],

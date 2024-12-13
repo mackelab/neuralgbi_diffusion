@@ -64,7 +64,7 @@ def create_potential_fn(
     prior_config = getattr(config, config.prior)
     prior_cls = getattr(prior_distr, config.prior)
     prior = prior_cls(**deconstruct_config(prior_config))
-    
+
     potential_func = PotentialFunc(
         checkpoint=checkpoint, prior=prior, x_o=x_o, beta=config.beta
     )

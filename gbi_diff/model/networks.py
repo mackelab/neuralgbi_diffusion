@@ -126,14 +126,14 @@ class SBINetwork(Module):
             x_target = x_target[None]
 
         # out shape: (batch_size, (diff_steps, ), latent_dim / 2)
-        theta_enc = self._theta_encoder.forward(theta)  
+        theta_enc = self._theta_encoder.forward(theta)
         # out shape: (batch_size, n_target, latent_dim / 2)
         simulator_out_enc = self._simulator_out_encoder.forward(x_target)
 
         # repeat the theta  encoding along the n_target dimension
         n_target = x_target.shape[1]
         theta_enc = dim_repeat(theta_enc, n_target, -2)
-        
+
         if len(theta_enc.shape) == 4:
             # diffusion steps in theta are apparent
             diffusion_steps = theta_enc.shape[1]

@@ -105,6 +105,7 @@ def plot_diffusion_step_loss(
 
     return fig, ax
 
+
 def plot_diffusion_step_corr(
     pred: torch.Tensor, target: torch.Tensor, agg: bool = False
 ) -> Tuple[Figure, Axes]:
@@ -129,7 +130,6 @@ def plot_diffusion_step_corr(
     res = torch.empty((batch_size, n_diff_steps))
     for diff_idx in range(n_diff_steps):
         res[:, diff_idx] = batch_correlation(pred[:, diff_idx], target)
-    
 
     mean = res.mean(dim=0)
     std = res.std(dim=0)
