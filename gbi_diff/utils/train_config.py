@@ -65,7 +65,7 @@ class _Model:
 
 @dataclass
 class _UniformSampler:
-    p: float
+    p: int
 
     @classmethod
     def from_file(cls, file: str) -> "_UniformSampler":
