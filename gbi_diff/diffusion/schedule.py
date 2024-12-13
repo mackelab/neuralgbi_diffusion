@@ -67,7 +67,7 @@ class VPSchedule(Schedule):
         *args,
         **kwargs
     ):
-        """TODO @Julius: this is not really variance preserving but rather pushing the variance towards 1 
+        """TODO @Julius: this is not really variance preserving but rather pushing the variance towards 1
 
         Args:
             beta_min (Tensor | float): start beta value. If float -> handle each feature dim the same. If tensor only allowed (n_features, ) of x_0 in forward

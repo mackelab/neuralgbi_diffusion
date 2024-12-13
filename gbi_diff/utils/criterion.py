@@ -34,9 +34,9 @@ class SBICriterion:
         """
         # distance matrix
         d = self.sample_distance(x, x_target)
-        
-        if len(pred.shape) == 4: 
-            # diffusion steps are included. 
+
+        if len(pred.shape) == 4:
+            # diffusion steps are included.
             # Add an additional dimension in the distance matrix for broadcasting
             d = d[:, None]
             n_diffusion_steps = pred.shape[1]
@@ -85,7 +85,7 @@ class SBICriterion:
             corr = acc / n_diff_steps
         else:
             corr = batch_correlation(self._pred, self._d)
-        
+
         return corr
 
     def get_correlation(self) -> Tensor:
@@ -106,8 +106,3 @@ class SBICriterion:
     @property
     def d(self) -> Tensor:
         return self._d
-
-
-        
-
-

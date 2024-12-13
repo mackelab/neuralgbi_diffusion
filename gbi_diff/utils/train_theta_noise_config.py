@@ -113,7 +113,6 @@ class _VPSchedule:
 
 @dataclass
 class _Diffusion:
-    enabled: bool
     steps: int
     include_t: bool
     diffusion_time_sampler: str

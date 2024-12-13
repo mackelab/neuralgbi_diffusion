@@ -58,6 +58,33 @@ def add_mcmc_sample_args(parser: ArgumentParser) -> ArgumentParser:
     return parser
 
 
+def add_train_theta_noise_args(parser: ArgumentParser) -> ArgumentParser:
+    parser.add_argument(
+        "--config-file",
+        help='path to config file (allowed are yaml, toml and json). Defaults to: "config/train.yaml"',
+        dest="config_file",
+        type=str,
+        default="config/train_theta_noise.yaml",
+        required=False,
+    )
+    parser.add_argument(
+        "--device",
+        help="set to a number to indicate multiple devices. Defaults to 1.",
+        dest="device",
+        type=int,
+        default=1,
+        required=False,
+    )
+    parser.add_argument(
+        "--force",
+        help="If you would like to start training without any questions",
+        dest="force",
+        action="store_true",
+        required=False,
+    )
+    return parser
+
+
 def add_train_args(parser: ArgumentParser) -> ArgumentParser:
     parser.add_argument(
         "--config-file",
@@ -123,6 +150,11 @@ def setup_process_parser(parser: ArgumentParser) -> ArgumentParser:
         "train", help="start training process as defined in your config file"
     )
     train = add_train_args(train)
+    train_theta_noise = command_subparser.add_parser(
+        "train-theta-noise",
+        help="start training process as defined in your config file",
+    )
+    train_theta_noise = add_train_theta_noise_args(train_theta_noise)
     mcmc_sample = command_subparser.add_parser("mcmc-sample", help="sample mcmc")
     mcmc_sample = add_mcmc_sample_args(mcmc_sample)
     return parser

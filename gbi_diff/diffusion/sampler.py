@@ -32,8 +32,6 @@ class DiffSampler(ABC):
             Tensor: aggregated loss tensor (n_subsamples, ...)
         """
         return self.forward(x[None])[0]
-        
-    
 
     def __call__(self, x: Tensor) -> Tensor:
         return self.forward(x)
@@ -48,7 +46,7 @@ class UniformSampler(DiffSampler):
         super().__init__(aggregation)
         assert p >= 0 and p <= 1, "p has to be a probability"
         self.p = p  # prob a loss at a diffusion time is sampled to count into the loss
-        
+
     def forward(self, x):
         n_diffusion_steps = x.shape[1]
         # round up the number of samples -> you get the same number of samples per batch element so you can stack it.
