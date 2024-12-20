@@ -1,4 +1,4 @@
-results_dir: "results/two_moons"
+results_dir: "results/theta_noise/two_moons"
 check_val_every_n_epochs: 5
 num_worker: 12
 
@@ -27,13 +27,13 @@ diffusion:
     diffusion_schedule: "VPSchedule"
     # Diffusion sampler
     UniformSampler:
-        p: 0.1  # influences memory usage of training process linearly -> less improves training because of less mixed signals -> std should rise
+        p: 1.0  # influences memory usage of training process linearly -> less improves training because of less mixed signals -> std should rise
 
     # Variance Preserving Schedule
     VPSchedule:
         beta_min: 0.03
         beta_max: 0.03
-        beta_schedule_cls: LinearSchedule
+        beta_schedule_cls: "LinearSchedule"
 
 optimizer:
     name: Adam
