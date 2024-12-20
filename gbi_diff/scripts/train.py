@@ -17,6 +17,7 @@ from gbi_diff.utils.filesystem import write_yaml
 
 def train(config: Config_SBI, devices: int = 1, force: bool = False):
     # TODO: fixup device config
+    serial_config = config
     accelerator = "auto"
     if not torch.cuda.is_available() and devices > 1:
         logging.warning("cuda device was requested but not available. Fall back to cpu")
@@ -85,7 +86,7 @@ def train(config: Config_SBI, devices: int = 1, force: bool = False):
             print("Abort training")
             return
 
-    write_yaml(deconstruct_config(config), tb_logger.log_dir + "/config.yaml")
+    write_yaml(deconstruct_config(serial_config), tb_logger.log_dir + "/config.yaml")
     trainer.fit(model, train_loader, val_loader)
 
     # model = SBI.load_from_checkpoint(
@@ -98,6 +99,7 @@ def train(config: Config_SBI, devices: int = 1, force: bool = False):
 
 def train_theta_noise(config: Config_Theta, devices: int = 1, force: bool = False):
     # TODO: fixup device config
+    serial_config = config
     accelerator = "auto"
     if not torch.cuda.is_available() and devices > 1:
         logging.warning("cuda device was requested but not available. Fall back to cpu")
@@ -167,7 +169,7 @@ def train_theta_noise(config: Config_Theta, devices: int = 1, force: bool = Fals
             print("Abort training")
             return
 
-    write_yaml(deconstruct_config(config), tb_logger.log_dir + "/config.yaml")
+    write_yaml(deconstruct_config(serial_config), tb_logger.log_dir + "/config.yaml")
     trainer.fit(model, train_loader, val_loader)
 
     # model = SBI.load_from_checkpoint(
