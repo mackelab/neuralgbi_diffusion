@@ -1,10 +1,10 @@
 from argparse import ArgumentParser
-from gbi_diff.entrypoint import Process
+from gbi_diff.entrypoint import Entrypoint
 from gbi_diff.utils.parser import setup_parser
 
 
 def execute(args: dict) -> bool:
-    module = Process()
+    module = Entrypoint()
     match args["command"]:
         case "generate-data":
             module.generate_data(

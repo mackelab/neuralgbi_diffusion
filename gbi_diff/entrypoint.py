@@ -1,7 +1,7 @@
 from typing import List
 
 
-class Process:
+class Entrypoint:
     """CLI Process to handle GBI pipeline"""
 
     def __init__(self):
