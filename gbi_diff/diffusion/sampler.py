@@ -52,5 +52,5 @@ class UniformSampler(DiffSampler):
         # round up the number of samples -> you get the same number of samples per batch element so you can stack it.
         n_samples = np.ceil(n_diffusion_steps * self.p)
         n_samples = int(n_samples)
-        samples = np.random.choice(n_diffusion_steps, size=n_samples)
+        samples = np.random.choice(n_diffusion_steps, size=n_samples, replace=False)
         return x[:, samples]
