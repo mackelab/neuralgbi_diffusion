@@ -40,17 +40,16 @@ class DiffSampler(ABC):
 class UniformSampler(DiffSampler):
     def __init__(
         self,
-        p: float,
+        n_samples: float,
         aggregation="mean",
     ):
         super().__init__(aggregation)
-        assert p >= 0 and p <= 1, "p has to be a probability"
-        self.p = p  # prob a loss at a diffusion time is sampled to count into the loss
+        assert isinstance(n_samples, int), "n_samples has to be an integer"
+        self.n_samples = n_samples  # prob a loss at a diffusion time is sampled to count into the loss
 
     def forward(self, x):
         n_diffusion_steps = x.shape[1]
+        assert self.n_samples < n_diffusion_steps, "Not able to sample more diffusion steps than provided without replacement"
         # round up the number of samples -> you get the same number of samples per batch element so you can stack it.
-        n_samples = np.ceil(n_diffusion_steps * self.p)
-        n_samples = int(n_samples)
-        samples = np.random.choice(n_diffusion_steps, size=n_samples, replace=False)
-        return x[:, samples]
+        samples_idx = np.random.choice(n_diffusion_steps, size=self.n_samples, replace=False)
+        return x[:, samples_idx]

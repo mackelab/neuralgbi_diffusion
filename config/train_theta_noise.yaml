@@ -27,7 +27,7 @@ diffusion:
     diffusion_schedule: "VPSchedule"
     # Diffusion sampler
     UniformSampler:
-        p: 1.0  # influences memory usage of training process linearly -> less improves training because of less mixed signals -> std should rise
+        n_samples: 1.0  # how many sample to invoke into one loss signal
 
     # Variance Preserving Schedule
     VPSchedule:
