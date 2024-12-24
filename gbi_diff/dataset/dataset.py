@@ -93,6 +93,14 @@ class SBIDataset(Dataset):
         return self._x.shape[1]
 
     def __getitem__(self, index: int) -> Tuple[Tensor, Tensor, Tensor]:
+        """_summary_
+
+        Args:
+            index (int): _description_
+
+        Returns:
+            Tuple[Tensor, Tensor, Tensor]: theta, x, x_target
+        """
         target_sample = self._all[
             np.random.choice(len(self._all), size=self._n_target, replace=False)
         ]
