@@ -16,8 +16,8 @@ class _SymmetricUniform:
 
     @classmethod
     def from_file(cls, file: str) -> "_SymmetricUniform":
-        ending = file.split('.')[-1]
-        content = getattr(fs_utils, f'load_{ending}')(file)
+        ending = file.split(".")[-1]
+        content = getattr(fs_utils, f"load_{ending}")(file)
         content = replace_tokens(content)
         first_key, first_value = content.popitem()
         if len(content) == 0 and isinstance(first_value, dict):
@@ -27,8 +27,8 @@ class _SymmetricUniform:
         return cls(**content)
 
     def to_file(self, file: str):
-        ending = file.split('.')[-1]
-        write_func = getattr(fs_utils, f'write_{ending}')
+        ending = file.split(".")[-1]
+        write_func = getattr(fs_utils, f"write_{ending}")
         content = deconstruct_config(self)
         write_func(file, content)
 
@@ -43,8 +43,8 @@ class Config:
 
     @classmethod
     def from_file(cls, file: str) -> "Config":
-        ending = file.split('.')[-1]
-        content = getattr(fs_utils, f'load_{ending}')(file)
+        ending = file.split(".")[-1]
+        content = getattr(fs_utils, f"load_{ending}")(file)
         content = replace_tokens(content)
         first_key, first_value = content.popitem()
         if len(content) == 0 and isinstance(first_value, dict):
@@ -54,10 +54,12 @@ class Config:
         return cls(**content)
 
     def to_file(self, file: str):
-        ending = file.split('.')[-1]
-        write_func = getattr(fs_utils, f'write_{ending}')
+        ending = file.split(".")[-1]
+        write_func = getattr(fs_utils, f"write_{ending}")
         content = deconstruct_config(self)
         write_func(file, content)
 
     def __post_init__(self):
-        self.SymmetricUniform = _SymmetricUniform(**self.SymmetricUniform)  #pylint: disable=E1134
+        self.SymmetricUniform = _SymmetricUniform(
+            **self.SymmetricUniform
+        )  # pylint: disable=E1134

@@ -139,7 +139,7 @@ def add_generate_data_args(parser: ArgumentParser) -> ArgumentParser:
     return parser
 
 
-def setup_process_parser(parser: ArgumentParser) -> ArgumentParser:
+def setup_entrypoint_parser(parser: ArgumentParser) -> ArgumentParser:
     command_subparser = parser.add_subparsers(dest="command", title="command")
     generate_data = command_subparser.add_parser(
         "generate-data",
@@ -161,5 +161,5 @@ def setup_process_parser(parser: ArgumentParser) -> ArgumentParser:
 
 
 def setup_parser(parser: ArgumentParser) -> ArgumentParser:
-    parser = setup_process_parser(parser)
+    parser = setup_entrypoint_parser(parser)
     return parser

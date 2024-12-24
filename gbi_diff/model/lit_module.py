@@ -7,10 +7,10 @@ from lightning.pytorch.loggers import TensorBoardLogger
 from torch import Tensor, optim
 
 from gbi_diff.model.networks import SBINetwork
-from gbi_diff.utils.metrics import batch_correlation
+# from gbi_diff.utils.metrics import batch_correlation
 from gbi_diff.utils.train_config import _Model as ModelConfig
 from gbi_diff.utils.train_config import _Optimizer as OptimizerConfig
-from gbi_diff.utils.train_config import _Diffusion as DiffusionConfig
+from gbi_diff.utils.train_theta_noise_config import _Diffusion as DiffusionConfig
 from gbi_diff.utils.criterion import SBICriterion
 from gbi_diff.utils.plot import (
     plot_correlation,
@@ -101,7 +101,7 @@ class SBI(LightningModule):
         plt.close(fig)
         self._val_step_outputs = {"pred": [], "d": []}
 
-    def forward(self, prior: Tensor, x_target: Tensor) -> Tensor:
+    def forward(self, theta: Tensor, x_target: Tensor) -> Tensor:
         """_summary_
 
         Args:
@@ -111,7 +111,7 @@ class SBI(LightningModule):
         Returns:
             Tensor: (batch_size, n_target)
         """
-        return self.net.forward(prior, x_target)
+        return self.net.forward(theta, x_target)
 
     def configure_optimizers(self):
         optimizer_cls = getattr(optim, self._optimizer_config.pop("name"))
@@ -133,13 +133,12 @@ class DiffSBI(SBI):
         if diff_config.include_t:
             # TODO: make this dependent on the diffusion time encoding
             theta_dim += 1
-
         super().__init__(
             theta_dim,
             simulator_out_dim,
             optimizer_config,
             net_config,
-            *args,
+            diff_config=diff_config * args,
             **kwargs,
         )
         self.save_hyperparameters()
