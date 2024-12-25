@@ -1,10 +1,8 @@
-from typing import Any, Dict
 import numpy as np
 import torch
 import torch.nn as nn
 from torch import Tensor
 
-from gbi_diff.diffusion.sampler import DiffSampler, UniformSampler
 from gbi_diff.utils.metrics import batch_correlation
 
 
