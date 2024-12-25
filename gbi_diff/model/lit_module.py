@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Tuple
 
 from matplotlib import pyplot as plt
@@ -31,6 +32,9 @@ class SBI(LightningModule):
         *args,
         **kwargs
     ):
+        optimizer_config = deepcopy(optimizer_config)
+        net_config = deepcopy(net_config)
+
         super().__init__(*args, **kwargs)
         self.save_hyperparameters()
 
@@ -130,21 +134,23 @@ class DiffSBI(SBI):
         *args,
         **kwargs
     ):
+        modified_theta_dim = theta_dim
         if diff_config.include_t:
             # TODO: make this dependent on the diffusion time encoding
-            theta_dim += 1
+            modified_theta_dim += 1
+        self.save_hyperparameters()
         super().__init__(
-            theta_dim,
+            modified_theta_dim,
             simulator_out_dim,
             optimizer_config,
             net_config,
-            diff_config=diff_config * args,
+            *args,
             **kwargs,
         )
-        self.save_hyperparameters()
-
-        self.diff_schedule = self._build_schedule(diff_config)
-        self.sampler = self._build_sampler(diff_config)
+        # from config2class.utils import deconstruct_config
+        # print(deconstruct_config(diff_config))
+        self.diff_schedule = self._build_schedule(deepcopy(diff_config))
+        self.sampler = self._build_sampler(deepcopy(diff_config))
         self.diffusion_steps = diff_config.steps
         self.include_t = diff_config.include_t
         self.t = torch.linspace(0, 1, self.diffusion_steps)
@@ -199,8 +205,10 @@ class DiffSBI(SBI):
             sampled_t = self.sampler.forward_unbatched(self.t)
             sampled_t, _ = torch.sort(sampled_t)
         else:
-            # eval model on whole diffusion step
+            # eval model on bigger subsample
+            # TODO: if you have more ram at disposal do this on whole batch
             sampled_t = self.t
+            sampled_t = torch.linspace(0, 1, 100)  # this is hardcoded
 
         res = torch.empty((batch_size, len(sampled_t), theta_dim))
         insert_slice = slice(0, None)
@@ -223,6 +231,7 @@ class DiffSBI(SBI):
         return res
 
     def training_step(self, batch, batch_idx):
+        self.train()
         theta, simulator_out, x_target = batch
 
         theta_t = self._sample_diffusions(theta, include_t=self.include_t)
@@ -244,6 +253,7 @@ class DiffSBI(SBI):
         return loss
 
     def validation_step(self, batch, batch_idx):
+
         theta, simulator_out, x_target = batch
 
         theta_t = self._sample_diffusions(theta, include_t=self.include_t)
