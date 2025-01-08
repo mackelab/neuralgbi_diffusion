@@ -61,8 +61,8 @@ class LinearSchedule(BetaSchedule):
 class VPSchedule(Schedule):
     def __init__(
         self,
-        beta_min: Tensor | float,
-        beta_max: Tensor | float,
+        beta_start: Tensor | float,
+        beta_end: Tensor | float,
         beta_schedule_cls: type[BetaSchedule] = LinearSchedule,
         *args,
         **kwargs
@@ -70,19 +70,19 @@ class VPSchedule(Schedule):
         """TODO @Julius: this is not really variance preserving but rather pushing the variance towards 1
 
         Args:
-            beta_min (Tensor | float): start beta value. If float -> handle each feature dim the same. If tensor only allowed (n_features, ) of x_0 in forward
-            beta_max (Tensor | float): end beta value. If float -> handle each feature dim the same. If tensor only allowed (n_features, ) of x_0 in forward
+            beta_start (Tensor | float): start beta value. If float -> handle each feature dim the same. If tensor only allowed (n_features, ) of x_0 in forward
+            beta_end (Tensor | float): end beta value. If float -> handle each feature dim the same. If tensor only allowed (n_features, ) of x_0 in forward
             beta_schedule_cls (BetaSchedule, optional): _description_. Defaults to LinearSchedule.
         """
         super().__init__(*args, **kwargs)
 
-        self.beta_min = (
-            beta_min if isinstance(beta_min, Tensor) else torch.tensor([beta_min])
+        self.beta_start = (
+            beta_start if isinstance(beta_start, Tensor) else torch.tensor([beta_start])
         )
-        self.beta_max = (
-            beta_max if isinstance(beta_max, Tensor) else torch.tensor([beta_max])
+        self.beta_end = (
+            beta_end if isinstance(beta_end, Tensor) else torch.tensor([beta_end])
         )
-        self.beta_schedule = beta_schedule_cls(self.beta_min, self.beta_max)
+        self.beta_schedule = beta_schedule_cls(self.beta_start, self.beta_end)
 
     def forward(self, x_0: Tensor, t: Tensor) -> Tuple[Tensor, Tensor]:
         """get mean and variance for the variance preserving schedule
