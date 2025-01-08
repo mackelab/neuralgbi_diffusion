@@ -43,8 +43,10 @@ class _Diffusion(StructuredConfig):
     VPSchedule: _VPSchedule
 
     def __post_init__(self):
-        self.UniformSampler = _UniformSampler(**self.UniformSampler)  #pylint: disable=E1134
-        self.VPSchedule = _VPSchedule(**self.VPSchedule)  #pylint: disable=E1134
+        self.UniformSampler = _UniformSampler(
+            **self.UniformSampler
+        )  # pylint: disable=E1134
+        self.VPSchedule = _VPSchedule(**self.VPSchedule)  # pylint: disable=E1134
 
 
 @dataclass
@@ -68,7 +70,7 @@ class Config(StructuredConfig):
     optimizer: _Optimizer
 
     def __post_init__(self):
-        self.dataset = _Dataset(**self.dataset)  #pylint: disable=E1134
-        self.model = _Model(**self.model)  #pylint: disable=E1134
-        self.diffusion = _Diffusion(**self.diffusion)  #pylint: disable=E1134
-        self.optimizer = _Optimizer(**self.optimizer)  #pylint: disable=E1134
+        self.dataset = _Dataset(**self.dataset)  # pylint: disable=E1134
+        self.model = _Model(**self.model)  # pylint: disable=E1134
+        self.diffusion = _Diffusion(**self.diffusion)  # pylint: disable=E1134
+        self.optimizer = _Optimizer(**self.optimizer)  # pylint: disable=E1134

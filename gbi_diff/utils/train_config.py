@@ -41,6 +41,6 @@ class Config(StructuredConfig):
     optimizer: _Optimizer
 
     def __post_init__(self):
-        self.dataset = _Dataset(**self.dataset)  #pylint: disable=E1134
-        self.model = _Model(**self.model)  #pylint: disable=E1134
-        self.optimizer = _Optimizer(**self.optimizer)  #pylint: disable=E1134
+        self.dataset = _Dataset(**self.dataset)  # pylint: disable=E1134
+        self.model = _Model(**self.model)  # pylint: disable=E1134
+        self.optimizer = _Optimizer(**self.optimizer)  # pylint: disable=E1134

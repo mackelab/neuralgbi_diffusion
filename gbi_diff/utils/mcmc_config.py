@@ -18,4 +18,6 @@ class Config(StructuredConfig):
     SymmetricUniform: _SymmetricUniform
 
     def __post_init__(self):
-        self.SymmetricUniform = _SymmetricUniform(**self.SymmetricUniform)  #pylint: disable=E1134
+        self.SymmetricUniform = _SymmetricUniform(
+            **self.SymmetricUniform
+        )  # pylint: disable=E1134
