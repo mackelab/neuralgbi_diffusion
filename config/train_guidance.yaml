@@ -1,0 +1,41 @@
+results_dir: "results/theta_noise/two_moons"
+check_val_every_n_epochs: 5
+num_worker: 12
+
+max_epochs: 100
+batch_size: 256
+precision: 32 # 64: extended, 32: standard, 16: half
+
+dataset:
+  train_file: "data/two_moons_10000.pt"
+  val_file: "data/two_moons_1000.pt"
+  n_target: 20
+  noise_std: 0.1 # how strong to noise the augmentations in x_target
+
+model:
+  latent_dim: 256
+  theta_encoder: [256]
+  simulator_encoder: [256]
+  latent_mlp: [256, 256, 128]
+  activation_func: ReLU
+  final_activation: null # Sigmoid only needed for cosine similarity -> otherwise null
+
+diffusion:
+  steps: 1000
+  include_t: True
+  diffusion_time_sampler: "UniformSampler"
+  diffusion_schedule: "VPSchedule"
+  # Diffusion sampler
+  UniformSampler:
+    n_samples: 1  # how many sample to invoke into one loss signal
+
+  # Variance Preserving Schedule
+  VPSchedule:
+    beta_start: 0.0001     
+    beta_end: 0.02
+    beta_schedule_cls: "LinearSchedule"
+
+optimizer:
+  name: Adam
+  lr: 0.0001
+  weight_decay: 0
