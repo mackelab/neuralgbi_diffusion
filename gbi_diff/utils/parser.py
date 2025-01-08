@@ -1,4 +1,5 @@
 from argparse import ArgumentParser
+from typing import Tuple, Dict, List
 
 
 def add_mcmc_sample_args(parser: ArgumentParser) -> ArgumentParser:
@@ -58,7 +59,7 @@ def add_mcmc_sample_args(parser: ArgumentParser) -> ArgumentParser:
     return parser
 
 
-def add_train_theta_noise_args(parser: ArgumentParser) -> ArgumentParser:
+def add_train_guidance_args(parser: ArgumentParser) -> ArgumentParser:
     parser.add_argument(
         "--config-file",
         help='path to config file (allowed are yaml, toml and json). Defaults to: "config/train.yaml"',
@@ -139,27 +140,33 @@ def add_generate_data_args(parser: ArgumentParser) -> ArgumentParser:
     return parser
 
 
-def setup_entrypoint_parser(parser: ArgumentParser) -> ArgumentParser:
+def setup_entrypoint_parser(
+    parser: ArgumentParser,
+) -> Tuple[ArgumentParser, Dict[str, ArgumentParser]]:
+    subparser = {}
     command_subparser = parser.add_subparsers(dest="command", title="command")
     generate_data = command_subparser.add_parser(
         "generate-data",
         help="creates a specified dataset and stores it into the file system.",
     )
     generate_data = add_generate_data_args(generate_data)
+    subparser["generate_data"] = generate_data
     train = command_subparser.add_parser(
         "train", help="start training process as defined in your config file"
     )
     train = add_train_args(train)
-    train_theta_noise = command_subparser.add_parser(
-        "train-theta-noise",
-        help="start training process as defined in your config file",
+    subparser["train"] = train
+    train_guidance = command_subparser.add_parser(
+        "train-guidance", help="start training process as defined in your config file"
     )
-    train_theta_noise = add_train_theta_noise_args(train_theta_noise)
+    train_guidance = add_train_guidance_args(train_guidance)
+    subparser["train_guidance"] = train_guidance
     mcmc_sample = command_subparser.add_parser("mcmc-sample", help="sample mcmc")
     mcmc_sample = add_mcmc_sample_args(mcmc_sample)
-    return parser
+    subparser["mcmc_sample"] = mcmc_sample
+    return parser, subparser
 
 
 def setup_parser(parser: ArgumentParser) -> ArgumentParser:
-    parser = setup_entrypoint_parser(parser)
+    parser, _ = setup_entrypoint_parser(parser)
     return parser

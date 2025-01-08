@@ -1,10 +1,14 @@
 from argparse import ArgumentParser
+from pathlib import Path
+from pyargwriter import api
+from gbi_diff.utils.parser import setup_entrypoint_parser
 from gbi_diff.entrypoint import Entrypoint
 from gbi_diff.utils.parser import setup_parser
 
 
 def execute(args: dict) -> bool:
     module = Entrypoint()
+    _, command_parser = setup_entrypoint_parser(ArgumentParser())
     match args["command"]:
         case "generate-data":
             module.generate_data(
@@ -20,8 +24,8 @@ def execute(args: dict) -> bool:
                 force=args["force"],
             )
 
-        case "train-theta-noise":
-            module.train_theta_noise(
+        case "train-guidance":
+            module.train_guidance(
                 config_file=args["config_file"],
                 device=args["device"],
                 force=args["force"],

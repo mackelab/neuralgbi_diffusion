@@ -51,7 +51,7 @@ class Entrypoint:
         config = Config.from_file(config_file)
         train(config, device, force)
 
-    def train_theta_noise(
+    def train_guidance(
         self,
         config_file: str = "config/train_theta_noise.yaml",
         device: int = 1,
@@ -65,15 +65,15 @@ class Entrypoint:
             force (bool, optional): If you would like to start training without any questions
         """
         # >>>> add import here for faster help message
-        from gbi_diff.scripts.train import train_theta_noise  # pylint: disable=C0415
-        from gbi_diff.utils.train_theta_noise_config import (
+        from gbi_diff.scripts.train import train_guidance  # pylint: disable=C0415
+        from gbi_diff.utils.train_guidance_config import (
             Config,
         )  # pylint: disable=C0415
 
         # <<<<
 
         config = Config.from_file(config_file)
-        train_theta_noise(config, device, force)
+        train_guidance(config, device, force)
 
     def mcmc_sample(
         self,
