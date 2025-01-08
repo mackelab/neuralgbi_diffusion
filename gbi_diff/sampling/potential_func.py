@@ -1,6 +1,6 @@
 from typing import Dict
 import torch
-from gbi_diff.model.lit_module import SBI
+from gbi_diff.model.lit_module import PotentialFunction
 from torch.distributions import Distribution
 
 
@@ -20,7 +20,7 @@ class PotentialFunc:
             x_o (torch.Tensor): observed data
             beta (float): inverse temperature
         """
-        self.nn = SBI.load_from_checkpoint(checkpoint)
+        self.nn = PotentialFunction.load_from_checkpoint(checkpoint)
         self.prior = prior
         self.beta = beta
 

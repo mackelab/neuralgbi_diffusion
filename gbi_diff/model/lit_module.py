@@ -22,7 +22,7 @@ import gbi_diff.diffusion.schedule as diffusion_schedule
 import gbi_diff.diffusion.sampler as diffusion_sampler
 
 
-class SBI(LightningModule):
+class PotentialFunction(LightningModule):
     def __init__(
         self,
         theta_dim: int,
@@ -123,7 +123,9 @@ class SBI(LightningModule):
         return optimizer
 
 
-class DiffSBI(SBI):
+class Guidance(PotentialFunction):
+    """time dependent version of the potential function
+    """
     def __init__(
         self,
         theta_dim: int,
@@ -138,6 +140,7 @@ class DiffSBI(SBI):
         if diff_config.include_t:
             # TODO: make this dependent on the diffusion time encoding
             modified_theta_dim += 1
+        
         self.save_hyperparameters()
         super().__init__(
             modified_theta_dim,
@@ -222,11 +225,13 @@ class DiffSBI(SBI):
         )
         res[:, insert_slice] = diffused_theta
 
+        # add diff time. 
         if include_t:
             # TODO: write a get_time_enc function for more complex time-encodings
             batch_size = len(theta)
             sampled_t = sampled_t[None, :, None].repeat((batch_size, 1, 1))
-            res = torch.cat([res, sampled_t], dim=-1)
+            t_encoding = self._get_diff_time_enc(sampled_t)
+            res = torch.cat([res, t_encoding], dim=-1)
 
         return res
 
@@ -247,9 +252,6 @@ class DiffSBI(SBI):
 
         self._train_step_outputs["pred"].append(self.criterion.pred)
         self._train_step_outputs["d"].append(self.criterion.d)
-
-        # import sys
-        # sys.exit()
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -269,9 +271,6 @@ class DiffSBI(SBI):
 
         self._val_step_outputs["pred"].append(self.criterion.pred)
         self._val_step_outputs["d"].append(self.criterion.d)
-
-        # import sys
-        # sys.exit()
         return loss
 
     def on_validation_epoch_end(self):
@@ -294,3 +293,4 @@ class DiffSBI(SBI):
         plt.close(fig)
 
         self._val_step_outputs = {"pred": [], "d": []}
+    

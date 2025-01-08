@@ -9,7 +9,7 @@ from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from torch.utils.data import DataLoader
 
 from gbi_diff.dataset import SBIDataset
-from gbi_diff.model.lit_module import SBI, DiffSBI
+from gbi_diff.model.lit_module import PotentialFunction, Guidance
 from gbi_diff.utils.train_config import Config as Config_SBI
 from gbi_diff.utils.train_theta_noise_config import Config as Config_Theta
 from gbi_diff.utils.filesystem import write_yaml
@@ -68,7 +68,7 @@ def train(config: Config_SBI, devices: int = 1, force: bool = False):
         num_workers=config.num_worker,
     )
 
-    model = SBI(
+    model = PotentialFunction(
         theta_dim=train_set.get_theta_dim(),
         simulator_out_dim=train_set.get_sim_out_dim(),
         optimizer_config=config.optimizer,
@@ -150,7 +150,7 @@ def train_theta_noise(config: Config_Theta, devices: int = 1, force: bool = Fals
         num_workers=config.num_worker,
     )
 
-    model = DiffSBI(
+    model = Guidance(
         theta_dim=train_set.get_theta_dim(),
         simulator_out_dim=train_set.get_sim_out_dim(),
         optimizer_config=config.optimizer,
