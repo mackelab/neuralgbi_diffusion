@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from gbi_diff.dataset import SBIDataset
 from gbi_diff.model.lit_module import PotentialFunction, Guidance
 from gbi_diff.utils.train_config import Config as Config_SBI
-from gbi_diff.utils.train_theta_noise_config import Config as Config_Theta
+from gbi_diff.utils.train_guidance_config import Config as Config_Theta
 from gbi_diff.utils.filesystem import write_yaml
 
 
@@ -97,7 +97,7 @@ def train(config: Config_SBI, devices: int = 1, force: bool = False):
     # result = {"test": test_result[0]["test_acc"], "val": val_result[0]["test_acc"]}
 
 
-def train_theta_noise(config: Config_Theta, devices: int = 1, force: bool = False):
+def train_guidance(config: Config_Theta, devices: int = 1, force: bool = False):
     # TODO: fixup device config
     serial_config = config
     accelerator = "auto"
