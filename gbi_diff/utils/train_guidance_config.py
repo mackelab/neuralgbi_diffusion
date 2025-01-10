@@ -12,13 +12,50 @@ class _Dataset(StructuredConfig):
 
 
 @dataclass
-class _Model(StructuredConfig):
-    latent_dim: int
-    theta_encoder: list
-    simulator_encoder: list
-    latent_mlp: list
+class _TimeEncoder(StructuredConfig):
+    enabled: bool
+    input_dim: int
+    output_dim: int
+    activation_func: str
+    architecture: list
+    final_activation: str
+
+
+@dataclass
+class _ThetaEncoder(StructuredConfig):
+    output_dim: int
+    architecture: list
+    activation_func: str
+    final_activation: str
+
+
+@dataclass
+class _SimulatorEncoder(StructuredConfig):
+    output_dim: int
+    architecture: list
+    activation_func: str
+    final_activation: str
+
+
+@dataclass
+class _LatentMLP(StructuredConfig):
+    architecture: list
     activation_func: str
     final_activation: NoneType
+
+
+@dataclass
+class _Model(StructuredConfig):
+    TimeEncoder: _TimeEncoder
+    ThetaEncoder: _ThetaEncoder
+    SimulatorEncoder: _SimulatorEncoder
+    LatentMLP: _LatentMLP
+
+    def __post_init__(self):
+        self.TimeEncoder = _TimeEncoder(**self.TimeEncoder)  #pylint: disable=E1134
+        self.ThetaEncoder = _ThetaEncoder(**self.ThetaEncoder)  #pylint: disable=E1134
+        self.SimulatorEncoder = _SimulatorEncoder(**self.SimulatorEncoder)  #pylint: disable=E1134
+        self.LatentMLP = _LatentMLP(**self.LatentMLP)  #pylint: disable=E1134
 
 
 @dataclass
@@ -36,17 +73,14 @@ class _VPSchedule(StructuredConfig):
 @dataclass
 class _Diffusion(StructuredConfig):
     steps: int
-    include_t: bool
     diffusion_time_sampler: str
     diffusion_schedule: str
     UniformSampler: _UniformSampler
     VPSchedule: _VPSchedule
 
     def __post_init__(self):
-        self.UniformSampler = _UniformSampler(
-            **self.UniformSampler
-        )  # pylint: disable=E1134
-        self.VPSchedule = _VPSchedule(**self.VPSchedule)  # pylint: disable=E1134
+        self.UniformSampler = _UniformSampler(**self.UniformSampler)  #pylint: disable=E1134
+        self.VPSchedule = _VPSchedule(**self.VPSchedule)  #pylint: disable=E1134
 
 
 @dataclass
@@ -70,7 +104,7 @@ class Config(StructuredConfig):
     optimizer: _Optimizer
 
     def __post_init__(self):
-        self.dataset = _Dataset(**self.dataset)  # pylint: disable=E1134
-        self.model = _Model(**self.model)  # pylint: disable=E1134
-        self.diffusion = _Diffusion(**self.diffusion)  # pylint: disable=E1134
-        self.optimizer = _Optimizer(**self.optimizer)  # pylint: disable=E1134
+        self.dataset = _Dataset(**self.dataset)  #pylint: disable=E1134
+        self.model = _Model(**self.model)  #pylint: disable=E1134
+        self.diffusion = _Diffusion(**self.diffusion)  #pylint: disable=E1134
+        self.optimizer = _Optimizer(**self.optimizer)  #pylint: disable=E1134
