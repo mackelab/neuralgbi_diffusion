@@ -33,7 +33,7 @@ class SBICriterion:
         # distance matrix
         d = self.sample_distance(x, x_target)
         d_target = d
-        
+
         if len(pred.shape) == 4:
             # diffusion steps are included.
             # Add an additional dimension in the distance matrix for broadcasting

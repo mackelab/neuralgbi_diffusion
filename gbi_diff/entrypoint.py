@@ -53,7 +53,7 @@ class Entrypoint:
 
     def train_guidance(
         self,
-        config_file: str = "config/train_theta_noise.yaml",
+        config_file: str = "config/train_guidance.yaml",
         device: int = 1,
         force: bool = False,
     ):

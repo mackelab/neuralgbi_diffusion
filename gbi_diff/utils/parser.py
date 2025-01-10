@@ -65,7 +65,7 @@ def add_train_guidance_args(parser: ArgumentParser) -> ArgumentParser:
         help='path to config file (allowed are yaml, toml and json). Defaults to: "config/train.yaml"',
         dest="config_file",
         type=str,
-        default="config/train_theta_noise.yaml",
+        default="config/train_guidance.yaml",
         required=False,
     )
     parser.add_argument(
