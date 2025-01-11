@@ -19,7 +19,7 @@ model:
     output_dim: 128
     activation_func: "ReLU"
     architecture: [128, 128]
-    final_activation: ReLu # Sigmoid only needed for cosine similarity -> otherwise null
+    final_activation: ReLU # Sigmoid only needed for cosine similarity -> otherwise null
   ThetaEncoder:
     output_dim: 128
     architecture: [256]
@@ -37,15 +37,19 @@ model:
 
 diffusion:
   steps: 1000
-  diffusion_time_sampler: "UniformSampler"
-  diffusion_schedule: "VPSchedule"
-  # Diffusion sampler
-  UniformSampler:
-    n_samples: 1  # how many sample to invoke into one loss signal
+  time_repr_dim: ${model.TimeEncoder.input_dim}  # sinusoidal position encoding dimensions 
+  period_spread: 10000  # parameter for sinusoidal positional encoding
+  diffusion_schedule: "DDPMSchedule"
   # Variance Preserving Schedule
   VPSchedule:
     beta_start: 0.0001     
     beta_end: 0.02
+    T: ${diffusion.steps}
+    beta_schedule_cls: "LinearSchedule"  
+  DDPMSchedule:
+    beta_start: 0.0001     
+    beta_end: 0.02
+    T: ${diffusion.steps}
     beta_schedule_cls: "LinearSchedule"  
 
 optimizer:
