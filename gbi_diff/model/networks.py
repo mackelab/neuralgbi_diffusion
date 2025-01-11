@@ -71,16 +71,21 @@ class FeedForwardNetwork(Module):
 
 
 class SBINetwork(Module):
+    from gbi_diff.utils.train_guidance_config import (
+        _ThetaEncoder,
+        _TimeEncoder,
+        _SimulatorEncoder,
+        _LatentMLP,
+    )
+
     def __init__(
         self,
         theta_dim: int,
         simulator_out_dim: int,
-        latent_dim: int = 256,
-        theta_encoder: List[int] = [256],
-        simulator_encoder: List[int] = [256],
-        latent_mlp: List[int] = [256, 256, 128],
-        activation_func: str = "ELU",
-        final_activation: str = None,
+        theta_encoder: _ThetaEncoder,
+        simulator_encoder: _SimulatorEncoder,
+        latent_mlp: _LatentMLP,
+        time_encoder: _TimeEncoder = None,
         *args,
         **kwargs,
     ):
@@ -88,35 +93,50 @@ class SBINetwork(Module):
 
         self._theta_encoder = FeedForwardNetwork(
             input_dim=theta_dim,
-            output_dim=latent_dim,
-            architecture=theta_encoder,
-            activation_function=activation_func,
-            final_activation=activation_func,
+            output_dim=theta_encoder.output_dim,
+            architecture=theta_encoder.architecture,
+            activation_function=theta_encoder.activation_func,
+            final_activation=theta_encoder.final_activation,
         )
         self._simulator_out_encoder = FeedForwardNetwork(
             input_dim=simulator_out_dim,
-            output_dim=latent_dim,
-            architecture=simulator_encoder,
-            activation_function=activation_func,
-            final_activation=activation_func,
-        )
-        self._latent_mlp = FeedForwardNetwork(
-            input_dim=2 * latent_dim,
-            output_dim=1,
-            architecture=latent_mlp,
-            activation_function=activation_func,
-            final_activation=final_activation,
+            output_dim=simulator_encoder.output_dim,
+            architecture=simulator_encoder.architecture,
+            activation_function=simulator_encoder.activation_func,
+            final_activation=simulator_encoder.final_activation,
         )
 
-    def forward(self, theta: Tensor, x_target: Tensor) -> Tensor:
+        latent_input_dim = theta_encoder.output_dim + simulator_encoder.output_dim
+        if time_encoder is not None and time_encoder.enabled:
+            self._time_encoder = FeedForwardNetwork(
+                input_dim=time_encoder.input_dim,
+                output_dim=time_encoder.output_dim,
+                architecture=time_encoder.architecture,
+                activation_function=time_encoder.activation_func,
+                final_activation=time_encoder.final_activation,
+            )
+            latent_input_dim += time_encoder.output_dim
+
+        self._latent_mlp = FeedForwardNetwork(
+            input_dim=latent_input_dim,
+            output_dim=1,
+            architecture=latent_mlp.architecture,
+            activation_function=latent_mlp.activation_func,
+            final_activation=latent_mlp.final_activation,
+        )
+
+    def forward(
+        self, theta: Tensor, x_target: Tensor, time_repr: Tensor = None
+    ) -> Tensor:
         """
 
         Args:
-            theta (Tensor): (batch_size, (diff_steps, ) theta_dim)
+            theta (Tensor): (batch_size, theta_dim)
             x_target (Tensor): (batch_size, n_target, simulator_dim)
+            time (Tensor): (batch_size, time_repr_dim). Defaults to None
 
         Returns:
-            Tensor: (batch_size, (diff_steps, ) n_target, 1)
+            Tensor: (batch_size, n_target, 1)
         """
         batch = True
         if len(theta.shape) == 1 and len(x_target.shape) == 2:
@@ -124,22 +144,32 @@ class SBINetwork(Module):
             batch = False
             theta = theta[None]
             x_target = x_target[None]
+            if time_repr is not None and len(time_repr.shape) == 1:
+                time_repr = time_repr[None]
 
-        # out shape: (batch_size, (diff_steps, ), latent_dim / 2)
+        # out shape: (batch_size, latent_dim)
         theta_enc = self._theta_encoder.forward(theta)
-        # out shape: (batch_size, n_target, latent_dim / 2)
+        # out shape: (batch_size, n_target, latent_dim)
         simulator_out_enc = self._simulator_out_encoder.forward(x_target)
+        # out shape: (batch_size, latent_dim)
 
         # repeat the theta  encoding along the n_target dimension
         n_target = x_target.shape[1]
         theta_enc = dim_repeat(theta_enc, n_target, -2)
 
-        if len(theta_enc.shape) == 4:
-            # diffusion steps in theta are apparent
-            diffusion_steps = theta_enc.shape[1]
-            simulator_out_enc = dim_repeat(simulator_out_enc, diffusion_steps, 1)
+        # if len(theta_enc.shape) == 4:
+        #     # diffusion steps in theta are apparent
+        #     diffusion_steps = theta_enc.shape[1]
+        #     simulator_out_enc = dim_repeat(simulator_out_enc, diffusion_steps, 1)
 
         latent_input = torch.cat([theta_enc, simulator_out_enc], dim=-1)
+
+        # if existing add time representation
+        if time_repr is not None:
+            time_enc = self._time_encoder.forward(time_repr)
+            time_enc = dim_repeat(time_enc, n_target, -2)
+            latent_input = torch.cat([latent_input, time_enc], dim=-1)
+
         res = self._latent_mlp(latent_input)
 
         if not batch:

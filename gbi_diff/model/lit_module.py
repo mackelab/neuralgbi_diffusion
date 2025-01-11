@@ -1,17 +1,26 @@
 from copy import deepcopy
+import functools
 from typing import Tuple
 
 from matplotlib import pyplot as plt
+import numpy as np
 import torch
 from lightning import LightningModule
 from lightning.pytorch.loggers import TensorBoardLogger
 from torch import Tensor, optim
 
-from gbi_diff.model.networks import SBINetwork
+from gbi_diff.model.networks import FeedForwardNetwork, SBINetwork
+
 # from gbi_diff.utils.metrics import batch_correlation
+from gbi_diff.utils.encoding import get_positional_encoding
 from gbi_diff.utils.train_config import _Model as ModelConfig
 from gbi_diff.utils.train_config import _Optimizer as OptimizerConfig
-from gbi_diff.utils.train_theta_noise_config import _Diffusion as DiffusionConfig
+from gbi_diff.utils.train_guidance_config import _Diffusion as DiffusionGuidanceConfig
+from gbi_diff.utils.train_guidance_config import _Model as ModelGuidanceConfig
+from gbi_diff.utils.train_diffusion_config import Config
+from gbi_diff.utils.train_diffusion_config import _Optimizer as DiffusionOptimizerConfig
+from gbi_diff.utils.train_diffusion_config import _Model as DiffusionModelConfig
+from gbi_diff.utils.train_diffusion_config import _Diffusion as DiffusionDiffusionConfig
 from gbi_diff.utils.criterion import SBICriterion
 from gbi_diff.utils.plot import (
     plot_correlation,
@@ -35,15 +44,19 @@ class PotentialFunction(LightningModule):
         optimizer_config = deepcopy(optimizer_config)
         net_config = deepcopy(net_config)
 
-        super().__init__(*args, **kwargs)
         self.save_hyperparameters()
-
-        self.net = SBINetwork(
-            theta_dim=theta_dim,
-            simulator_out_dim=simulator_out_dim,
-            **net_config.__dict__,
+        super().__init__(
+            *args,
+            **kwargs,
         )
 
+        self._net = SBINetwork(
+            theta_dim=theta_dim,
+            simulator_out_dim=simulator_out_dim,
+            theta_encoder=net_config.ThetaEncoder,
+            simulator_encoder=net_config.SimulatorEncoder,
+            latent_mlp=net_config.LatentMLP,
+        )
         self.example_input_array = (
             torch.zeros(1, theta_dim),
             torch.zeros(1, 1, simulator_out_dim),
@@ -56,10 +69,27 @@ class PotentialFunction(LightningModule):
         self._train_step_outputs = {"pred": [], "d": []}
         self._val_step_outputs = {"pred": [], "d": []}
 
-    def training_step(self, batch: Tuple[Tensor, Tensor, Tensor], batch_idx: int):
+    def _batch_forward(self, batch: Tuple[Tensor, Tensor, Tensor]) -> Tensor:
         theta, simulator_out, x_target = batch
         network_res = self.forward(theta, x_target)
         loss = self.criterion.forward(network_res, simulator_out, x_target)
+        return loss
+    
+    def forward(self, theta: Tensor, x_target: Tensor) -> Tensor:
+        """_summary_
+
+        Args:
+            prior (Tensor): (batch_size, n_prior_features)
+            x_target (Tensor): (batch_size, n_target, n_sim_features)
+
+        Returns:
+            Tensor: (batch_size, n_target)
+        """
+        return self._net.forward(theta, x_target)
+
+
+    def training_step(self, batch: Tuple[Tensor, Tensor, Tensor], batch_idx: int):
+        loss = self._batch_forward(batch)
         self.log("train/loss", loss, on_epoch=True, on_step=False)
         self.log(
             "train/cost_corr",
@@ -74,9 +104,7 @@ class PotentialFunction(LightningModule):
         return loss
 
     def validation_step(self, batch: Tuple[Tensor, Tensor, Tensor], batch_idx: int):
-        theta, simulator_out, x_target = batch
-        network_res = self.forward(theta, x_target)
-        loss = self.criterion.forward(network_res, simulator_out, x_target)
+        loss = self._batch_forward(batch)
         self.log("val/loss", loss, on_epoch=True, on_step=False)
         self.log(
             "val/cost_corr",
@@ -105,17 +133,6 @@ class PotentialFunction(LightningModule):
         plt.close(fig)
         self._val_step_outputs = {"pred": [], "d": []}
 
-    def forward(self, theta: Tensor, x_target: Tensor) -> Tensor:
-        """_summary_
-
-        Args:
-            prior (Tensor): (batch_size, n_prior_features)
-            x_target (Tensor): (batch_size, n_target, n_sim_features)
-
-        Returns:
-            Tensor: (batch_size, n_target)
-        """
-        return self.net.forward(theta, x_target)
 
     def configure_optimizers(self):
         optimizer_cls = getattr(optim, self._optimizer_config.pop("name"))
@@ -123,43 +140,23 @@ class PotentialFunction(LightningModule):
         return optimizer
 
 
-class Guidance(PotentialFunction):
-    """time dependent version of the potential function
-    """
-    def __init__(
-        self,
-        theta_dim: int,
-        simulator_out_dim: int,
-        optimizer_config: OptimizerConfig,
-        net_config: ModelConfig,
-        diff_config: DiffusionConfig,
-        *args,
-        **kwargs
-    ):
-        modified_theta_dim = theta_dim
-        if diff_config.include_t:
-            # TODO: make this dependent on the diffusion time encoding
-            modified_theta_dim += 1
-        
-        self.save_hyperparameters()
-        super().__init__(
-            modified_theta_dim,
-            simulator_out_dim,
-            optimizer_config,
-            net_config,
-            *args,
-            **kwargs,
-        )
-        # from config2class.utils import deconstruct_config
-        # print(deconstruct_config(diff_config))
+class _DiffusionBase:
+    def __init__(self, diff_config: DiffusionGuidanceConfig, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.period_spread = diff_config.period_spread
+        self.time_repr_dim = diff_config.time_repr_dim
+
         self.diff_schedule = self._build_schedule(deepcopy(diff_config))
-        self.sampler = self._build_sampler(deepcopy(diff_config))
         self.diffusion_steps = diff_config.steps
-        self.include_t = diff_config.include_t
+        """same thing as: T (capital T)"""
         self.t = torch.linspace(0, 1, self.diffusion_steps)
 
+        self.val_sample = np.random.choice(
+            self.diffusion_steps, size=self.diffusion_steps, replace=False
+        )
+
     def _build_schedule(
-        self, diff_config: DiffusionConfig
+        self, diff_config: DiffusionGuidanceConfig
     ) -> diffusion_schedule.Schedule:
         schedule_name = diff_config.__dict__.pop("diffusion_schedule")
         schedule_cls = getattr(diffusion_schedule, schedule_name)
@@ -170,78 +167,118 @@ class Guidance(PotentialFunction):
         schedule = schedule_cls(**schedule_config.__dict__)
         return schedule
 
-    def _build_sampler(
-        self, diff_config: DiffusionConfig
-    ) -> diffusion_sampler.DiffSampler:
-        sampler_name = diff_config.__dict__.pop("diffusion_time_sampler")
-        sampler_cls = getattr(diffusion_sampler, sampler_name)
-        sampler_config = getattr(diff_config, sampler_name)
-        sampler = sampler_cls(**sampler_config.__dict__)
-        return sampler
-
-    def _get_diff_time_enc(self, t: Tensor) -> Tensor:
-        """_summary_
+    def _get_diff_time_repr(self, t: np.ndarray) -> Tensor:
+        """get sinusoidal positional encoding
 
         Args:
-            t (Tensor): _description_
+            t (np.ndarray): time in index space (batch_size, )
 
         Returns:
-            Tensor: _description_
+            Tensor: positional encoding (batch_size, repr_dim)
         """
-        return t
+        return torch.from_numpy(
+            get_positional_encoding(t, self.time_repr_dim, self.period_spread)
+        ).float()
 
-    def _sample_diffusions(self, theta: Tensor, include_t: bool = False) -> Tensor:
+    def _get_diff_time_sample(self, batch_size: int) -> Tensor:
+        """
+
+        Args:
+            batch_size (int): how many samples you stack ontop of each other
+        Returns:
+            Tensor: (batch_size, ) indices between 0 and self.diffusion_steps.
+        """
+        if self.training:
+            sampled_t = torch.from_numpy(
+                np.random.choice(self.diffusion_steps, size=batch_size, replace=True)
+            )
+        else:
+            # always take the same subsample
+            sampled_t = self.val_sample[:batch_size]
+        return sampled_t
+
+    def _sample_diffusions(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
         """sample a subset of thetas according to `self.sampler` and diffuse the samples
         according to `self.schedule`
 
         Args:
-            theta (Tensor): (batch_size, theta_dim)
-            include_t: (optional, bool): Would you like to append the time encoding into the sampled
+            x (Tensor): (batch_size, n_features)
 
         Returns:
-            Tensor: (batch_size, sampled_diffs, theta_dim)
+            Tuple[Tensor, Tensor, Tensor]:
+                - noised x (batch_size, n_features)
+                - normal noise (batch_size, n_features)
+                - time representations (batch_size, time_features)
         """
-        batch_size, theta_dim = theta.shape
+        batch_size, _ = x.shape
 
         # sample a subset of diffusion time
-        if self.training:
-            sampled_t = self.sampler.forward_unbatched(self.t)
-            sampled_t, _ = torch.sort(sampled_t)
-        else:
-            # eval model on bigger subsample
-            # TODO: if you have more ram at disposal do this on whole batch
-            sampled_t = self.t
-            sampled_t = torch.linspace(0, 1, 100)  # this is hardcoded
+        sampled_t = self._get_diff_time_sample(batch_size)
+        noised_x, noise = self.diff_schedule.forward(x, sampled_t)
 
-        res = torch.empty((batch_size, len(sampled_t), theta_dim))
-        insert_slice = slice(0, None)
-        if sampled_t[0] == 0:
-            # include the undiffused sample
-            # sampled_t = sampled_t[1:]
-            res[:, 0] = theta
-            insert_slice = slice(1, None)
-        diffused_theta = torch.normal(
-            *self.diff_schedule.forward(theta, sampled_t[insert_slice])
+        t_repr = self._get_diff_time_repr(sampled_t)
+
+        return noised_x, noise, t_repr
+
+
+class Guidance(_DiffusionBase, LightningModule):
+    """time dependent version of the potential function"""
+
+    def __init__(
+        self,
+        theta_dim: int,
+        simulator_out_dim: int,
+        optimizer_config: OptimizerConfig,
+        net_config: ModelGuidanceConfig,
+        diff_config: DiffusionGuidanceConfig,
+        *args,
+        **kwargs
+    ):
+        optimizer_config = deepcopy(optimizer_config)
+        net_config = deepcopy(net_config)
+
+        self.save_hyperparameters()
+        super().__init__(
+            diff_config=diff_config,
+            *args,
+            **kwargs,
         )
-        res[:, insert_slice] = diffused_theta
 
-        # add diff time. 
-        if include_t:
-            # TODO: write a get_time_enc function for more complex time-encodings
-            batch_size = len(theta)
-            sampled_t = sampled_t[None, :, None].repeat((batch_size, 1, 1))
-            t_encoding = self._get_diff_time_enc(sampled_t)
-            res = torch.cat([res, t_encoding], dim=-1)
+        self._net = SBINetwork(
+            theta_dim=theta_dim,
+            simulator_out_dim=simulator_out_dim,
+            theta_encoder=net_config.ThetaEncoder,
+            simulator_encoder=net_config.SimulatorEncoder,
+            time_encoder=net_config.TimeEncoder,
+            latent_mlp=net_config.LatentMLP,
+        )
+        self.example_input_array = (
+            torch.zeros(1, theta_dim),
+            torch.zeros(1, 1, simulator_out_dim),
+            torch.zeros(1, net_config.TimeEncoder.input_dim),
+        )
 
-        return res
+        self.criterion = SBICriterion(distance_order=2)
+        self._optimizer_config = optimizer_config.__dict__
+
+        # this thing should not leave the class. Inconsistencies with strings feared
+        self._train_step_outputs = {"pred": [], "d": []}
+        self._val_step_outputs = {"pred": [], "d": []}
+
+    def forward(self, theta_t: Tensor, x_target: Tensor, time_repr: Tensor) -> Tensor:
+        return self._net.forward(theta_t, x_target, time_repr)
+
+    def _batch_forward(self, batch: Tuple[Tensor, Tensor, Tensor]) -> Tensor:
+        theta, simulator_out, x_target = batch
+
+        theta_t, _, time_repr = self._sample_diffusions(theta)
+        network_res = self.forward(theta_t, x_target, time_repr)
+        loss = self.criterion.forward(network_res, simulator_out, x_target)
+        return loss
 
     def training_step(self, batch, batch_idx):
         self.train()
-        theta, simulator_out, x_target = batch
-
-        theta_t = self._sample_diffusions(theta, include_t=self.include_t)
-        network_res = self.forward(theta_t, x_target)
-        loss = self.criterion.forward(network_res, simulator_out, x_target)
+        loss = self._batch_forward(batch)
         self.log("train/loss", loss, on_epoch=True, on_step=False)
         self.log(
             "train/cost_corr",
@@ -254,13 +291,13 @@ class Guidance(PotentialFunction):
         self._train_step_outputs["d"].append(self.criterion.d)
         return loss
 
+    def on_train_epoch_end(self):
+        # reset logging data
+        self._train_step_outputs = {"pred": [], "d": []}
+
     def validation_step(self, batch, batch_idx):
-
-        theta, simulator_out, x_target = batch
-
-        theta_t = self._sample_diffusions(theta, include_t=self.include_t)
-        network_res = self.forward(theta_t, x_target)
-        loss = self.criterion.forward(network_res, simulator_out, x_target)
+        self.eval()
+        loss = self._batch_forward(batch)
         self.log("val/loss", loss, on_epoch=True, on_step=False)
         self.log(
             "val/cost_corr",
@@ -274,6 +311,8 @@ class Guidance(PotentialFunction):
         return loss
 
     def on_validation_epoch_end(self):
+        self._val_step_outputs = {"pred": [], "d": []}
+        return
         if self._val_step_outputs == {"pred": [], "d": []}:
             return
         pred = torch.cat(self._val_step_outputs["pred"], dim=0)
@@ -281,10 +320,11 @@ class Guidance(PotentialFunction):
 
         tb_logger: TensorBoardLogger = self.loggers[0]
 
-        fig, ax = plot_diffusion_step_loss(pred, d[:, 0], agg=True)
+        fig, _ = plot_diffusion_step_loss(pred, d[:, 0], agg=True)
         tb_logger.experiment.add_figure(
             "val/diff_loss_plot", fig, global_step=self.global_step
         )
+
         fig, ax = plot_diffusion_step_corr(pred, d[:, 0], agg=True)
         tb_logger.experiment.add_figure(
             "val/diff_corr_plot", fig, global_step=self.global_step
@@ -293,4 +333,50 @@ class Guidance(PotentialFunction):
         plt.close(fig)
 
         self._val_step_outputs = {"pred": [], "d": []}
-    
+
+    def configure_optimizers(self):
+        optimizer_cls = getattr(optim, self._optimizer_config.pop("name"))
+        optimizer = optimizer_cls(self.parameters(), **self._optimizer_config)
+        return optimizer
+
+
+class DiffusionModel(LightningModule, _DiffusionBase):
+    def __init__(
+        self,
+        theta_dim: int,
+        diff_config: DiffusionDiffusionConfig,
+        optimizer_config: DiffusionOptimizerConfig,
+        net_config: DiffusionModelConfig,
+        *args,
+        **kwargs
+    ):
+        optimizer_config = deepcopy(optimizer_config)
+        net_config = deepcopy(net_config)
+        modified_theta_dim = theta_dim
+        if diff_config.include_t:
+            # TODO: make this dependent on the diffusion time encoding
+            modified_theta_dim += 1
+
+        self.save_hyperparameters()
+
+        self._net = FeedForwardNetwork(
+            input_dim=modified_theta_dim,
+            output_dim=theta_dim,
+            architecture=net_config.architecture,
+            activation_function=net_config.activation_func,
+            final_activation=net_config.final_activation,
+        )
+
+        self.example_input_array = (torch.zeros(1, theta_dim),)
+
+        self.criterion = SBICriterion(distance_order=2)
+        self._optimizer_config = optimizer_config.__dict__
+
+        # this thing should not leave the class. Inconsistencies with strings feared
+        self._train_step_outputs = {"pred": [], "d": []}
+        self._val_step_outputs = {"pred": [], "d": []}
+
+    def configure_optimizers(self):
+        optimizer_cls = getattr(optim, self._optimizer_config.pop("name"))
+        optimizer = optimizer_cls(self.parameters(), **self._optimizer_config)
+        return optimizer
