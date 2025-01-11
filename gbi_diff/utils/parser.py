@@ -59,6 +59,66 @@ def add_mcmc_sample_args(parser: ArgumentParser) -> ArgumentParser:
     return parser
 
 
+def add_diffusion_sample_args(parser: ArgumentParser) -> ArgumentParser:
+    parser.add_argument(
+        "--prior-checkpoint",
+        help="_description_",
+        dest="prior_checkpoint",
+        type=str,
+        required=True,
+    )
+    parser.add_argument(
+        "--likelihood-checkpoint",
+        help="_description_",
+        dest="likelihood_checkpoint",
+        type=str,
+        required=True,
+    )
+    parser.add_argument(
+        "--n-samples",
+        help="_description_",
+        dest="n_samples",
+        type=int,
+        required=True,
+    )
+    parser.add_argument(
+        "--beta",
+        help="_description_. Defaults to 1.",
+        dest="beta",
+        type=float,
+        default=1,
+        required=False,
+    )
+    return parser
+
+
+def add_train_diffusion_args(parser: ArgumentParser) -> ArgumentParser:
+    parser.add_argument(
+        "--config-file",
+        help='_description_. Defaults to "config/train_diffusion.yaml".',
+        dest="config_file",
+        type=str,
+        default="config/train_diffusion.yaml",
+        required=False,
+    )
+    parser.add_argument(
+        "--device",
+        help="_description_. Defaults to 1.",
+        dest="device",
+        type=int,
+        default=1,
+        required=False,
+    )
+    parser.add_argument(
+        "--force",
+        help="_description_. Defaults to False.",
+        dest="force",
+        action="store_true",
+        required=False,
+    )
+    return parser
+
+
 def add_train_guidance_args(parser: ArgumentParser) -> ArgumentParser:
     parser.add_argument(
         "--config-file",
@@ -161,6 +221,17 @@ def setup_entrypoint_parser(
     )
     train_guidance = add_train_guidance_args(train_guidance)
     subparser["train_guidance"] = train_guidance
+    train_diffusion = command_subparser.add_parser(
+        "train-diffusion",
+        help="train diffusion model which is also the prior for the sampling process",
+    )
+    train_diffusion = add_train_diffusion_args(train_diffusion)
+    subparser["train_diffusion"] = train_diffusion
+    diffusion_sample = command_subparser.add_parser(
+        "diffusion-sample", help="_summary_"
+    )
+    diffusion_sample = add_diffusion_sample_args(diffusion_sample)
+    subparser["diffusion_sample"] = diffusion_sample
     mcmc_sample = command_subparser.add_parser("mcmc-sample", help="sample mcmc")
     mcmc_sample = add_mcmc_sample_args(mcmc_sample)
     subparser["mcmc_sample"] = mcmc_sample

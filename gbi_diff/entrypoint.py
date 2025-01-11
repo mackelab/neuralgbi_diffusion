@@ -48,7 +48,7 @@ class Entrypoint:
 
         # <<<<
 
-        config = Config.from_file(config_file)
+        config = Config.from_file(config_file, resolve=True)
         train(config, device, force)
 
     def train_guidance(
@@ -72,8 +72,51 @@ class Entrypoint:
 
         # <<<<
 
-        config = Config.from_file(config_file)
+        config = Config.from_file(config_file, resolve=True)
         train_guidance(config, device, force)
+
+    def train_diffusion(
+        self,
+        config_file: str = "config/train_diffusion.yaml",
+        device: int = 1,
+        force: bool = False,
+    ):
+        """train diffusion model which is also the prior for the sampling process
+
+        Args:
+            config_file (str, optional): _description_. Defaults to "config/train_diffusion.yaml".
+            device (int, optional): _description_. Defaults to 1.
+            force (bool, optional): _description_. Defaults to False.
+        """
+        from gbi_diff.scripts.train import train_guidance  # pylint: disable=C0415
+        from gbi_diff.utils.train_diffusion_config import (
+            Config,
+        )  # pylint: disable=C0415
+
+        # <<<<
+
+        config = Config.from_file(config_file, resolve=True)
+        raise NotImplementedError
+
+    def diffusion_sample(
+        self,
+        prior_checkpoint: str,
+        likelihood_checkpoint: str,
+        n_samples: int,
+        beta: float = 1,
+    ):
+        """_summary_
+
+        Args:
+            prior_checkpoint (str): _description_
+            likelihood_checkpoint (str): _description_
+            n_samples (int): _description_
+            beta (float, optional): _description_. Defaults to 1.
+
+        Raises:
+            NotImplementedError: _description_
+        """
+        raise NotImplementedError
 
     def mcmc_sample(
         self,

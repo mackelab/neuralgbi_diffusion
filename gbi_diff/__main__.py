@@ -31,6 +31,21 @@ def execute(args: dict) -> bool:
                 force=args["force"],
             )
 
+        case "train-diffusion":
+            module.train_diffusion(
+                config_file=args["config_file"],
+                device=args["device"],
+                force=args["force"],
+            )
+
+        case "diffusion-sample":
+            module.diffusion_sample(
+                prior_checkpoint=args["prior_checkpoint"],
+                likelihood_checkpoint=args["likelihood_checkpoint"],
+                n_samples=args["n_samples"],
+                beta=args["beta"],
+            )
+
         case "mcmc-sample":
             module.mcmc_sample(
                 checkpoint=args["checkpoint"],
