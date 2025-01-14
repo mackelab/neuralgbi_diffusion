@@ -41,9 +41,11 @@ class _Model(StructuredConfig):
     LatentMLP: _LatentMLP
 
     def __post_init__(self):
-        self.ThetaEncoder = _ThetaEncoder(**self.ThetaEncoder)  #pylint: disable=E1134
-        self.SimulatorEncoder = _SimulatorEncoder(**self.SimulatorEncoder)  #pylint: disable=E1134
-        self.LatentMLP = _LatentMLP(**self.LatentMLP)  #pylint: disable=E1134
+        self.ThetaEncoder = _ThetaEncoder(**self.ThetaEncoder)  # pylint: disable=E1134
+        self.SimulatorEncoder = _SimulatorEncoder(
+            **self.SimulatorEncoder
+        )  # pylint: disable=E1134
+        self.LatentMLP = _LatentMLP(**self.LatentMLP)  # pylint: disable=E1134
 
 
 @dataclass
@@ -66,6 +68,6 @@ class Config(StructuredConfig):
     optimizer: _Optimizer
 
     def __post_init__(self):
-        self.dataset = _Dataset(**self.dataset)  #pylint: disable=E1134
-        self.model = _Model(**self.model)  #pylint: disable=E1134
-        self.optimizer = _Optimizer(**self.optimizer)  #pylint: disable=E1134
+        self.dataset = _Dataset(**self.dataset)  # pylint: disable=E1134
+        self.model = _Model(**self.model)  # pylint: disable=E1134
+        self.optimizer = _Optimizer(**self.optimizer)  # pylint: disable=E1134

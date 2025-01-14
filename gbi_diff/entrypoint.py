@@ -29,7 +29,7 @@ class Entrypoint:
 
         generate_dataset(dataset_type, sizes, path)
 
-    def train(
+    def train_potential(
         self,
         config_file: str = "config/train.yaml",
         device: int = 1,
@@ -43,13 +43,13 @@ class Entrypoint:
             force (bool, optional): If you would like to start training without any questions
         """
         # >>>> add import here for faster help message
-        from gbi_diff.scripts.train import train  # pylint: disable=C0415
+        from gbi_diff.scripts.train import train_potential  # pylint: disable=C0415
         from gbi_diff.utils.train_config import Config  # pylint: disable=C0415
 
         # <<<<
 
         config = Config.from_file(config_file, resolve=True)
-        train(config, device, force)
+        train_potential(config, device, force)
 
     def train_guidance(
         self,
@@ -88,7 +88,8 @@ class Entrypoint:
             device (int, optional): _description_. Defaults to 1.
             force (bool, optional): _description_. Defaults to False.
         """
-        from gbi_diff.scripts.train import train_guidance  # pylint: disable=C0415
+        # >>>> add import here for faster help message
+        from gbi_diff.scripts.train import train_diffusion  # pylint: disable=C0415
         from gbi_diff.utils.train_diffusion_config import (
             Config,
         )  # pylint: disable=C0415
@@ -96,34 +97,51 @@ class Entrypoint:
         # <<<<
 
         config = Config.from_file(config_file, resolve=True)
-        raise NotImplementedError
+        train_diffusion(config, device, force)
 
     def diffusion_sample(
         self,
-        prior_checkpoint: str,
-        likelihood_checkpoint: str,
-        n_samples: int,
-        beta: float = 1,
+        diffusion_ckpt: str,
+        guidance_ckpt: str,
+        config: str = "config/sampling_diffusion.yaml",
+        output: str = None,
+        n_samples: int = 100,
+        plot: bool = False,
     ):
         """_summary_
 
         Args:
-            prior_checkpoint (str): _description_
-            likelihood_checkpoint (str): _description_
-            n_samples (int): _description_
-            beta (float, optional): _description_. Defaults to 1.
+            diffusion_ckpt (str): _description_
+            guidance_ckpt (str): _description_
+            config (str): _description_
+            output (str, optional): _description_. Defaults to None.
+            n_samples (int, optional): _description_. Defaults to 100.
+            plot (bool, optional): _description_. Defaults to False.
 
         Raises:
             NotImplementedError: _description_
         """
-        raise NotImplementedError
+        # >>>> add import here for faster help message
+        from gbi_diff.scripts.sampling import (
+            diffusion_sampling,
+        )  # pylint: disable=C0415
+        from gbi_diff.utils.sampling_diffusion_config import (
+            Config,
+        )  # pylint: disable=C0415
+        # <<<<
+
+        config: Config = Config.from_file(config)
+
+        diffusion_sampling(
+            diffusion_ckpt, guidance_ckpt, config, output, n_samples, plot
+        )
 
     def mcmc_sample(
         self,
         checkpoint: str,
         observed_data: str,
         size: int = 100,
-        config_file: str = "config/mcmc.yaml",
+        config_file: str = "config/sampling_mcmc.yaml",
         output: str = None,
         plot: bool = False,
         num_worker: int = 1,
@@ -145,8 +163,6 @@ class Entrypoint:
             )
 
         # >>>> add import here for faster help message
-        import torch  # pylint: disable=C0415
-
         from gbi_diff.sampling.utils import (  # pylint: disable=C0415
             load_observed_data,
             save_samples,
@@ -154,8 +170,10 @@ class Entrypoint:
         from gbi_diff.scripts.sampling import (  # pylint: disable=C0415
             sample_posterior,
         )
-        from gbi_diff.utils.mcmc_config import Config  # pylint: disable=C0415
-        from gbi_diff.utils.plot import pair_plot_stack  # pylint: disable=C0415
+        from gbi_diff.utils.sampling_mcmc_config import Config  # pylint: disable=C0415
+        from gbi_diff.utils.plot import (
+            pair_plot_stack_potential,
+        )  # pylint: disable=C0415
 
         # <<<<
 
@@ -167,4 +185,4 @@ class Entrypoint:
         save_samples(samples, checkpoint, output)
 
         if plot:
-            pair_plot_stack(samples, checkpoint, config, output)
+            pair_plot_stack_potential(samples, checkpoint, config, output)

@@ -1,4 +1,5 @@
-results_dir: "results/diffusion/two_moons"
+data_entity: lotka_volterra
+results_dir: "results/diffusion/${data_entity}"
 check_val_every_n_epochs: 5
 num_worker: 12
 
@@ -7,33 +8,46 @@ batch_size: 256
 precision: 32 # 64: extended, 32: standard, 16: half
 
 dataset:
-  train_file: "data/two_moons_10000.pt"
-  val_file: "data/two_moons_1000.pt"
+  train_file: "data/${data_entity}_10000.pt"
+  val_file: "data/${data_entity}_1000.pt"
   n_target: 20
   noise_std: 0.1 # how strong to noise the augmentations in x_target
 
 model:
-  latent_dim: 256
-  architecture: [256, 256, 128]
-  activation_func: ReLU
-  final_activation: null # Sigmoid only needed for cosine similarity -> otherwise null
+  TimeEncoder:
+    input_dim: 512
+    output_dim: 512
+    activation_func: "ReLU"
+    architecture: [1024]
+    final_activation: ReLU # Sigmoid only needed for cosine similarity -> otherwise null
+  ThetaEncoder:
+    output_dim: 128
+    architecture: [256]
+    activation_func: "ReLU"
+    final_activation: ReLU # Sigmoid only needed for cosine similarity -> otherwise null
+  LatentMLP:
+    architecture: [256, 156, 128]
+    activation_func: "ReLU"
+    final_activation: null # Sigmoid only needed for cosine similarity -> otherwise null
 
 diffusion:
   steps: 1000
-  include_t: True
-  diffusion_time_sampler: "UniformSampler"  # should always be a UniformSampler as pointed out in the DDPM paper
-  diffusion_schedule: "VPSchedule"
-  # Diffusion sampler
-  UniformSampler:
-    # NOTE: This should stay always one as pointed out in the DDPM paper    
-    n_samples: 1  # how many sample to invoke into one loss signal
+  time_repr_dim: ${model.TimeEncoder.input_dim}  # sinusoidal position encoding dimensions 
+  period_spread: 10000  # parameter for sinusoidal positional encoding
+  diffusion_schedule: "DDPMSchedule"
   # Variance Preserving Schedule
   VPSchedule:
     beta_start: 0.0001     
     beta_end: 0.02
-    beta_schedule_cls: "LinearSchedule"
+    T: ${diffusion.steps}
+    beta_schedule_cls: "LinearSchedule"  
+  DDPMSchedule:
+    beta_start: 0.0001     
+    beta_end: 0.02
+    T: ${diffusion.steps}
+    beta_schedule_cls: "LinearSchedule"  
 
 optimizer:
-    name: Adam
-    lr: 0.0001
-    weight_decay: 0
+  name: Adam
+  lr: 0.0001
+  weight_decay: 0

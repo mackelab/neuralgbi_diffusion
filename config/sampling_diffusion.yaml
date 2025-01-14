@@ -1,0 +1,2 @@
+beta: 100 # breaks at 10_000
+observed_data_file: data/observed_data/two_moons_10.pt

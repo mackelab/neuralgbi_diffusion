@@ -1,4 +1,5 @@
-results_dir: "results/theta_noise/two_moons"
+data_entity: lotka_volterra
+results_dir: "results/guidance/${data_entity}"
 check_val_every_n_epochs: 5
 num_worker: 12
 
@@ -7,8 +8,8 @@ batch_size: 256
 precision: 32 # 64: extended, 32: standard, 16: half
 
 dataset:
-  train_file: "data/two_moons_10000.pt"
-  val_file: "data/two_moons_1000.pt"
+  train_file: "data/${data_entity}_10000.pt"
+  val_file: "data/${data_entity}_1000.pt"
   n_target: 20
   noise_std: 0.1 # how strong to noise the augmentations in x_target
 
@@ -16,16 +17,16 @@ model:
   TimeEncoder:
     enabled: True
     input_dim: 512
-    output_dim: 128
+    output_dim: 512
     activation_func: "ReLU"
-    architecture: [128, 128]
+    architecture: [1024]
     final_activation: ReLU # Sigmoid only needed for cosine similarity -> otherwise null
   ThetaEncoder:
     output_dim: 128
     architecture: [256]
     activation_func: "ReLU"
     final_activation: ReLU # Sigmoid only needed for cosine similarity -> otherwise null
-  SimulatorEncoder:
+  SimulatorEncoder: 
     output_dim: 128
     architecture: [256]
     activation_func: "ReLU"

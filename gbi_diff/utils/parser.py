@@ -30,7 +30,7 @@ def add_mcmc_sample_args(parser: ArgumentParser) -> ArgumentParser:
         help='path to config file. Defaults to "config/mcmc.yaml".',
         dest="config_file",
         type=str,
-        default="config/mcmc.yaml",
+        default="config/sampling_mcmc.yaml",
         required=False,
     )
     parser.add_argument(
@@ -61,32 +61,48 @@ def add_mcmc_sample_args(parser: ArgumentParser) -> ArgumentParser:
 
 def add_diffusion_sample_args(parser: ArgumentParser) -> ArgumentParser:
     parser.add_argument(
-        "--prior-checkpoint",
+        "--diffusion-ckpt",
         help="_description_",
-        dest="prior_checkpoint",
+        dest="diffusion_ckpt",
         type=str,
         required=True,
     )
     parser.add_argument(
-        "--likelihood-checkpoint",
+        "--guidance-ckpt",
         help="_description_",
-        dest="likelihood_checkpoint",
+        dest="guidance_ckpt",
         type=str,
         required=True,
+    )
+    parser.add_argument(
+        "--config",
+        help="_description_",
+        dest="config",
+        type=str,
+        default="config/sampling_diffusion.yaml",
+        required=False,
+    )
+    parser.add_argument(
+        "--output",
+        help="_description_. Defaults to None.",
+        dest="output",
+        type=str,
+        default=None,
+        required=False,
     )
     parser.add_argument(
         "--n-samples",
-        help="_description_",
+        help="_description_. Defaults to 100.",
         dest="n_samples",
         type=int,
-        required=True,
+        default=100,
+        required=False,
     )
     parser.add_argument(
-        "--beta",
-        help="_description_. Defaults to 1.",
-        dest="beta",
-        type=float,
-        default=1,
+        "--plot",
+        help="_description_. Defaults to False.",
+        dest="plot",
+        action="store_true",
         required=False,
     )
     return parser
@@ -146,7 +162,7 @@ def add_train_guidance_args(parser: ArgumentParser) -> ArgumentParser:
     return parser
 
 
-def add_train_args(parser: ArgumentParser) -> ArgumentParser:
+def add_train_potential_args(parser: ArgumentParser) -> ArgumentParser:
     parser.add_argument(
         "--config-file",
         help='path to config file (allowed are yaml, toml and json). Defaults to: "config/train.yaml"',
@@ -211,11 +227,11 @@ def setup_entrypoint_parser(
     )
     generate_data = add_generate_data_args(generate_data)
     subparser["generate_data"] = generate_data
-    train = command_subparser.add_parser(
-        "train", help="start training process as defined in your config file"
+    train_potential = command_subparser.add_parser(
+        "train-potential", help="start training process as defined in your config file"
     )
-    train = add_train_args(train)
-    subparser["train"] = train
+    train_potential = add_train_potential_args(train_potential)
+    subparser["train_potential"] = train_potential
     train_guidance = command_subparser.add_parser(
         "train-guidance", help="start training process as defined in your config file"
     )
