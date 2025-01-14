@@ -38,9 +38,7 @@ class DiffusionSampler:
         print(self._guidance_model)
         self._diff_model = DiffusionModel.load_from_checkpoint(diff_model_ckpt)
         self.x_o = load_observed_data(config.observed_data_file)
-        # TODO: remove this after computational issues resolved
-        self.x_o = self.x_o[:5]
-
+        
         self._diff_beta_schedule = self._diff_model.diff_schedule.beta_schedule
 
     def _check_config(self, observed_data: str | Path, guidance_model_ckpt: Path):
@@ -124,16 +122,17 @@ class DiffusionSampler:
             time_repr = time_repr.repeat(n_samples, 1)
 
             diffusion_step = self._diff_model.forward(theta_t, time_repr)
+            diffusion_step = diffusion_step.detach()
             guidance_grad = self.get_log_boltzmann_grad(theta_t, x_o, time_repr)
+            guidance_grad = guidance_grad.detach()
 
             z = torch.normal(0, 1, size=theta_t.shape)
             z = torch.sqrt(beta) * z if t_idx > 0 else 0
 
-            # TODO: needs to much memory space. WHY????????????
             theta_t = (
                 (1 / torch.sqrt(alpha))
-                * (theta_t - (1 - alpha) / torch.sqrt(1 - alpha_bar) * diffusion_step.detach())
-                + beta * guidance_grad.detach()
+                * (theta_t - (1 - alpha) / torch.sqrt(1 - alpha_bar) * diffusion_step)
+                + beta * guidance_grad
                 + z
             )
 
