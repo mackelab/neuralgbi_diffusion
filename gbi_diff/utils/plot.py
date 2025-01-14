@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Callable, Dict, List, Tuple
 
 import numpy as np
@@ -11,7 +12,7 @@ from matplotlib.axis import Axis
 from matplotlib.figure import Figure
 from tqdm import tqdm
 
-from gbi_diff.utils.mcmc_config import Config
+from gbi_diff.utils.sampling_mcmc_config import Config
 from gbi_diff.utils.metrics import batch_correlation
 
 
@@ -73,7 +74,7 @@ def plot_diffusion_step_loss(
     """plot squared error over diffusion time
 
     Args:
-        pred (Tensor): (batch_size, n_diffusion_steps, n_target)
+        pred (Tensor): (batch_size, n_target)
         target (Tensor): (batch_size, n_target)
 
     Returns:
@@ -87,7 +88,7 @@ def plot_diffusion_step_loss(
         import matplotlib.pyplot as plt
 
     diff = torch.square(pred - target[:, None])
-    diff = rearrange(diff, "B D T -> (B T) D")
+    # diff = rearrange(diff, "B D T -> (B T) D")
 
     fig, ax = plt.subplots()
 
@@ -148,7 +149,7 @@ def plot_diffusion_step_corr(
     return fig, ax
 
 
-def pair_plot_stack(
+def pair_plot_stack_potential(
     samples: Dict[str, torch.Tensor],
     checkpoint: str,
     config: Config,
@@ -174,7 +175,7 @@ def pair_plot_stack(
     n_samples = samples["theta"].shape[0]
     for idx in tqdm(range(n_samples), desc="Pair plot"):
         potential_func.update_x_o(samples["x_o"][idx])
-        grid = pair_plot(
+        grid = pair_plot_potential(
             samples["theta"][idx], potential_fn=potential_func, title=f"Index: {idx}"
         )
         figures.append(grid)
@@ -187,7 +188,7 @@ def pair_plot_stack(
     return figures
 
 
-def pair_plot(
+def pair_plot_potential(
     theta: torch.Tensor,
     potential_fn: Callable[[torch.Tensor], torch.Tensor] = None,
     s: int = 10,
@@ -204,21 +205,38 @@ def pair_plot(
         alpha (float, optional): maker transparency. Defaults to 1.
         title (str, optional): figure title. Defaults to None
     """
-    n_feautures = theta.shape[1]
-    columns = ["theta_" + str(idx) for idx in range(n_feautures)]
-    plot_kws = {"s": s, "alpha": alpha}
-
+    c = None
     if potential_fn is not None:
         with torch.no_grad():
-            p = torch.exp(potential_fn.log_posterior(theta))
-        plot_kws["c"] = p
-    df = pd.DataFrame(torch.cat([theta, p], dim=1), columns=columns + ["p"])
+            c = torch.exp(potential_fn.log_posterior(theta))
+
+    grid = _pair_plot(theta, c, s, alpha, title, save_path)    
+    return grid
+
+def _pair_plot(
+    theta: torch.Tensor,
+    c: torch.Tensor = None,
+    s: int = 10,
+    alpha: float = 1,
+    title: str = None,
+    save_path: str = None,
+):
+    n_feautures = theta.shape[1]
+    columns = ["theta_" + str(idx) for idx in range(n_feautures)]
+    df = pd.DataFrame(theta.detach().numpy(), columns=columns)
+    
+    plot_kws = {"s": s, "alpha": alpha}
+    if c is not None:
+        plot_kws["c"] = c.detach().numpy()
     grid = sns.pairplot(df, vars=columns, corner=True, plot_kws=plot_kws)
 
     if title is not None:
         grid.figure.suptitle(title)
 
     if save_path is not None:
+        save_path: Path = Path(save_path)
+        save_path.parent.mkdir(parents=True, exist_ok=True)    
         grid.savefig(save_path)
 
     return grid
+
