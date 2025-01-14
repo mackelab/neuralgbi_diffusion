@@ -9,26 +9,29 @@ from lightning import LightningModule
 from lightning.pytorch.loggers import TensorBoardLogger
 from torch import Tensor, optim
 
-from gbi_diff.model.networks import FeedForwardNetwork, SBINetwork
+from gbi_diff.model.networks import DiffusionNetwork, SBINetwork
 
 # from gbi_diff.utils.metrics import batch_correlation
 from gbi_diff.utils.encoding import get_positional_encoding
+
 from gbi_diff.utils.train_config import _Model as ModelConfig
 from gbi_diff.utils.train_config import _Optimizer as OptimizerConfig
+
 from gbi_diff.utils.train_guidance_config import _Diffusion as DiffusionGuidanceConfig
 from gbi_diff.utils.train_guidance_config import _Model as ModelGuidanceConfig
-from gbi_diff.utils.train_diffusion_config import Config
+from gbi_diff.utils.train_guidance_config import _Optimizer as OptimizerGuidanceConfig
+
 from gbi_diff.utils.train_diffusion_config import _Optimizer as DiffusionOptimizerConfig
 from gbi_diff.utils.train_diffusion_config import _Model as DiffusionModelConfig
 from gbi_diff.utils.train_diffusion_config import _Diffusion as DiffusionDiffusionConfig
-from gbi_diff.utils.criterion import SBICriterion
+
+from gbi_diff.utils.criterion import DiffusionCriterion, SBICriterion
 from gbi_diff.utils.plot import (
     plot_correlation,
     plot_diffusion_step_corr,
     plot_diffusion_step_loss,
 )
 import gbi_diff.diffusion.schedule as diffusion_schedule
-import gbi_diff.diffusion.sampler as diffusion_sampler
 
 
 class PotentialFunction(LightningModule):
@@ -41,14 +44,11 @@ class PotentialFunction(LightningModule):
         *args,
         **kwargs
     ):
+        super().__init__(*args, **kwargs)
+        self.save_hyperparameters()
+
         optimizer_config = deepcopy(optimizer_config)
         net_config = deepcopy(net_config)
-
-        self.save_hyperparameters()
-        super().__init__(
-            *args,
-            **kwargs,
-        )
 
         self._net = SBINetwork(
             theta_dim=theta_dim,
@@ -74,7 +74,7 @@ class PotentialFunction(LightningModule):
         network_res = self.forward(theta, x_target)
         loss = self.criterion.forward(network_res, simulator_out, x_target)
         return loss
-    
+
     def forward(self, theta: Tensor, x_target: Tensor) -> Tensor:
         """_summary_
 
@@ -86,7 +86,6 @@ class PotentialFunction(LightningModule):
             Tensor: (batch_size, n_target)
         """
         return self._net.forward(theta, x_target)
-
 
     def training_step(self, batch: Tuple[Tensor, Tensor, Tensor], batch_idx: int):
         loss = self._batch_forward(batch)
@@ -133,14 +132,13 @@ class PotentialFunction(LightningModule):
         plt.close(fig)
         self._val_step_outputs = {"pred": [], "d": []}
 
-
     def configure_optimizers(self):
         optimizer_cls = getattr(optim, self._optimizer_config.pop("name"))
         optimizer = optimizer_cls(self.parameters(), **self._optimizer_config)
         return optimizer
 
 
-class _DiffusionBase:
+class _DiffusionBase(LightningModule):
     def __init__(self, diff_config: DiffusionGuidanceConfig, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.period_spread = diff_config.period_spread
@@ -167,7 +165,7 @@ class _DiffusionBase:
         schedule = schedule_cls(**schedule_config.__dict__)
         return schedule
 
-    def _get_diff_time_repr(self, t: np.ndarray) -> Tensor:
+    def get_diff_time_repr(self, t: np.ndarray) -> Tensor:
         """get sinusoidal positional encoding
 
         Args:
@@ -216,33 +214,29 @@ class _DiffusionBase:
         sampled_t = self._get_diff_time_sample(batch_size)
         noised_x, noise = self.diff_schedule.forward(x, sampled_t)
 
-        t_repr = self._get_diff_time_repr(sampled_t)
+        t_repr = self.get_diff_time_repr(sampled_t)
 
         return noised_x, noise, t_repr
 
 
-class Guidance(_DiffusionBase, LightningModule):
+class Guidance(_DiffusionBase):
     """time dependent version of the potential function"""
 
     def __init__(
         self,
         theta_dim: int,
         simulator_out_dim: int,
-        optimizer_config: OptimizerConfig,
+        optimizer_config: OptimizerGuidanceConfig,
         net_config: ModelGuidanceConfig,
         diff_config: DiffusionGuidanceConfig,
         *args,
         **kwargs
     ):
+        super().__init__(diff_config, *args, **kwargs)
+        self.save_hyperparameters()
+
         optimizer_config = deepcopy(optimizer_config)
         net_config = deepcopy(net_config)
-
-        self.save_hyperparameters()
-        super().__init__(
-            diff_config=diff_config,
-            *args,
-            **kwargs,
-        )
 
         self._net = SBINetwork(
             theta_dim=theta_dim,
@@ -266,6 +260,16 @@ class Guidance(_DiffusionBase, LightningModule):
         self._val_step_outputs = {"pred": [], "d": []}
 
     def forward(self, theta_t: Tensor, x_target: Tensor, time_repr: Tensor) -> Tensor:
+        """_summary_
+
+        Args:
+            theta (Tensor): (batch_size, theta_dim)
+            x_target (Tensor): (batch_size, n_target, simulator_dim)
+            time (Tensor): (batch_size, time_repr_dim). Defaults to None
+
+        Returns:
+            Tensor: _description_
+        """
         return self._net.forward(theta_t, x_target, time_repr)
 
     def _batch_forward(self, batch: Tuple[Tensor, Tensor, Tensor]) -> Tensor:
@@ -340,7 +344,7 @@ class Guidance(_DiffusionBase, LightningModule):
         return optimizer
 
 
-class DiffusionModel(LightningModule, _DiffusionBase):
+class DiffusionModel(_DiffusionBase):
     def __init__(
         self,
         theta_dim: int,
@@ -350,31 +354,49 @@ class DiffusionModel(LightningModule, _DiffusionBase):
         *args,
         **kwargs
     ):
-        optimizer_config = deepcopy(optimizer_config)
-        net_config = deepcopy(net_config)
-        modified_theta_dim = theta_dim
-        if diff_config.include_t:
-            # TODO: make this dependent on the diffusion time encoding
-            modified_theta_dim += 1
-
+        super().__init__(diff_config, *args, **kwargs)
         self.save_hyperparameters()
 
-        self._net = FeedForwardNetwork(
-            input_dim=modified_theta_dim,
-            output_dim=theta_dim,
-            architecture=net_config.architecture,
-            activation_function=net_config.activation_func,
-            final_activation=net_config.final_activation,
+        optimizer_config = deepcopy(optimizer_config)
+        net_config = deepcopy(net_config)
+
+        self._net = DiffusionNetwork(
+            theta_dim=theta_dim,
+            theta_encoder=net_config.ThetaEncoder,
+            time_encoder=net_config.TimeEncoder,
+            latent_mlp=net_config.LatentMLP,
         )
 
-        self.example_input_array = (torch.zeros(1, theta_dim),)
+        self.example_input_array = (
+            torch.zeros(1, theta_dim),
+            torch.zeros(1, net_config.TimeEncoder.input_dim),
+        )
 
-        self.criterion = SBICriterion(distance_order=2)
+        self.criterion = DiffusionCriterion()
         self._optimizer_config = optimizer_config.__dict__
 
-        # this thing should not leave the class. Inconsistencies with strings feared
-        self._train_step_outputs = {"pred": [], "d": []}
-        self._val_step_outputs = {"pred": [], "d": []}
+    def forward(self, theta_t: Tensor, time_repr: Tensor) -> Tensor:
+        return self._net.forward(theta_t, time_repr)
+
+    def _batch_forward(self, batch: Tuple[Tensor, Tensor, Tensor]) -> Tensor:
+        theta, _, _ = batch
+
+        theta_t, noise, time_repr = self._sample_diffusions(theta)
+        pred = self.forward(theta_t, time_repr)
+        loss = self.criterion.forward(pred, noise)
+        return loss
+
+    def training_step(self, batch, batch_idx):
+        self.train()
+        loss = self._batch_forward(batch)
+        self.log("train/loss", loss, on_epoch=True, on_step=False)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        self.eval()
+        loss = self._batch_forward(batch)
+        self.log("val/loss", loss, on_epoch=True, on_step=False)
+        return loss
 
     def configure_optimizers(self):
         optimizer_cls = getattr(optim, self._optimizer_config.pop("name"))

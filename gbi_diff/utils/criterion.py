@@ -34,15 +34,6 @@ class SBICriterion:
         d = self.sample_distance(x, x_target)
         d_target = d
 
-        if len(pred.shape) == 4:
-            # diffusion steps are included.
-            # Add an additional dimension in the distance matrix for broadcasting
-            d = d[:, None]
-            n_diffusion_steps = pred.shape[1]
-            repeat_dim = np.ones(len(d.shape), dtype=int)
-            repeat_dim[1] = n_diffusion_steps
-            d_target = d.repeat(*repeat_dim)
-
         loss = self.mse.forward(pred[..., 0], d_target)
 
         # for logging and processing
@@ -105,3 +96,11 @@ class SBICriterion:
     @property
     def d(self) -> Tensor:
         return self._d
+
+
+class DiffusionCriterion:
+    def __init__(self):
+        self._mse = nn.MSELoss()
+
+    def forward(self, pred: Tensor, noise: Tensor):
+        return self._mse.forward(pred, noise)

@@ -17,8 +17,8 @@ def execute(args: dict) -> bool:
                 path=args["path"],
             )
 
-        case "train":
-            module.train(
+        case "train-potential":
+            module.train_potential(
                 config_file=args["config_file"],
                 device=args["device"],
                 force=args["force"],
@@ -40,10 +40,12 @@ def execute(args: dict) -> bool:
 
         case "diffusion-sample":
             module.diffusion_sample(
-                prior_checkpoint=args["prior_checkpoint"],
-                likelihood_checkpoint=args["likelihood_checkpoint"],
+                diffusion_ckpt=args["diffusion_ckpt"],
+                guidance_ckpt=args["guidance_ckpt"],
+                config=args["config"],
+                output=args["output"],
                 n_samples=args["n_samples"],
-                beta=args["beta"],
+                plot=args["plot"],
             )
 
         case "mcmc-sample":

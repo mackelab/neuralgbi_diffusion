@@ -129,7 +129,6 @@ class SBINetwork(Module):
         self, theta: Tensor, x_target: Tensor, time_repr: Tensor = None
     ) -> Tensor:
         """
-
         Args:
             theta (Tensor): (batch_size, theta_dim)
             x_target (Tensor): (batch_size, n_target, simulator_dim)
@@ -177,3 +176,57 @@ class SBINetwork(Module):
             res = res[0]
 
         return res
+
+
+class DiffusionNetwork(Module):
+    from gbi_diff.utils.train_diffusion_config import (
+        _ThetaEncoder,
+        _TimeEncoder,
+        _LatentMLP,
+    )
+
+    def __init__(
+        self,
+        theta_dim: int,
+        theta_encoder: _ThetaEncoder,
+        time_encoder: _TimeEncoder,
+        latent_mlp: _LatentMLP,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+
+        self._theta_encoder = FeedForwardNetwork(
+            input_dim=theta_dim,
+            output_dim=theta_encoder.output_dim,
+            architecture=theta_encoder.architecture,
+            activation_function=theta_encoder.activation_func,
+            final_activation=theta_encoder.final_activation,
+        )
+
+        self._time_encoder = FeedForwardNetwork(
+            input_dim=time_encoder.input_dim,
+            output_dim=time_encoder.output_dim,
+            architecture=time_encoder.architecture,
+            activation_function=time_encoder.activation_func,
+            final_activation=time_encoder.final_activation,
+        )
+
+        self._latent_mlp = FeedForwardNetwork(
+            input_dim=theta_encoder.output_dim + time_encoder.output_dim,
+            output_dim=theta_dim,
+            architecture=latent_mlp.architecture,
+            activation_function=latent_mlp.activation_func,
+            final_activation=latent_mlp.final_activation,
+        )
+
+    def forward(self, theta: Tensor, time_repr: Tensor) -> Tensor:
+        concat_dim = 1
+        if len(theta.shape) == 1:
+            concat_dim = 0
+
+        theta_enc = self._theta_encoder.forward(theta)
+        time_enc = self._time_encoder.forward(time_repr)
+        latent_inp = torch.cat([theta_enc, time_enc], dim=concat_dim)
+        out = self._latent_mlp.forward(latent_inp)
+        return out

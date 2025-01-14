@@ -2,9 +2,8 @@ import os
 from typing import Dict
 import torch
 from gbi_diff.sampling import PotentialFunc
-from gbi_diff.utils.mcmc_config import Config
+from gbi_diff.utils.sampling_mcmc_config import Config
 from gbi_diff.sampling import prior_distr
-from config2class.utils import deconstruct_config
 
 
 def load_observed_data(path: str) -> torch.Tensor:
@@ -42,15 +41,16 @@ def get_sample_path(
     return output
 
 
-def save_samples(samples: Dict[str, torch.Tensor], checkpoint: str, output: str = None):
+def save_samples(samples: Dict[str, torch.Tensor], checkpoint: str, output: str = None, file_name: str = "samples.pt"):
     """save samples as pt file.
 
     Args:
         samples (Dict[str, torch.Tensor]): sampled data
         checkpoint (str): path to checkpoint
         output (str, optional): output directory. If none is given it will the checkpoint directory. Defaults to None.
+        file_name (str, optional): How to name the file. Has to end with ".pt"
     """
-    output = get_sample_path(checkpoint, "samples.pt", output)
+    output = get_sample_path(str(checkpoint), file_name, output)
     directory = "/".join(output.split("/")[:-1])
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -63,7 +63,7 @@ def create_potential_fn(
 ) -> PotentialFunc:
     prior_config = getattr(config, config.prior)
     prior_cls = getattr(prior_distr, config.prior)
-    prior = prior_cls(**deconstruct_config(prior_config))
+    prior = prior_cls(**prior_config.to_container())
 
     potential_func = PotentialFunc(
         checkpoint=checkpoint, prior=prior, x_o=x_o, beta=config.beta

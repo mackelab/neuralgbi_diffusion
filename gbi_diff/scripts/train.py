@@ -1,23 +1,25 @@
 import logging
+import sys
 
 import torch
 import yaml
-from config2class.utils import deconstruct_config
 from lightning import Trainer
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from torch.utils.data import DataLoader
 
 from gbi_diff.dataset import SBIDataset
-from gbi_diff.model.lit_module import PotentialFunction, Guidance
-from gbi_diff.utils.train_config import Config as Config_SBI
-from gbi_diff.utils.train_guidance_config import Config as Config_Theta
-from gbi_diff.utils.filesystem import write_yaml
+from gbi_diff.model.lit_module import DiffusionModel, PotentialFunction, Guidance
+from gbi_diff.utils.train_config import Config as Config_Potential
+from gbi_diff.utils.train_guidance_config import Config as Config_Guidance
+from gbi_diff.utils.train_diffusion_config import Config as Config_Diffusion
 
 
-def train(config: Config_SBI, devices: int = 1, force: bool = False):
+def _setup_trainer(
+    config,
+    devices: int = 1,
+) -> Trainer:
     # TODO: fixup device config
-    serial_config = config
     accelerator = "auto"
     if not torch.cuda.is_available() and devices > 1:
         logging.warning("cuda device was requested but not available. Fall back to cpu")
@@ -51,6 +53,11 @@ def train(config: Config_SBI, devices: int = 1, force: bool = False):
         devices=devices,
     )
 
+    log_dir = tb_logger.log_dir
+    return trainer, log_dir
+
+
+def _setup_datasets(config):
     train_set = SBIDataset.from_file(config.dataset.train_file)
     train_set.set_n_target(config.dataset.n_target)
     train_loader = DataLoader(
@@ -67,6 +74,32 @@ def train(config: Config_SBI, devices: int = 1, force: bool = False):
         shuffle=False,
         num_workers=config.num_worker,
     )
+    return train_loader, train_set, val_loader, val_set
+
+
+def _print_state(config, model):
+    print("============= Config ===============")
+    print(yaml.dump(config.to_container(), indent=4))
+    print("============== Net =================")
+    print(model)
+
+
+def _ask(force: bool):
+    if force:
+        return
+
+    question = input("Would you like to start to train? [Y, n]")
+    if not (question is None or question.lower().strip() in ["", "y", "yes"]):
+        print("Abort training")
+        sys.exit()
+
+
+def train_potential(config: Config_Potential, devices: int = 1, force: bool = False):
+    # TODO: fixup device config
+    serial_config = config
+
+    trainer, log_dir = _setup_trainer(config, devices)
+    train_loader, train_set, val_loader, _ = _setup_datasets(config)
 
     model = PotentialFunction(
         theta_dim=train_set.get_theta_dim(),
@@ -75,80 +108,18 @@ def train(config: Config_SBI, devices: int = 1, force: bool = False):
         net_config=config.model,
     )
 
-    print("============= Config ===============")
-    print(yaml.dump(deconstruct_config(config), indent=4))
-    print("============== Net =================")
-    print(model)
+    _print_state(config, model)
+    _ask(force)
 
-    if not force:
-        question = input("Would you like to start to train? [Y, n]")
-        if not (question is None or question.lower().strip() in ["", "y", "yes"]):
-            print("Abort training")
-            return
-
-    write_yaml(deconstruct_config(serial_config), tb_logger.log_dir + "/config.yaml")
+    serial_config.to_file(log_dir + "/config.yaml")
     trainer.fit(model, train_loader, val_loader)
 
-    # model = SBI.load_from_checkpoint(
-    #     trainer.checkpoint_callback.best_model_path
-    # )  # Load best checkpoint after training
-    # Test best model on validation and test set
-    # val_result = trainer.test(model, datamodule=val_loader, verbose=False)
-    # result = {"test": test_result[0]["test_acc"], "val": val_result[0]["test_acc"]}
 
-
-def train_guidance(config: Config_Theta, devices: int = 1, force: bool = False):
+def train_guidance(config: Config_Guidance, devices: int = 1, force: bool = False):
     # TODO: fixup device config
     serial_config = config
-    accelerator = "auto"
-    if not torch.cuda.is_available() and devices > 1:
-        logging.warning("cuda device was requested but not available. Fall back to cpu")
-        devices = 1
-        accelerator = "cpu"
-
-    # setup logger
-    tb_logger = TensorBoardLogger(config.results_dir, log_graph=True)
-    csv_logger = CSVLogger(tb_logger.log_dir, name="csv_logs", version="")
-
-    trainer = Trainer(
-        default_root_dir=config.results_dir,
-        logger=(
-            # NOTE: make sure tensor board stays at first places
-            tb_logger,
-            csv_logger,
-        ),
-        precision=config.precision,
-        max_epochs=config.max_epochs,
-        check_val_every_n_epoch=config.check_val_every_n_epochs,
-        callbacks=[
-            ModelCheckpoint(
-                dirpath=tb_logger.log_dir,
-                monitor="val/loss",
-                save_top_k=3,
-                mode="min",
-            ),
-            LearningRateMonitor("epoch"),
-        ],
-        accelerator=accelerator,
-        devices=devices,
-    )
-
-    train_set = SBIDataset.from_file(config.dataset.train_file)
-    train_set.set_n_target(config.dataset.n_target)
-    train_loader = DataLoader(
-        train_set,
-        batch_size=config.batch_size,
-        shuffle=True,
-        num_workers=config.num_worker,
-    )
-    val_set = SBIDataset.from_file(config.dataset.val_file)
-    val_set.set_n_target(config.dataset.n_target)
-    val_loader = DataLoader(
-        val_set,
-        batch_size=config.batch_size,
-        shuffle=False,
-        num_workers=config.num_worker,
-    )
+    trainer, log_dir = _setup_trainer(config, devices)
+    train_loader, train_set, val_loader, _ = _setup_datasets(config)
 
     model = Guidance(
         theta_dim=train_set.get_theta_dim(),
@@ -157,24 +128,27 @@ def train_guidance(config: Config_Theta, devices: int = 1, force: bool = False):
         net_config=config.model,
         diff_config=config.diffusion,
     )
+    _print_state(config, model)
+    _ask(force)
 
-    print("============= Config ===============")
-    print(yaml.dump(deconstruct_config(config), indent=4))
-    print("============== Net =================")
-    print(model)
-
-    if not force:
-        question = input("Would you like to start to train? [Y, n]")
-        if not (question is None or question.lower().strip() in ["", "y", "yes"]):
-            print("Abort training")
-            return
-
-    write_yaml(deconstruct_config(serial_config), tb_logger.log_dir + "/config.yaml")
+    serial_config.to_file(log_dir + "/config.yaml")
     trainer.fit(model, train_loader, val_loader)
 
-    # model = SBI.load_from_checkpoint(
-    #     trainer.checkpoint_callback.best_model_path
-    # )  # Load best checkpoint after training
-    # Test best model on validation and test set
-    # val_result = trainer.test(model, datamodule=val_loader, verbose=False)
-    # result = {"test": test_result[0]["test_acc"], "val": val_result[0]["test_acc"]}
+
+def train_diffusion(config: Config_Diffusion, devices: int = 1, force: bool = False):
+    # TODO: fixup device config
+    serial_config = config
+    trainer, log_dir = _setup_trainer(config, devices)
+    train_loader, train_set, val_loader, _ = _setup_datasets(config)
+
+    model = DiffusionModel(
+        theta_dim=train_set.get_theta_dim(),
+        optimizer_config=config.optimizer,
+        net_config=config.model,
+        diff_config=config.diffusion,
+    )
+    _print_state(config, model)
+    _ask(force)
+
+    serial_config.to_file(log_dir + "/config.yaml")
+    trainer.fit(model, train_loader, val_loader)

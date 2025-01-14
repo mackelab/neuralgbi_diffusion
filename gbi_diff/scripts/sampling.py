@@ -1,18 +1,22 @@
+from pathlib import Path
 from typing import Dict
 import torch
 from tqdm import tqdm
-from gbi_diff.sampling.utils import create_potential_fn
-from gbi_diff.utils.mcmc_config import Config
+from gbi_diff.sampling.diffusion import DiffusionSampler
+from gbi_diff.sampling.utils import create_potential_fn, save_samples
+from gbi_diff.utils.sampling_mcmc_config import Config as MCMCConfig
+from gbi_diff.utils.sampling_diffusion_config import Config as DiffusionConfig
 from pyro.infer import MCMC
 from pyro import infer
 from collections import OrderedDict
 
 from copy import deepcopy
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from gbi_diff.model.lit_module import DiffusionModel, Guidance
 
 
 def sample_posterior(
-    checkpoint: str, x_o: torch.Tensor, config: Config, size: int = 100
+    checkpoint: str, x_o: torch.Tensor, config: MCMCConfig, size: int = 100
 ) -> Dict[str, torch.Tensor]:
     """sample form posterior
 
@@ -60,7 +64,7 @@ def sample_posterior(
 
 # NOTE: does not work yet with multiple worker
 class SampleThreadManager:
-    def __init__(self, checkpoint: str, config: Config, num_worker: int = 1):
+    def __init__(self, checkpoint: str, config: MCMCConfig, num_worker: int = 1):
         self.num_worker = num_worker
         self.config = config
         self.potential_func = create_potential_fn(checkpoint, self.config, x_o=None)
@@ -121,3 +125,22 @@ class SampleThreadManager:
         res["x_o"] = x_o
 
         return res
+
+
+def diffusion_sampling(
+    diffusion_ckpt: str, 
+    guidance_ckpt: str, 
+    config: str, 
+    output: str, 
+    n_samples: int, 
+    plot: bool,
+
+) -> torch.Tensor:
+    diffusion_sampler = DiffusionSampler(diffusion_ckpt, guidance_ckpt, config)
+    samples = diffusion_sampler.forward(n_samples)
+
+    save_samples(samples, diffusion_sampler.diff_model_ckpt, output, file_name=f"samples_beta_{diffusion_sampler.beta}.pt")
+
+    if plot:
+        diffusion_sampler.pair_plot(samples, diffusion_sampler.x_o)
+
