@@ -1,4 +1,4 @@
-results_dir: "results/gbi/test"
+results_dir: "results/gbi/two_moons"
 check_val_every_n_epochs: 5
 num_worker: 12
 
@@ -7,8 +7,8 @@ batch_size: 256
 precision: 32 # 64: extended, 32: standard, 16: half
 
 dataset:
-  train_file: "data/two_moons_1000.pt"
-  val_file: "data/two_moons_100.pt"
+  train_file: "data/two_moons_10000.pt"
+  val_file: "data/two_moons_1000.pt"
   n_target: 20
   noise_std: 0.1 # how strong to noise the augmentations in x_target
 

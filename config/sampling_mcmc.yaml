@@ -1,8 +1,8 @@
 kernel: "NUTS"  # also HMC possible
 beta: 10
+observed_data_file: data/observed_data/two_moons_10.pt
 prior: "SymmetricUniform" 
 warmup_steps: 200
-
 # Collection of prior distributions
 
 SymmetricUniform:
