@@ -13,6 +13,7 @@ class _SymmetricUniform(StructuredConfig):
 class Config(StructuredConfig):
     kernel: str
     beta: int
+    observed_data_file: str
     prior: str
     warmup_steps: int
     SymmetricUniform: _SymmetricUniform
