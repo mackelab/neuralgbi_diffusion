@@ -34,7 +34,7 @@ from gbi_diff.utils.plot import (
 import gbi_diff.diffusion.schedule as diffusion_schedule
 
 
-class PotentialFunction(LightningModule):
+class PotentialNetwork(LightningModule):
     def __init__(
         self,
         theta_dim: int,

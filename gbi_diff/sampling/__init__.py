@@ -1,1 +1,1 @@
-from gbi_diff.sampling.potential_func import PotentialFunc
+# from gbi_diff.sampling.mcmc import PotentialFunc

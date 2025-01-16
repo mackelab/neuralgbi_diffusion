@@ -210,8 +210,9 @@ def pair_plot_potential(
         with torch.no_grad():
             c = torch.exp(potential_fn.log_posterior(theta))
 
-    grid = _pair_plot(theta, c, s, alpha, title, save_path)    
+    grid = _pair_plot(theta, c, s, alpha, title, save_path)
     return grid
+
 
 def _pair_plot(
     theta: torch.Tensor,
@@ -224,7 +225,7 @@ def _pair_plot(
     n_feautures = theta.shape[1]
     columns = ["theta_" + str(idx) for idx in range(n_feautures)]
     df = pd.DataFrame(theta.detach().numpy(), columns=columns)
-    
+
     plot_kws = {"s": s, "alpha": alpha}
     if c is not None:
         plot_kws["c"] = c.detach().numpy()
@@ -235,8 +236,7 @@ def _pair_plot(
 
     if save_path is not None:
         save_path: Path = Path(save_path)
-        save_path.parent.mkdir(parents=True, exist_ok=True)    
+        save_path.parent.mkdir(parents=True, exist_ok=True)
         grid.savefig(save_path)
 
     return grid
-

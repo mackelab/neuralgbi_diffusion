@@ -9,7 +9,7 @@ from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from torch.utils.data import DataLoader
 
 from gbi_diff.dataset import SBIDataset
-from gbi_diff.model.lit_module import DiffusionModel, PotentialFunction, Guidance
+from gbi_diff.model.lit_module import DiffusionModel, PotentialNetwork, Guidance
 from gbi_diff.utils.train_config import Config as Config_Potential
 from gbi_diff.utils.train_guidance_config import Config as Config_Guidance
 from gbi_diff.utils.train_diffusion_config import Config as Config_Diffusion
@@ -101,7 +101,7 @@ def train_potential(config: Config_Potential, devices: int = 1, force: bool = Fa
     trainer, log_dir = _setup_trainer(config, devices)
     train_loader, train_set, val_loader, _ = _setup_datasets(config)
 
-    model = PotentialFunction(
+    model = PotentialNetwork(
         theta_dim=train_set.get_theta_dim(),
         simulator_out_dim=train_set.get_sim_out_dim(),
         optimizer_config=config.optimizer,

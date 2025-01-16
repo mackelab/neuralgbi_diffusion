@@ -6,9 +6,11 @@ import torch
 
 class Schedule(ABC):
     r"""Abstract noise schedule."""
+
     def __init__(self):
         super().__init__()
         self.beta_schedule: BetaSchedule
+
     @abstractmethod
     def forward(self, x_0: Tensor, t: Tensor) -> Tuple[Tensor, Tensor]:
         """get mean and variance

@@ -1,7 +1,8 @@
 import os
 from typing import Dict
 import torch
-from gbi_diff.sampling import PotentialFunc
+
+# from gbi_diff.sampling import PotentialFunc
 from gbi_diff.utils.sampling_mcmc_config import Config
 from gbi_diff.sampling import prior_distr
 
@@ -41,7 +42,12 @@ def get_sample_path(
     return output
 
 
-def save_samples(samples: Dict[str, torch.Tensor], checkpoint: str, output: str = None, file_name: str = "samples.pt"):
+def save_samples(
+    samples: Dict[str, torch.Tensor],
+    checkpoint: str,
+    output: str = None,
+    file_name: str = "samples.pt",
+):
     """save samples as pt file.
 
     Args:
@@ -58,15 +64,15 @@ def save_samples(samples: Dict[str, torch.Tensor], checkpoint: str, output: str 
     torch.save(samples, output)
 
 
-def create_potential_fn(
-    checkpoint: str, config: Config, x_o: torch.Tensor = None
-) -> PotentialFunc:
-    prior_config = getattr(config, config.prior)
-    prior_cls = getattr(prior_distr, config.prior)
-    prior = prior_cls(**prior_config.to_container())
-
-    potential_func = PotentialFunc(
-        checkpoint=checkpoint, prior=prior, x_o=x_o, beta=config.beta
-    )
-    potential_func.is_valid()
-    return potential_func
+# def create_potential_fn(
+#     checkpoint: str, config: Config, x_o: torch.Tensor = None
+# ) -> PotentialFunc:
+#     prior_config = getattr(config, config.prior)
+#     prior_cls = getattr(prior_distr, config.prior)
+#     prior = prior_cls(**prior_config.to_container())
+#
+#     potential_func = PotentialFunc(
+#         checkpoint=checkpoint, prior=prior, x_o=x_o, beta=config.beta
+#     )
+#     potential_func.is_valid()
+#     return potential_func

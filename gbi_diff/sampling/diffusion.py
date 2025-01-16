@@ -38,7 +38,7 @@ class DiffusionSampler:
         print(self._guidance_model)
         self._diff_model = DiffusionModel.load_from_checkpoint(diff_model_ckpt)
         self.x_o = load_observed_data(config.observed_data_file)
-        
+
         self._diff_beta_schedule = self._diff_model.diff_schedule.beta_schedule
 
     def _check_config(self, observed_data: str | Path, guidance_model_ckpt: Path):
@@ -179,6 +179,14 @@ class DiffusionSampler:
         return grad
 
     def forward(self, n_samples: int) -> Tensor:
+        """_summary_
+
+        Args:
+            n_samples (int): _description_
+
+        Returns:
+            Tensor: (n_samples, n_observed_data)
+        """
         res = torch.zeros((n_samples, len(self.x_o), self.theta_dim))
         for idx, x_o in enumerate(tqdm(self.x_o, desc="Sample in observed data")):
             res[:, idx] = self.single_forward(x_o, n_samples)
@@ -208,7 +216,9 @@ class DiffusionSampler:
                 f"pair_plot_{target_idx}_beta_{self.beta}.png",
                 output,
             )
-            _pair_plot(sample, log_prob, title=title, save_path=str(save_path))
+            _pair_plot(
+                sample, torch.exp(log_prob), title=title, save_path=str(save_path)
+            )
 
     @property
     def theta_dim(self) -> int:
