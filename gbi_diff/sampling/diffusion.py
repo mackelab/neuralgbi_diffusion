@@ -34,8 +34,8 @@ class DiffusionSampler:
         self._check_config(config.observed_data_file, guidance_model_ckpt)
 
         self._config = config
+        self._beta = self._config.beta
         self._guidance_model = Guidance.load_from_checkpoint(guidance_model_ckpt)
-        print(self._guidance_model)
         self._diff_model = DiffusionModel.load_from_checkpoint(diff_model_ckpt)
         self.x_o = load_observed_data(config.observed_data_file)
 
@@ -174,7 +174,7 @@ class DiffusionSampler:
 
         log_prob = self._guidance_model.forward(theta, x_target, time_repr)
         grad = torch.autograd.grad(outputs=log_prob.sum(), inputs=theta)[0]
-        grad = -self._config.beta * grad
+        grad = -self.beta * grad
         theta = theta.detach()
         return grad
 
@@ -220,10 +220,14 @@ class DiffusionSampler:
                 sample, torch.exp(log_prob), title=title, save_path=str(save_path)
             )
 
+    def update_beta(self, value: int| float):
+        assert isinstance(value, (int, float))
+        self._beta = value
+
     @property
     def theta_dim(self) -> int:
         return self._guidance_model._net._theta_encoder._input_dim
 
     @property
     def beta(self) -> float:
-        return self._config.beta
+        return self._beta
