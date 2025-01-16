@@ -11,16 +11,9 @@ def add_mcmc_sample_args(parser: ArgumentParser) -> ArgumentParser:
         required=True,
     )
     parser.add_argument(
-        "--observed-data",
-        help="path to observed data.",
-        dest="observed_data",
-        type=str,
-        required=True,
-    )
-    parser.add_argument(
-        "--size",
+        "--n-samples",
         help="how many samples you would like to sample. Defaults to 100.",
-        dest="size",
+        dest="n_samples",
         type=int,
         default=100,
         required=False,

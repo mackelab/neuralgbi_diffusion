@@ -51,8 +51,7 @@ def execute(args: dict) -> bool:
         case "mcmc-sample":
             module.mcmc_sample(
                 checkpoint=args["checkpoint"],
-                observed_data=args["observed_data"],
-                size=args["size"],
+                n_samples=args["n_samples"],
                 config_file=args["config_file"],
                 output=args["output"],
                 plot=args["plot"],

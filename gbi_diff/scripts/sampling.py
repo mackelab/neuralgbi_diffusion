@@ -3,6 +3,7 @@ from typing import Dict
 import torch
 from tqdm import tqdm
 from gbi_diff.sampling.diffusion import DiffusionSampler
+from gbi_diff.sampling.mcmc import MCMCSampler
 from gbi_diff.sampling.utils import create_potential_fn, save_samples
 from gbi_diff.utils.sampling_mcmc_config import Config as MCMCConfig
 from gbi_diff.utils.sampling_diffusion_config import Config as DiffusionConfig
@@ -127,20 +128,40 @@ class SampleThreadManager:
         return res
 
 
-def diffusion_sampling(
-    diffusion_ckpt: str, 
-    guidance_ckpt: str, 
-    config: str, 
-    output: str, 
-    n_samples: int, 
+def mcmc_sampling(
+    checkpoint: str | Path,
+    config: MCMCConfig,
+    output: str | Path,
+    n_samples: int,
     plot: bool,
+):
+    mcmc_sampler = MCMCSampler(checkpoint, config)
+    samples = mcmc_sampler.forward(n_samples)
+    save_samples(
+        samples,
+        checkpoint,
+        output,
+        file_name=f"samples_beta_{config.beta}.pt",
+    )
+    if plot:
+        mcmc_sampler.pair_plot(samples, mcmc_sampler._x_o)
 
+
+def diffusion_sampling(
+    diffusion_ckpt: str,
+    guidance_ckpt: str,
+    config: str,
+    output: str,
+    n_samples: int,
+    plot: bool,
 ) -> torch.Tensor:
     diffusion_sampler = DiffusionSampler(diffusion_ckpt, guidance_ckpt, config)
     samples = diffusion_sampler.forward(n_samples)
-
-    save_samples(samples, diffusion_sampler.diff_model_ckpt, output, file_name=f"samples_beta_{diffusion_sampler.beta}.pt")
-
+    save_samples(
+        samples,
+        diffusion_ckpt,
+        output,
+        file_name=f"samples_beta_{diffusion_sampler.beta}.pt",
+    )
     if plot:
         diffusion_sampler.pair_plot(samples, diffusion_sampler.x_o)
-

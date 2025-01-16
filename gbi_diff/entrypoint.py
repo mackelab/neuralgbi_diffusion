@@ -128,6 +128,7 @@ class Entrypoint:
         from gbi_diff.utils.sampling_diffusion_config import (
             Config,
         )  # pylint: disable=C0415
+
         # <<<<
 
         config: Config = Config.from_file(config)
@@ -139,8 +140,7 @@ class Entrypoint:
     def mcmc_sample(
         self,
         checkpoint: str,
-        observed_data: str,
-        size: int = 100,
+        n_samples: int = 100,
         config_file: str = "config/sampling_mcmc.yaml",
         output: str = None,
         plot: bool = False,
@@ -150,8 +150,7 @@ class Entrypoint:
 
         Args:
             checkpoint (str): path to checkpoint
-            observed_data (str): path to observed data.
-            size (int, optional): how many samples you would like to sample. Defaults to 100.
+            n_samples (int, optional): how many samples you would like to sample. Defaults to 100.
             config_file (str, optional): path to config file. Defaults to "config/mcmc.yaml".
             output (str, optional): Directory where to store the sampled results. If this is None it will be a subdirectory in the checkpoint directory. Defaults to None
             plot (bool, optional): would like to create a pair-plot with your sampled data. Defaults to False
@@ -163,26 +162,9 @@ class Entrypoint:
             )
 
         # >>>> add import here for faster help message
-        from gbi_diff.sampling.utils import (  # pylint: disable=C0415
-            load_observed_data,
-            save_samples,
-        )
-        from gbi_diff.scripts.sampling import (  # pylint: disable=C0415
-            sample_posterior,
-        )
         from gbi_diff.utils.sampling_mcmc_config import Config  # pylint: disable=C0415
-        from gbi_diff.utils.plot import (
-            pair_plot_stack_potential,
-        )  # pylint: disable=C0415
+        from gbi_diff.scripts.sampling import mcmc_sampling  # pylint: disable=C0415
 
         # <<<<
-
         config = Config.from_file(config_file)
-        x_o = load_observed_data(observed_data)
-        samples = sample_posterior(checkpoint, x_o, config, size)
-
-        # save output
-        save_samples(samples, checkpoint, output)
-
-        if plot:
-            pair_plot_stack_potential(samples, checkpoint, config, output)
+        mcmc_sampling(checkpoint, config, output, n_samples, plot)
