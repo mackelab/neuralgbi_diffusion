@@ -10,7 +10,7 @@ def generate_dataset(dataset_type: str, sizes: List[int], path: str | Path = "./
     if isinstance(path, str):
         path = Path(path)
 
-    for size in tqdm(sizes, desc="Create datasets"):
+    for size in tqdm(sizes, desc=f"Create datasets: {dataset_type}", position=0, leave=True     ):
         cls_name = to_camel_case(dataset_type)
         cls_name = cls_name[0].upper() + cls_name[1:]
         dataset_cls = getattr(datasets, cls_name)

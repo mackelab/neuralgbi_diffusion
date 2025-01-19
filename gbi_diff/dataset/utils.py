@@ -1,4 +1,5 @@
 import torch
+from tqdm import tqdm
 
 
 def generate_x_misspecified(x: torch.Tensor, diffusion_scale=0.5, max_steps=10000):
@@ -34,6 +35,6 @@ def generate_x_misspecified(x: torch.Tensor, diffusion_scale=0.5, max_steps=1000
         msg = "Not all points out of bounds."
     else:
         msg = f"{counter-1} steps of diffusion for misspecified data."
-    print(msg)
-
+    tqdm.write(msg  )
+    
     return x

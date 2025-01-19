@@ -1,4 +1,4 @@
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Union
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset
@@ -8,6 +8,8 @@ from abc import abstractmethod
 from sourcerer import simulators
 
 from gbi_diff.dataset.simulators.gaussian_mixture import GaussianMixtureSimulator
+from gbi_diff.dataset.simulators.linear_gaussian import LinearGaussianSimulator
+from gbi_diff.dataset.simulators.uniform import UniformNoise1DSimulator
 from gbi_diff.dataset.utils import generate_x_misspecified
 
 
@@ -132,7 +134,7 @@ class _SBIDataset(Dataset):
 
     def _generate_x_target(self):
         random_state = np.random.default_rng(self._seed)
-        n_samples = min(self._n_no  ised, len(self._x))
+        n_samples = min(self._n_noised, len(self._x))
         x_sample = self._x[
             np.random.choice(len(self._x), size=n_samples, replace=False)
         ]
@@ -298,14 +300,90 @@ class GaussianMixture(_SBIDataset):
             **kwargs,
         )
         self._simulator = GaussianMixtureSimulator(seed=self._seed)
-        
 
     def _sample_data(self, size):
         theta = self._simulator.prior.sample((size,))
         x = self._simulator.simulate(theta)
         return theta, x
-    
+
     def _generate_misspecified_data(self):
-        sample_idx = np.random.choice(len(self._x), size=self._n_misspecified, replace=False)
+        sample_idx = np.random.choice(
+            len(self._x), size=self._n_misspecified, replace=False
+        )
         x_miss = self._simulator.simulate_misspecified(self._theta[sample_idx])
-        return x_miss   
+        return x_miss
+
+
+class LinearGaussian(_SBIDataset):
+    def __init__(
+        self,
+        target_noise_std=0.01,
+        n_target=100,
+        seed=42,
+        diffusion_scale=0.5,
+        max_diffusion_steps=1000,
+        n_misspecified=10,
+        n_noised=100,
+        dim: int = 10,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            target_noise_std,
+            n_target,
+            seed,
+            diffusion_scale,
+            max_diffusion_steps,
+            n_misspecified,
+            n_noised,
+            *args,
+            **kwargs,
+        )
+
+        self._simulator = LinearGaussianSimulator(dim, seed=self._seed)
+
+    def _sample_data(self, size):
+        theta = self._simulator.prior.sample((size,))
+        x = self._simulator.simulate(theta)
+        return theta, x
+
+
+class Uniform(_SBIDataset):
+    def __init__(
+        self,
+        target_noise_std=0.01,
+        n_target=100,
+        seed=42,
+        diffusion_scale=0.5,
+        max_diffusion_steps=1000,
+        n_misspecified=10,
+        n_noised=100,
+        prior_bounds: Tuple = (-1.5, 1.5),
+        poly_coeffs: Tensor = Tensor([0.1627, 0.9073, -1.2197, -1.4639, 1.4381]),
+        epsilon: Union[Tensor, float] = 0.25,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            target_noise_std,
+            n_target,
+            seed,
+            diffusion_scale,
+            max_diffusion_steps,
+            n_misspecified,
+            n_noised,
+            *args,
+            **kwargs,
+        )
+
+        self._simulator = UniformNoise1DSimulator(
+            prior_bounds=prior_bounds,
+            seed=self._seed,
+            poly_coeffs=poly_coeffs,
+            epsilon=epsilon,
+        )
+
+    def _sample_data(self, size):
+        theta = self._simulator.prior.sample((size,))
+        x = self._simulator.simulate(theta)
+        return theta, x
