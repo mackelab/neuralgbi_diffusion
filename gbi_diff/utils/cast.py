@@ -1,4 +1,7 @@
 def to_camel_case(snake_str: str) -> str:
+    if snake_str.upper() == snake_str and "_" not in snake_str:
+        return snake_str
+
     return "".join(x.capitalize() for x in snake_str.lower().split("_"))
 
 def to_lower_camel_case(snake_str: str) -> str:

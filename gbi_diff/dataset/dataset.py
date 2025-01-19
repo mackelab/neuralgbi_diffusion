@@ -7,6 +7,7 @@ import numpy as np
 from abc import abstractmethod
 from sourcerer import simulators
 
+from gbi_diff.dataset.simulators.gaussian_mixture import GaussianMixtureSimulator
 from gbi_diff.dataset.utils import generate_x_misspecified
 
 
@@ -17,7 +18,7 @@ class _SBIDataset(Dataset):
         n_target: int = 100,
         seed: int = 42,
         diffusion_scale: float = 0.5,
-        max_diffusion_steps: int = 10_000,
+        max_diffusion_steps: int = 1000,
         n_misspecified: int = 10,
         n_noised: int = 100,
         *args,
@@ -57,7 +58,7 @@ class _SBIDataset(Dataset):
         for key, value in content.items():
             setattr(obj, key, value)
         setattr(obj, "_x_target", obj._generate_x_target())
-        setattr(obj, "_x_miss", obj._generate_misspecified_data(obj._x))
+        setattr(obj, "_x_miss", obj._generate_misspecified_data())
         setattr(obj, "_x_all", obj._get_all())
 
         return obj
@@ -68,6 +69,10 @@ class _SBIDataset(Dataset):
             "_x": self._x,
             "_target_noise_std": self._target_noise_std,
             "_seed": self._seed,
+            "_diffusion_scale": self._diffusion_scale,
+            "_max_diffusion_steps": self._max_diffusion_steps,
+            "_n_misspecified": self._n_misspecified,
+            "_n_noised": self._n_noised,
         }
         torch.save(data, path)
 
@@ -80,10 +85,11 @@ class _SBIDataset(Dataset):
         self._theta = theta
         self._x = x
         self._x_target = self._generate_x_target()
-        self._x_miss = self._generate_misspecified_data(self._x[: self._n_misspecified])
+        self._x_miss = self._generate_misspecified_data()
         self._x_all = self._get_all()
 
-    def _generate_misspecified_data(self, x: Tensor) -> Tensor:
+    def _generate_misspecified_data(self) -> Tensor:
+        x = self._x[: self._n_misspecified]
         x_miss = generate_x_misspecified(
             x, self._diffusion_scale, self._max_diffusion_steps
         )
@@ -126,8 +132,9 @@ class _SBIDataset(Dataset):
 
     def _generate_x_target(self):
         random_state = np.random.default_rng(self._seed)
+        n_samples = min(self._n_no  ised, len(self._x))
         x_sample = self._x[
-            np.random.choice(len(self._x), size=self._n_noised, replace=False)
+            np.random.choice(len(self._x), size=n_samples, replace=False)
         ]
         noise = random_state.normal(0, 1, size=x_sample.shape)
         res = x_sample + noise * self._target_noise_std
@@ -165,9 +172,9 @@ class _SourcererDataset(_SBIDataset):
         cls_name = type(self).__name__ + "Simulator"
         simulator_cls = getattr(simulators, cls_name)
         simulator = simulator_cls()
-        prior = simulator.sample_prior(size)
-        likelihood_samples = simulator.sample(prior)
-        return prior, likelihood_samples
+        theta = simulator.sample_prior(size)
+        x = simulator.sample(theta)
+        return theta, x
 
 
 class TwoMoons(_SourcererDataset):
@@ -264,3 +271,41 @@ class SIR(_SourcererDataset):
             *args,
             **kwargs,
         )
+
+
+class GaussianMixture(_SBIDataset):
+    def __init__(
+        self,
+        target_noise_std=0.01,
+        n_target=100,
+        seed=42,
+        diffusion_scale=0.5,
+        max_diffusion_steps=1000,
+        n_misspecified=10,
+        n_noised=100,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            target_noise_std,
+            n_target,
+            seed,
+            diffusion_scale,
+            max_diffusion_steps,
+            n_misspecified,
+            n_noised,
+            *args,
+            **kwargs,
+        )
+        self._simulator = GaussianMixtureSimulator(seed=self._seed)
+        
+
+    def _sample_data(self, size):
+        theta = self._simulator.prior.sample((size,))
+        x = self._simulator.simulate(theta)
+        return theta, x
+    
+    def _generate_misspecified_data(self):
+        sample_idx = np.random.choice(len(self._x), size=self._n_misspecified, replace=False)
+        x_miss = self._simulator.simulate_misspecified(self._theta[sample_idx])
+        return x_miss   
