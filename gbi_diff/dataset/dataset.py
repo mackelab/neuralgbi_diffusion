@@ -1,20 +1,25 @@
-from typing import Dict, Literal, Tuple
+from typing import Dict, Tuple
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset
 import numpy as np
 
-from gbi_diff.dataset import simulator_api
-import logging
+from abc import abstractmethod
+from sourcerer import simulators
+
+from gbi_diff.dataset.utils import generate_x_misspecified
 
 
-class SBIDataset(Dataset):
+class _SBIDataset(Dataset):
     def __init__(
         self,
         target_noise_std: float = 0.01,
-        measured: Tensor = None,
         n_target: int = 100,
         seed: int = 42,
+        diffusion_scale: float = 0.5,
+        max_diffusion_steps: int = 10_000,
+        n_misspecified: int = 10,
+        n_noised: int = 100,
         *args,
         **kwargs,
     ):
@@ -22,69 +27,67 @@ class SBIDataset(Dataset):
 
         self._theta: Tensor
         """simulator parameter"""
+
         self._x: Tensor
         """simulator result dependent on self._theta"""
 
-        self._target: Tensor
+        self._x_target: Tensor
         """simulator results and noised with iid noised simulator results"""
 
-        self._measured = measured
-        """data I actually measured"""
+        self._x_miss: Tensor
+        """misspecified data"""
 
-        self._all: Tensor
+        self._x_all: Tensor
         """concat of self._x, self._target, self._measured"""
 
         self._target_noise_std = target_noise_std
         self._n_target = n_target  # how big should be the target subsample -> TODO: same as batch size
         self._seed = seed
+        self._diffusion_scale = diffusion_scale
+        self._max_diffusion_steps = max_diffusion_steps
+        self._n_misspecified = n_misspecified
+        self._n_noised = n_noised
 
     @classmethod
-    def from_file(cls, path: str) -> "SBIDataset":
+    def from_file(cls, path: str) -> "_SBIDataset":
         content: Dict[str, Tensor] = torch.load(
             path, weights_only=False, map_location=torch.device("cpu")
         )
         obj = cls(**content)
         for key, value in content.items():
             setattr(obj, key, value)
-        setattr(obj, "_target", obj._get_x_target())
-        setattr(obj, "_all", obj._get_all())
+        setattr(obj, "_x_target", obj._generate_x_target())
+        setattr(obj, "_x_miss", obj._generate_misspecified_data(obj._x))
+        setattr(obj, "_x_all", obj._get_all())
 
         return obj
-
-    def load_file(self, path: str):
-        content: Dict[str, Tensor] = torch.load(path, map_location=torch.device("cpu"))
-        for key, value in content.items():
-            setattr(self, key, value)
-        self._target = self._get_x_target()
-        self._all = self._get_all()
 
     def save(self, path: str):
         data = {
             "_theta": self._theta,
             "_x": self._x,
-            "_measured": self._measured,
             "_target_noise_std": self._target_noise_std,
             "_seed": self._seed,
         }
         torch.save(data, path)
 
-    def generate_dataset(self, size: int, entity: str = "moon"):
-        prefix = "generate_"
-        generator_func_names = list(
-            filter(lambda x: prefix in x, simulator_api.__dict__.keys())
-        )
-        types = list(map(lambda x: "_".join(x.split("_")[1:]), generator_func_names))
-        if entity not in types:
-            raise NotImplementedError(
-                f"There is not simulator api implemented for the `entity`: {entity}\
-                                      Available are: {types}"
-            )
-        func = getattr(simulator_api, prefix + entity)
-        theta, x = func(size)
+    @abstractmethod
+    def _sample_data(self, size: int) -> Tuple[Tensor, Tensor]:
+        raise NotImplementedError
+
+    def generate_dataset(self, size: int):
+        theta, x = self._sample_data(size)
         self._theta = theta
         self._x = x
-        self._target = self._get_x_target()
-        self._all = self._get_all()
+        self._x_target = self._generate_x_target()
+        self._x_miss = self._generate_misspecified_data(self._x[: self._n_misspecified])
+        self._x_all = self._get_all()
+
+    def _generate_misspecified_data(self, x: Tensor) -> Tensor:
+        x_miss = generate_x_misspecified(
+            x, self._diffusion_scale, self._max_diffusion_steps
+        )
+        return x_miss
 
     def get_theta_dim(self) -> int:
         return self._theta.shape[1]
@@ -101,9 +104,10 @@ class SBIDataset(Dataset):
         Returns:
             Tuple[Tensor, Tensor, Tensor]: theta, x, x_target
         """
-        target_sample = self._all[
-            np.random.choice(len(self._all), size=self._n_target, replace=False)
-        ]
+        sample_idx = np.random.choice(
+            len(self._x_all), size=self._n_target, replace=False
+        )
+        target_sample = self._x_all[sample_idx]
         return self._theta[index], self._x[index], target_sample
 
     def __len__(self) -> int:
@@ -120,14 +124,143 @@ class SBIDataset(Dataset):
     def set_n_target(self, value: int):
         self._n_target = value
 
-    def _get_x_target(self):
+    def _generate_x_target(self):
         random_state = np.random.default_rng(self._seed)
-        noise = random_state.normal(0, self._target_noise_std, size=self._x.size())
-        res = self._x + noise
+        x_sample = self._x[
+            np.random.choice(len(self._x), size=self._n_noised, replace=False)
+        ]
+        noise = random_state.normal(0, 1, size=x_sample.shape)
+        res = x_sample + noise * self._target_noise_std
         return res.float()
 
     def _get_all(self):
-        concat = torch.cat([self._x, self._target], dim=0)
-        if self._measured is not None:
-            concat = torch.cat([concat, self._measured], dim=0)
+        concat = torch.cat([self._x, self._x_target, self._x_miss], dim=0)
         return concat.float()
+
+
+class _SourcererDataset(_SBIDataset):
+    def __init__(
+        self,
+        target_noise_std=0.01,
+        n_target=100,
+        seed=42,
+        diffusion_scale=0.5,
+        max_diffusion_steps=1000,
+        n_misspecified=10,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            target_noise_std,
+            n_target,
+            seed,
+            diffusion_scale,
+            max_diffusion_steps,
+            n_misspecified,
+            *args,
+            **kwargs,
+        )
+
+    def _sample_data(self, size):
+        cls_name = type(self).__name__ + "Simulator"
+        simulator_cls = getattr(simulators, cls_name)
+        simulator = simulator_cls()
+        prior = simulator.sample_prior(size)
+        likelihood_samples = simulator.sample(prior)
+        return prior, likelihood_samples
+
+
+class TwoMoons(_SourcererDataset):
+    def __init__(
+        self,
+        target_noise_std=0.01,
+        n_target=100,
+        seed=42,
+        diffusion_scale=0.5,
+        max_diffusion_steps=1000,
+        n_misspecified=10,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            target_noise_std,
+            n_target,
+            seed,
+            diffusion_scale,
+            max_diffusion_steps,
+            n_misspecified,
+            *args,
+            **kwargs,
+        )
+
+
+class LotkaVolterra(_SourcererDataset):
+    def __init__(
+        self,
+        target_noise_std=0.01,
+        n_target=100,
+        seed=42,
+        diffusion_scale=0.5,
+        max_diffusion_steps=1000,
+        n_misspecified=10,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            target_noise_std,
+            n_target,
+            seed,
+            diffusion_scale,
+            max_diffusion_steps,
+            n_misspecified,
+            *args,
+            **kwargs,
+        )
+
+
+class InverseKinematics(_SourcererDataset):
+    def __init__(
+        self,
+        target_noise_std=0.01,
+        n_target=100,
+        seed=42,
+        diffusion_scale=0.5,
+        max_diffusion_steps=1000,
+        n_misspecified=10,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            target_noise_std,
+            n_target,
+            seed,
+            diffusion_scale,
+            max_diffusion_steps,
+            n_misspecified,
+            *args,
+            **kwargs,
+        )
+
+
+class SIR(_SourcererDataset):
+    def __init__(
+        self,
+        target_noise_std=0.01,
+        n_target=100,
+        seed=42,
+        diffusion_scale=0.5,
+        max_diffusion_steps=1000,
+        n_misspecified=10,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            target_noise_std,
+            n_target,
+            seed,
+            diffusion_scale,
+            max_diffusion_steps,
+            n_misspecified,
+            *args,
+            **kwargs,
+        )

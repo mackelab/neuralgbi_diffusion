@@ -8,7 +8,7 @@ from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from torch.utils.data import DataLoader
 
-from gbi_diff.dataset import SBIDataset
+from gbi_diff.dataset import _SBIDataset
 from gbi_diff.model.lit_module import DiffusionModel, PotentialNetwork, Guidance
 from gbi_diff.utils.train_config import Config as Config_Potential
 from gbi_diff.utils.train_guidance_config import Config as Config_Guidance
@@ -58,7 +58,7 @@ def _setup_trainer(
 
 
 def _setup_datasets(config):
-    train_set = SBIDataset.from_file(config.dataset.train_file)
+    train_set = _SBIDataset.from_file(config.dataset.train_file)
     train_set.set_n_target(config.dataset.n_target)
     train_loader = DataLoader(
         train_set,
@@ -66,7 +66,7 @@ def _setup_datasets(config):
         shuffle=True,
         num_workers=config.num_worker,
     )
-    val_set = SBIDataset.from_file(config.dataset.val_file)
+    val_set = _SBIDataset.from_file(config.dataset.val_file)
     val_set.set_n_target(config.dataset.n_target)
     val_loader = DataLoader(
         val_set,
