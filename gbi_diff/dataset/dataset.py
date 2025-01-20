@@ -309,18 +309,23 @@ class GaussianMixture(_SBIDataset):
             *args,
             **kwargs,
         )
-        self._simulator = GaussianMixtureSimulator(seed=self._seed)
+        self._simulator = GaussianMixtureSimulator(num_trials=1, seed=self._seed)
 
     def _sample_data(self, size):
         theta = self._simulator.prior.sample((size,))
         x = self._simulator.simulate(theta)
+        # remove the trial dimension
+        x= x[:, 0]
         return theta, x
 
     def _generate_misspecified_data(self):
+        n_samples = min(self._n_misspecified, len(self._x))
         sample_idx = np.random.choice(
-            len(self._x), size=self._n_misspecified, replace=False
+            len(self._x), size=n_samples, replace=False
         )
         x_miss = self._simulator.simulate_misspecified(self._theta[sample_idx])
+        # remove the trial dimension
+        x_miss = x_miss[:, 0]
         return x_miss
 
 

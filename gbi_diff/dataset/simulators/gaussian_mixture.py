@@ -6,7 +6,6 @@ import torch
 from sbi.utils import BoxUniform
 
 
-
 class GaussianMixtureSimulator:
     def __init__(
         self,
@@ -14,14 +13,28 @@ class GaussianMixtureSimulator:
         dim: int = 2,
         seed: int = 0,
     ):
-        """Suggested beta: [2.0, 10.0, 50.0]"""
+        """Init Gaussian Mixture Simulator
+
+        Args:
+            num_trials (int, optional): simulate how many samples per theta. Defaults to 5.
+            dim (int, optional): dimension of gaussian mixture. Defaults to 2.
+            seed (int, optional): random seed. Defaults to 0.
+        """
         # Set seed.
         _ = torch.manual_seed(seed)
         self.prior = BoxUniform(-10 * ones(dim), 10 * ones(dim))
         self.num_trials = num_trials
-        
+
     def simulate(self, theta: Tensor) -> Tensor:
-        """Simulator."""
+        """simulate gaussian clusters based on given params theta.
+        For each given parameter combination in theta sample n_trials many samples for a gaussian blob
+
+        Args:
+            theta (Tensor): base parameters (n_samples, theta_dim)
+
+        Returns:
+            Tensor: simulated gaussian clusters (n_samples, n_trials, sim_out_dim)
+        """
         samples1 = torch.randn((self.num_trials, *theta.shape)) + theta
         samples2 = 0.1 * torch.randn((self.num_trials, *theta.shape)) + theta
         all_samples = torch.zeros(*samples1.shape)
@@ -34,10 +47,22 @@ class GaussianMixtureSimulator:
         return all_samples
 
     def simulate_misspecified(self, theta: Tensor) -> Tensor:
-        """Simulator."""
+        """simulate gaussian clusters based on given params theta.
+        But also misspecify a portion of the given samples so the relation theta -> x is not necessarily given
+        For each given parameter combination in theta sample n_trials many samples for a gaussian blob
+
+        Args:
+            theta (Tensor): base parameters (n_samples, theta_dim)
+
+        Returns:
+            Tensor: simulated gaussian clusters (n_samples, n_trials, sim_out_dim)
+        """
         # For misspecified x, push it out of the prior bounds.
         samples1 = torch.randn((self.num_trials, *theta.shape)) + theta
-        samples2 = 0.5 * torch.randn((self.num_trials, *theta.shape)) + torch.sign(theta)*12.5
+        samples2 = (
+            0.5 * torch.randn((self.num_trials, *theta.shape))
+            + torch.sign(theta) * 12.5
+        )
         all_samples = torch.zeros(*samples1.shape)
 
         bern = torch.bernoulli(0.5 * ones((self.num_trials, theta.shape[0]))).bool()
