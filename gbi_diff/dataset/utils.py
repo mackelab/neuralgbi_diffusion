@@ -36,5 +36,5 @@ def generate_x_misspecified(x: torch.Tensor, diffusion_scale=0.5, max_steps=1000
     else:
         msg = f"{counter} steps of diffusion for misspecified data."
     tqdm.write(msg)
-    
+
     return x

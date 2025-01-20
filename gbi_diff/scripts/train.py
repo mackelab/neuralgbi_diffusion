@@ -62,8 +62,10 @@ def _setup_datasets(config):
     cls_name = to_camel_case(config.data_entity)
     cls_name = cls_name[0].upper() + cls_name[1:]
     dataset_cls = getattr(sbi_datasets, cls_name)
-    train_set: sbi_datasets._SBIDataset = dataset_cls.from_file(config.dataset.train_file)
-        
+    train_set: sbi_datasets._SBIDataset = dataset_cls.from_file(
+        config.dataset.train_file
+    )
+
     train_set.set_n_target(config.dataset.n_target)
     train_loader = DataLoader(
         train_set,
@@ -125,7 +127,7 @@ def train_guidance(config: Config_Guidance, devices: int = 1, force: bool = Fals
     serial_config = config
     trainer, log_dir = _setup_trainer(config, devices)
     train_loader, train_set, val_loader, _ = _setup_datasets(config)
-    
+
     model = Guidance(
         theta_dim=train_set.get_theta_dim(),
         simulator_out_dim=train_set.get_sim_out_dim(),

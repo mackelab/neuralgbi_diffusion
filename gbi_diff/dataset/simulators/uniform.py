@@ -27,7 +27,9 @@ class UniformNoise1DSimulator:
         self.prior = BoxUniform(prior_bounds[0] * ones(1), prior_bounds[1] * ones(1))
 
         # noise_likelihood model.
-        self.noise_likelihood = BoxUniform(-self.epsilon * ones(1), self.epsilon * ones(1))
+        self.noise_likelihood = BoxUniform(
+            -self.epsilon * ones(1), self.epsilon * ones(1)
+        )
 
         # Set polynomial coefficients; default makes good curve.
         self.poly_coeffs = poly_coeffs

@@ -220,7 +220,7 @@ class DiffusionSampler:
                 sample, torch.exp(log_prob), title=title, save_path=str(save_path)
             )
 
-    def update_beta(self, value: int| float):
+    def update_beta(self, value: int | float):
         assert isinstance(value, (int, float))
         self._beta = value
 

@@ -186,7 +186,7 @@ class MCMCSampler:
     @property
     def theta_dim(self) -> int:
         return self._potential_function.nn.hparams.theta_dim
-    
+
     @property
     def potential_function(self) -> PotentialFunc:
         return self._potential_function
