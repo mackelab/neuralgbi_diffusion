@@ -55,21 +55,21 @@ def add_mcmc_sample_args(parser: ArgumentParser) -> ArgumentParser:
 def add_diffusion_sample_args(parser: ArgumentParser) -> ArgumentParser:
     parser.add_argument(
         "--diffusion-ckpt",
-        help="_description_",
+        help="path to checkpoint of diffusion model",
         dest="diffusion_ckpt",
         type=str,
         required=True,
     )
     parser.add_argument(
         "--guidance-ckpt",
-        help="_description_",
+        help="path to checkpoint of guidance model",
         dest="guidance_ckpt",
         type=str,
         required=True,
     )
     parser.add_argument(
         "--config",
-        help="_description_",
+        help='path to config to use for diffusion sample. Defaults to "config/sampling_diffusion.yaml".',
         dest="config",
         type=str,
         default="config/sampling_diffusion.yaml",
@@ -77,7 +77,7 @@ def add_diffusion_sample_args(parser: ArgumentParser) -> ArgumentParser:
     )
     parser.add_argument(
         "--output",
-        help="_description_. Defaults to None.",
+        help="Where to store the samples. If None: store alongside diffusion process. Defaults to None.",
         dest="output",
         type=str,
         default=None,
@@ -85,7 +85,7 @@ def add_diffusion_sample_args(parser: ArgumentParser) -> ArgumentParser:
     )
     parser.add_argument(
         "--n-samples",
-        help="_description_. Defaults to 100.",
+        help="How many samples to sample from posterior distribution. Defaults to 100.",
         dest="n_samples",
         type=int,
         default=100,
@@ -93,7 +93,7 @@ def add_diffusion_sample_args(parser: ArgumentParser) -> ArgumentParser:
     )
     parser.add_argument(
         "--plot",
-        help="_description_. Defaults to False.",
+        help="Would you like to add pair plots of the posterior distribution. Defaults to False.",
         dest="plot",
         action="store_true",
         required=False,
@@ -237,7 +237,7 @@ def setup_entrypoint_parser(
     train_diffusion = add_train_diffusion_args(train_diffusion)
     subparser["train_diffusion"] = train_diffusion
     diffusion_sample = command_subparser.add_parser(
-        "diffusion-sample", help="_summary_"
+        "diffusion-sample", help="sample from diffusion process"
     )
     diffusion_sample = add_diffusion_sample_args(diffusion_sample)
     subparser["diffusion_sample"] = diffusion_sample

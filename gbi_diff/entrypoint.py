@@ -108,18 +108,15 @@ class Entrypoint:
         n_samples: int = 100,
         plot: bool = False,
     ):
-        """_summary_
+        """sample from diffusion process
 
         Args:
-            diffusion_ckpt (str): _description_
-            guidance_ckpt (str): _description_
-            config (str): _description_
-            output (str, optional): _description_. Defaults to None.
-            n_samples (int, optional): _description_. Defaults to 100.
-            plot (bool, optional): _description_. Defaults to False.
-
-        Raises:
-            NotImplementedError: _description_
+            diffusion_ckpt (str): path to checkpoint of diffusion model
+            guidance_ckpt (str): path to checkpoint of guidance model
+            config (str): path to config to use for diffusion sample. Defaults to "config/sampling_diffusion.yaml".
+            output (str, optional): Where to store the samples. If None: store alongside diffusion process. Defaults to None.
+            n_samples (int, optional): How many samples to sample from posterior distribution. Defaults to 100.
+            plot (bool, optional): Would you like to add pair plots of the posterior distribution. Defaults to False.
         """
         # >>>> add import here for faster help message
         from gbi_diff.scripts.sampling import (
