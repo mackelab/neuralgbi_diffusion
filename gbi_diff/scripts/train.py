@@ -8,8 +8,9 @@ from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 from torch.utils.data import DataLoader
 
-from gbi_diff.dataset import _SBIDataset
+from gbi_diff.dataset import dataset as sbi_datasets
 from gbi_diff.model.lit_module import DiffusionModel, PotentialNetwork, Guidance
+from gbi_diff.utils.cast import to_camel_case
 from gbi_diff.utils.train_config import Config as Config_Potential
 from gbi_diff.utils.train_guidance_config import Config as Config_Guidance
 from gbi_diff.utils.train_diffusion_config import Config as Config_Diffusion
@@ -58,7 +59,11 @@ def _setup_trainer(
 
 
 def _setup_datasets(config):
-    train_set = _SBIDataset.from_file(config.dataset.train_file)
+    cls_name = to_camel_case(config.data_entity)
+    cls_name = cls_name[0].upper() + cls_name[1:]
+    dataset_cls = getattr(sbi_datasets, cls_name)
+    train_set: sbi_datasets._SBIDataset = dataset_cls.from_file(config.dataset.train_file)
+        
     train_set.set_n_target(config.dataset.n_target)
     train_loader = DataLoader(
         train_set,
@@ -66,7 +71,7 @@ def _setup_datasets(config):
         shuffle=True,
         num_workers=config.num_worker,
     )
-    val_set = _SBIDataset.from_file(config.dataset.val_file)
+    val_set: sbi_datasets._SBIDataset = dataset_cls.from_file(config.dataset.val_file)
     val_set.set_n_target(config.dataset.n_target)
     val_loader = DataLoader(
         val_set,
@@ -120,7 +125,7 @@ def train_guidance(config: Config_Guidance, devices: int = 1, force: bool = Fals
     serial_config = config
     trainer, log_dir = _setup_trainer(config, devices)
     train_loader, train_set, val_loader, _ = _setup_datasets(config)
-
+    
     model = Guidance(
         theta_dim=train_set.get_theta_dim(),
         simulator_out_dim=train_set.get_sim_out_dim(),
