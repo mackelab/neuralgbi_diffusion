@@ -1,4 +1,4 @@
-data_entity: lotka_volterra
+data_entity: gaussian_mixture
 results_dir: "results/guidance/${data_entity}"
 check_val_every_n_epochs: 5
 num_worker: 12
