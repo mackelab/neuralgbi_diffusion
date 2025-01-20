@@ -60,19 +60,5 @@ def save_samples(
     directory = "/".join(output.split("/")[:-1])
     if not os.path.exists(directory):
         os.makedirs(directory)
-
+    print(f"Save samples at: {output}")
     torch.save(samples, output)
-
-
-# def create_potential_fn(
-#     checkpoint: str, config: Config, x_o: torch.Tensor = None
-# ) -> PotentialFunc:
-#     prior_config = getattr(config, config.prior)
-#     prior_cls = getattr(prior_distr, config.prior)
-#     prior = prior_cls(**prior_config.to_container())
-#
-#     potential_func = PotentialFunc(
-#         checkpoint=checkpoint, prior=prior, x_o=x_o, beta=config.beta
-#     )
-#     potential_func.is_valid()
-#     return potential_func
