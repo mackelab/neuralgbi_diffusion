@@ -1,8 +1,9 @@
 # Neural GBI on Diffusion Processes
 
-## Overview
 
-This repository implements an advanced pipeline for posterior sampling in simulation-based inference settings using diffusion models. The project combines neural guidance and denoising models to enable robust Bayesian inference for scientific simulators. Additionally, it includes a reference implementation of the Generalized Bayesian Inference (GBI) pipeline from [Generalized Bayesian Inference for Scientific Simulators via Amortized Cost Estimation](https://arxiv.org/abs/2305.15208) (Gao et al., 2023) for benchmarking purposes.
+This repository contains a pipeline to denoiser and guidance models for generalized simulation based inference as well as tooling for sampling  from the resulting posterior distribution.
+
+Additionaly this repository contains a small implementation of the GBI pipeline presented in [Generalized Bayesian Inference for Scientific Simulators via Amortized Cost Estimation](https://arxiv.org/abs/2305.15208) by Richard Gao, Michael Deistler and Jakob H. Macke to benchmark our results.  
 
 ## Key Features
 
@@ -13,98 +14,56 @@ This repository implements an advanced pipeline for posterior sampling in simula
 - Comprehensive benchmarking tools
 - Support for custom datasets
 
-## Mathematical Framework
-
-### Diffusion Process
-
-The pipeline implements conditional guidance-controlled diffusion sampling based on [Score-Based Generative Modeling through Stochastic Differential Equations](https://arxiv.org/abs/2011.13456) (Song et al., 2020). The posterior gradient is decomposed as:
-
-$$
-\nabla_{\theta_\tau} \log(p_\psi(\theta_\tau | x)) =  \nabla_{\theta_\tau} \log(p_\psi(x_t | \theta_\tau )) + \nabla_{\theta_\tau} \log(p_\psi(\theta_\tau))
-$$
-
-where:
-
-- $p_\psi(x_t | \theta_\tau ) = \frac{1}{Z} \exp(- \beta s_\psi(\theta_\tau, x_t, \tau))$
-- $\nabla_{\theta_\tau} \log(p_\psi(\theta_\tau)) = f_\psi(\theta_\tau, \tau)$
-
 ## Installation
 
-### Prerequisites
-
-- Python >= 3.12
-- pip
-- git
-
-### Setup Steps
-
-1. Clone the repository:
+This repository is self contained and does not need additional submodules and can be download / cloned form GitHub:
 
 ```bash
 git clone git@github.com:mackelab/neuralgbi_diffusion.git
 ```
 
-2. Install Poetry (dependency management):
+After downloading and setting up a base version of you favorite python environment (required python >3.12) we use poetry to manage and install all python packages.
 
 ```bash
 pip install poetry
-```
-
-3. Install dependencies:
-
-```bash
 poetry install --no-root
 ```
 
-## Usage Guide
+After this step you are good to go to interact with the environment. 
 
-### Command Line Interface
+## Usage
 
-The project provides a unified CLI interface for all operations:
+To interact with the pipeline we bundle all actions in one entrypoint: 
 
 ```bash
 python -m gbi_diff <action> <options>
 ```
 
-Use `--help` or `-h` with any command to see available options.
+If you would like to know more about the available actions and options you can always use `--help` or `-h`
 
-### Data Generation
 
-#### Available Simulators
+## Datasets
 
-The pipeline supports multiple scientific simulators:
-
-- Two Moons (`two_moons`)
-- SIR Epidemiological Model (`SIR`)
-- Lotka-Volterra Population Dynamics (`lotka_volterra`)
-- Inverse Kinematics (`inverse_kinematics`)
-- Gaussian Mixture (`gaussian_mixture`)
-- Linear Gaussian (`linear_gaussian`)
-- Uniform 1D (`uniform`)
-
-#### Generate Datasets
-
-Generate data for a specific simulator:
+To use the repository you have to generate the data you would like to use. To generate samples you can use the CLI of the pipeline by calling
 
 ```bash
 python -m gbi_diff generate-data --dataset-type <type> --size <n_samples> --path data/
-```
+``` 
 
-Recommended dataset sizes:
+We to test our results we use data from following simulators with the corresponding `dataset-type`: 
 
-- Training: 10,000 samples
-- Validation: 1,000 samples
-- Observed data: 10 samples
+- Two Moons: `two_moons`
+- SIR: `SIR`
+- Lotka Volterra: `lotka_volterra`
+- Inverse Kinematics: `inverse_kinematics`
+- Gaussian Mixture: `gaussian_mixture`
+- Linear Gaussian: `linear_gaussian`
+- Uniform 1D: `uniform`
 
-For bulk dataset generation, use the provided script:
+usually we use `10.000` samples for training, `1000` samples for validation. For the observed data we usually use `10` samples.  
+If you would like to create all datasets at once use the `generate_dataset.sh` bash script.
 
-```bash
-./generate_datasets.sh
-```
-
-### Custom Dataset Format
-
-When adding custom datasets (*.pt files), include the following fields:
+If you would like to add you own dataset in the form of `*.pt` files please make sure they have the following key and value pairs: 
 
 | Field                | Description                    | Shape/Type                      |
 | -------------------- | ------------------------------ | ------------------------------- |
@@ -117,27 +76,43 @@ When adding custom datasets (*.pt files), include the following fields:
 | _n_misspecified      | Number of misspecified samples | int                             |
 | _n_noised            | Number of noised samples       | int                             |
 
-## Model Training
+## Diffusion
 
-### Training the Guidance Model
+The main contribution of this repository is a pipeline for training and sampling a posterior distribution in a simulation based inference setting. 
+For this we have to train two models: 
 
-The guidance model ($s_\psi(\theta_\tau, x_t, \tau)$) is trained using a modified loss function:
+1. A diffusion time dependent guidance: $s_\psi(\theta_\tau, x_t, \tau)$ with $x_t$ as the target $x$ 
+2. A denoising prior: $f_\psi(\theta_\tau, \tau)$
 
+As laid out in [Song et al. 2020](https://arxiv.org/abs/2011.13456) you could do conditioned guidance controlled diffusion sampling as:
+$$
+\begin{aligned}
+\nabla_{\theta_\tau} \log(p_\psi(\theta_\tau | x)) &=  \nabla_{\theta_\tau} \log(p_\psi(x_t | \theta_\tau )) + \nabla_{\theta_\tau} \log(p_\psi(\theta_\tau)) \\
+p_\psi(x_t | \theta_\tau ) &= \frac{1}{Z} \exp(- \beta s_\psi(\theta_\tau, x_t, \tau)) \\
+\nabla_{\theta_\tau} \log(p_\psi(\theta_\tau)) &= f_\psi(\theta_\tau, \tau) 
+\end{aligned}
+$$
+
+
+### Train Guidance
+
+We train the guidance $s_\psi(\theta_\tau, x_t, \tau)$ in the same fashion as [Gao et al. 2023](https://arxiv.org/abs/2305.15208) but now $\theta$ noised within a diffusion schedule as described from [Ho et al. 2020](https://arxiv.org/abs/2006.11239).
+Therefor the loss guidance loss function is only slightly modified:
 $$
 \mathcal{L} = \mathbb{E}_{\theta, x \sim \mathcal{D}, \tau\sim U_{[0, T - 1]}}[||s_\psi(\theta_\tau, x_t, \tau) - d(x, x_t)||^2]
-$$
+$$ 
 
-Train the guidance model:
+To train the guidance model you should call:
 
 ```bash
 python -m gbi_diff train-guidance
 ```
 
-Configuration: Modify `config/train_guidance.yaml`
+Important to note is hereby the [config file](config/train_guidance.yaml) you are passing into the function. Depending on which dataset you would like to train you have to adapt either the `data_entity` parameter or just adapt the train and test file name in the config directly.
 
-### Training the Diffusion Model
+### Train Diffusion
 
-The diffusion model ($f_\psi(\theta_\tau, \tau)$) follows the approach from [Denoising Diffusion Probabilistic Models](https://arxiv.org/abs/2006.11239) (Ho et al., 2020):
+We train the diffusion model $f_\psi(\theta_\tau, \tau)$ in the same fashion as [Ho et al. 2020](https://arxiv.org/abs/2006.11239). And reuse the diffusion loss function:
 
 $$
 \begin{aligned}
@@ -146,40 +121,46 @@ $$
 \end{aligned}
 $$
 
-Train the diffusion model:
+To train the guidance model you should call:
 
 ```bash
 python -m gbi_diff train-diffusion
 ```
 
-Configuration: Modify `config/train_diffusion.yaml`
+Important to note is hereby the [config file](config/train_diffusion.yaml) you are passing into the function. Depending on which dataset you would like to train you have to adapt either the `data_entity` parameter or just adapt the train and test file name in the config directly.
 
-## Sampling Methods
 
-### Diffusion Sampling
+### Sample from Diffusion
 
-Sample from the posterior distribution:
+To finally sample from the posterior distribution you have to point towards the checkpoints of the guidance and diffusion model you would like to use. Please be aware, that diffusion, guidance and the dataset you would like to sample for have to be from the same data entity (for example: `tow_moons`).  
+To start the sampling process please call:
 
 ```bash
-python -m gbi_diff diffusion-sample --diffusion-ckpt <path> --guidance-ckpt <path> --n-samples <count> [--plot]
+python -m gbi_diff diffusion-sample --diffusion-ckpt <guidance-ckpt> --guidance-ckpt <guidance-ckpt> --n-samples <n-samples> (--plot)
 ```
 
-Configuration: Modify `config/sampling_diffusion.yaml`
+If you would like to adapt the config you can modify the [sampling_diffusion.yaml](config/sampling_diffusion.yaml). An important parameter hereby is `beta`. Beta controls the variety of samples you will get out of the sampling pipeline.
 
-Key parameter: `beta` controls sample diversity
+## GBI
 
-### GBI with MCMC Sampling
+To compare our results we implemented the generalized simulation based inference pipeline with sampling as presented in [Gao et al. 2023](https://arxiv.org/abs/2305.15208).
 
-Train the potential function:
+### Train Potential Function
+
+To have a guidance function you can plug into the MCMC sampler you first have to train one. In order to do so please call:
 
 ```bash
 python -m gbi_diff train-potential
 ```
 
-Sample using MCMC with NUTS kernel:
+If you would like to adapt parameters for the potential function please adapt them in the corresponding [config file](config/train.yaml). In  order to be comparable to the diffusion process we left all parameters as similar as possible to the [guidance config file](config/train_guidance.yaml). 
+
+### MCMC Sample
+
+If you would like to sample from the trained potential function with MCMC sampling and a NUTS kernel you can call the pipeline with:
 
 ```bash
-python -m gbi_diff mcmc-sample --checkpoint <path> --size <count> [--plot]
+python -m gbi_diff mcmc-sample --checkpoint <potential-function-ckpt>  --size <n-samples> (--plot)
 ```
 
 ## Project Structure
@@ -225,9 +206,9 @@ MIT License
 If you use this code in your research, please cite:
 
 ```bibtex
-@misc{vetter2025gbidiff,
+@misc{uhrich2025gbidiff,
   title={Generalized Diffusion Simulation Based Inference},
-  author={Vetter, Julius and Uhrich, Robin},
+  author={Uhrich, Robin and Vetter, Julian},
   year={2025},
   url={https://github.com/mackelab/neuralgbi_diffusion}
 }
