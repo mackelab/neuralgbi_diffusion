@@ -52,6 +52,7 @@ def _setup_trainer(
         ],
         accelerator=accelerator,
         devices=devices,
+        log_every_n_steps=10
     )
 
     log_dir = tb_logger.log_dir
