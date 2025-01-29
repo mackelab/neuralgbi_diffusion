@@ -6,6 +6,7 @@ import torch
 from tqdm import tqdm
 
 from gbi_diff.model.lit_module import DiffusionModel, Guidance
+from gbi_diff.sampling.sampler import PosteriorSampler
 from gbi_diff.sampling.utils import get_sample_path, load_observed_data
 from gbi_diff.utils.plot import _pair_plot
 from gbi_diff.utils.train_diffusion_config import Config as DiffusionConfig
@@ -13,7 +14,7 @@ from gbi_diff.utils.train_guidance_config import Config as GuidanceConfig
 from gbi_diff.utils.sampling_diffusion_config import Config
 
 
-class DiffusionSampler:
+class DiffusionSampler(PosteriorSampler):
     def __init__(
         self,
         diff_model_ckpt: str | Path,
@@ -30,6 +31,7 @@ class DiffusionSampler:
             guidance_model_ckpt = Path(guidance_model_ckpt)
         self.guidance_model_ckpt = guidance_model_ckpt
 
+        config.to_container
         self._check_model_compatibility(diff_model_ckpt, guidance_model_ckpt)
         self._check_config(config.observed_data_file, guidance_model_ckpt)
 
@@ -37,7 +39,7 @@ class DiffusionSampler:
         self._beta = self._config.beta
         self._guidance_model = Guidance.load_from_checkpoint(guidance_model_ckpt)
         self._diff_model = DiffusionModel.load_from_checkpoint(diff_model_ckpt)
-        self.x_o = load_observed_data(config.observed_data_file)
+        self.x_o, _ = load_observed_data(config.observed_data_file)
 
         self._diff_beta_schedule = self._diff_model.diff_schedule.beta_schedule
 
@@ -96,6 +98,9 @@ class DiffusionSampler:
         msg = "Both, diffusion and guidance have to use the same time encoding and representation dimension"
         assert diff_time_repr_dim == guidance_time_repr_dim, msg
 
+    def _get_default_path(self):
+        return get_sample_path(self.diff_model_ckpt)
+    
     def single_forward(self, x_o: Tensor, n_samples: int) -> Tensor:
         """_summary_
 
@@ -132,7 +137,7 @@ class DiffusionSampler:
             theta_t = (
                 (1 / torch.sqrt(alpha))
                 * (theta_t - (1 - alpha) / torch.sqrt(1 - alpha_bar) * diffusion_step)
-                + beta * guidance_grad
+            + beta * guidance_grad
                 + z
             )
 
@@ -145,7 +150,8 @@ class DiffusionSampler:
     def get_log_boltzmann_grad(
         self, theta: Tensor, x_target: Tensor, time_repr: Tensor
     ) -> Tensor:
-        """get the gradient of the log prob of a Boltzmann statistics
+        """
+        get the gradient of the log prob of a Boltzmann statistics
         Boltzmann statistics:
             $p_\psi(x) = \exp(-\beta E_\psi(x)) / Z(\psi)$
             $\nabla_x \log(p_\psi(x)) = -\beta \nabla_x E_\psi(x)$
@@ -204,6 +210,14 @@ class DiffusionSampler:
         batch_size, n_target, _ = samples.shape
         time_repr = self._guidance_model.get_diff_time_repr(np.zeros(batch_size))
         x_o = x_o[None].repeat(batch_size, 1, 1)
+        
+        if output is None:
+            save_dir = self._get_default_path()
+        elif isinstance(output, Path):
+            save_dir = output
+        else:
+            save_dir = Path(output)
+        
 
         for target_idx in range(n_target):
             log_prob = -self.beta * self._guidance_model.forward(
@@ -211,11 +225,8 @@ class DiffusionSampler:
             )
             sample = samples[:, target_idx]
             title = f"Index: {target_idx}, beta: {self.beta}"
-            save_path = get_sample_path(
-                str(self.diff_model_ckpt),
-                f"pair_plot_{target_idx}_beta_{self.beta}.png",
-                output,
-            )
+            file_name = f"pair_plot_{target_idx}_beta_{self.beta}.png"
+            save_path = save_dir / file_name
             _pair_plot(
                 sample, torch.exp(log_prob), title=title, save_path=str(save_path)
             )

@@ -10,6 +10,7 @@ from tqdm import tqdm
 
 from gbi_diff.model.lit_module import PotentialNetwork
 from gbi_diff.sampling import prior_distr
+from gbi_diff.sampling.sampler import PosteriorSampler
 from gbi_diff.sampling.utils import get_sample_path, load_observed_data
 from gbi_diff.utils.plot import _pair_plot
 from gbi_diff.utils.sampling_mcmc_config import Config
@@ -93,11 +94,12 @@ class PotentialFunc:
         return True
 
 
-class MCMCSampler:
+class MCMCSampler(PosteriorSampler):
     def __init__(self, checkpoint: str | Path, config: Config):
+        super().__init__()
         self._checkpoint = checkpoint
         self._config = config
-        self._x_o = load_observed_data(self._config.observed_data_file)
+        self._x_o, _ = load_observed_data(self._config.observed_data_file)
 
         self._potential_function = self._create_potential_fn(checkpoint)
 
@@ -112,6 +114,9 @@ class MCMCSampler:
         potential_func.is_valid()
         return potential_func
 
+    def _get_default_path(self):
+        return get_sample_path(self._checkpoint)
+    
     def single_forward(self, x_o: torch.Tensor, n_samples: int) -> torch.Tensor:
         """single forward of one observed data point
 
@@ -164,16 +169,20 @@ class MCMCSampler:
         batch_size, n_target, _ = samples.shape
         x_o = x_o[None].repeat(batch_size, 1, 1)
 
+        if output is None:
+            save_dir = self._get_default_path()
+        elif isinstance(output, Path):
+            save_dir = output
+        else:
+            save_dir = Path(output)
+            
         for target_idx in range(n_target):
             self._potential_function.update_x_o(x_o[target_idx])
             log_prob = self._potential_function.log_likelihood(samples[:, target_idx])
             sample = samples[:, target_idx]
             title = f"Index: {target_idx}, beta: {self._config.beta}"
-            save_path = get_sample_path(
-                str(self._checkpoint),
-                f"pair_plot_{target_idx}_beta_{self._config.beta}.png",
-                output,
-            )
+            file_name = f"pair_plot_{target_idx}_beta_{self._config.beta}.png"
+            save_path = save_dir / file_name
             _pair_plot(
                 sample, torch.exp(log_prob), title=title, save_path=str(save_path)
             )
