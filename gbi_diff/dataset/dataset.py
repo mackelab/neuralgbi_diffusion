@@ -91,7 +91,7 @@ class _SBIDataset(Dataset):
         self._x_all = self._get_all()
 
     def _generate_misspecified_data(self) -> Tensor:
-        x = self._x[: self._n_misspecified]
+        x = self._x[: self._n_misspecified].clone()
         x_miss = generate_x_misspecified(
             x, self._diffusion_scale, self._max_diffusion_steps
         )
@@ -137,7 +137,7 @@ class _SBIDataset(Dataset):
         n_samples = min(self._n_noised, len(self._x))
         x_sample = self._x[
             np.random.choice(len(self._x), size=n_samples, replace=False)
-        ]
+        ].clone()
         noise = random_state.normal(0, 1, size=x_sample.shape)
         res = x_sample + noise * self._target_noise_std
         return res.float()
