@@ -1,4 +1,4 @@
-data_entity: gaussian_mixture
+data_entity: two_moons
 results_dir: "results/guidance/${data_entity}"
 check_val_every_n_epochs: 5
 num_worker: 12
@@ -34,9 +34,9 @@ model:
   LatentMLP:
     architecture: [256, 156, 128]
     activation_func: "ReLU"
-    final_activation: null # Sigmoid only needed for cosine similarity -> otherwise null
+    final_activation: Softplus   # Sigmoid only needed for cosine similarity -> otherwise null
 
-diffusion:
+diffusion:          
   steps: 1000
   time_repr_dim: ${model.TimeEncoder.input_dim}  # sinusoidal position encoding dimensions 
   period_spread: 10000  # parameter for sinusoidal positional encoding
@@ -48,12 +48,12 @@ diffusion:
     T: ${diffusion.steps}
     beta_schedule_cls: "LinearSchedule"  
   DDPMSchedule:
-    beta_start: 0.0001     
+    beta_start: 0.0000           
     beta_end: 0.02
     T: ${diffusion.steps}
     beta_schedule_cls: "LinearSchedule"  
 
 optimizer:
-  name: Adam
+  name: AdamW
   lr: 0.0001
-  weight_decay: 0
+  weight_decay: 0.001 
