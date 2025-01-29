@@ -1,4 +1,4 @@
-data_entity: lotka_volterra
+data_entity: two_moons
 results_dir: "results/diffusion/${data_entity}"
 check_val_every_n_epochs: 5
 num_worker: 12
@@ -9,8 +9,8 @@ precision: 32 # 64: extended, 32: standard, 16: half
 
 dataset:
   train_file: "data/${data_entity}_10000.pt"
-  val_file: "data/${data_entity}_1000.pt"
-  n_target: 20
+val_file: "data/${data_entity}_1000.pt"
+  n_target: 50
   noise_std: 0.1 # how strong to noise the augmentations in x_target
 
 model:
