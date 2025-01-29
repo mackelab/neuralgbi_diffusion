@@ -52,28 +52,23 @@ def add_mcmc_sample_args(parser: ArgumentParser) -> ArgumentParser:
     return parser
 
 
+from pyargwriter.api.hydra_plugin import add_hydra_parser
+
+
 def add_diffusion_sample_args(parser: ArgumentParser) -> ArgumentParser:
     parser.add_argument(
         "--diffusion-ckpt",
-        help="path to checkpoint of diffusion model",
+        help="path to checkpoint of guidance model",
         dest="diffusion_ckpt",
         type=str,
         required=True,
     )
     parser.add_argument(
         "--guidance-ckpt",
-        help="path to checkpoint of guidance model",
+        help='path to config to use for diffusion sample. Defaults to "config/sampling_diffusion.yaml".',
         dest="guidance_ckpt",
         type=str,
         required=True,
-    )
-    parser.add_argument(
-        "--config",
-        help='path to config to use for diffusion sample. Defaults to "config/sampling_diffusion.yaml".',
-        dest="config",
-        type=str,
-        default="config/sampling_diffusion.yaml",
-        required=False,
     )
     parser.add_argument(
         "--output",
@@ -240,6 +235,7 @@ def setup_entrypoint_parser(
         "diffusion-sample", help="sample from diffusion process"
     )
     diffusion_sample = add_diffusion_sample_args(diffusion_sample)
+    diffusion_sample = add_hydra_parser(diffusion_sample)
     subparser["diffusion_sample"] = diffusion_sample
     mcmc_sample = command_subparser.add_parser("mcmc-sample", help="sample mcmc")
     mcmc_sample = add_mcmc_sample_args(mcmc_sample)

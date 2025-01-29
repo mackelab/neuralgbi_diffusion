@@ -39,13 +39,14 @@ def execute(args: dict) -> bool:
             )
 
         case "diffusion-sample":
-            module.diffusion_sample(
-                diffusion_ckpt=args["diffusion_ckpt"],
-                guidance_ckpt=args["guidance_ckpt"],
-                config=args["config"],
-                output=args["output"],
-                n_samples=args["n_samples"],
-                plot=args["plot"],
+            api.hydra_plugin.hydra_wrapper(
+                module.diffusion_sample,
+                args,
+                command_parser["diffusion_sample"],
+                config_var_name="config",
+                version_base=None,
+                config_name="sampling_diffusion.yaml",
+                config_path=str(Path.cwd().joinpath("config/")),
             )
 
         case "mcmc-sample":

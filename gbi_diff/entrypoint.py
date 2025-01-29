@@ -1,4 +1,6 @@
 from typing import List
+from omegaconf import DictConfig
+from pyargwriter.decorator import add_hydra
 
 
 class Entrypoint:
@@ -95,15 +97,20 @@ class Entrypoint:
         )  # pylint: disable=C0415
 
         # <<<<
-
         config = Config.from_file(config_file, resolve=True)
         train_diffusion(config, device, force)
 
+    @add_hydra(
+        "config",
+        version_base=None,
+        config_name="sampling_diffusion.yaml",
+        config_path="config/",
+    )
     def diffusion_sample(
         self,
+        config: DictConfig,
         diffusion_ckpt: str,
         guidance_ckpt: str,
-        config: str = "config/sampling_diffusion.yaml",
         output: str = None,
         n_samples: int = 100,
         plot: bool = False,
@@ -128,7 +135,7 @@ class Entrypoint:
 
         # <<<<
 
-        config: Config = Config.from_file(config)
+        config: Config = Config.from_dict_config(config)
 
         diffusion_sampling(
             diffusion_ckpt, guidance_ckpt, config, output, n_samples, plot
