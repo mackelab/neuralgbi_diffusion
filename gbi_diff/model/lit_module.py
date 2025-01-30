@@ -268,7 +268,7 @@ class Guidance(_DiffusionBase):
             time (Tensor): (batch_size, time_repr_dim). Defaults to None
 
         Returns:
-            Tensor: _description_
+            Tensor: (batch_size, n_target, 1)
         """
         return self._net.forward(theta_t, x_target, time_repr)
 
