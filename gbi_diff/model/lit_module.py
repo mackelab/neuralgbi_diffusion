@@ -149,9 +149,9 @@ class _DiffusionBase(LightningModule):
         """same thing as: T (capital T)"""
         self.t = torch.linspace(0, 1, self.diffusion_steps)
 
-        self.val_sample = np.random.choice(
-            self.diffusion_steps, size=self.diffusion_steps, replace=False
-        )
+        assert self.diffusion_steps % 100 == 0, "For validation, T has to be a multiple of 100"
+        self.val_t = torch.linspace(0, self.diffusion_steps -1, 100).int()
+        self.val_t_repr = self.get_diff_time_repr(self.val_t).float()
 
     def _build_schedule(
         self, diff_config: DiffusionGuidanceConfig
@@ -192,7 +192,7 @@ class _DiffusionBase(LightningModule):
             )
         else:
             # always take the same subsample
-            sampled_t = self.val_sample[:batch_size]
+            sampled_t = self.val_t[:batch_size]
         return sampled_t
 
     def _sample_diffusions(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
@@ -301,11 +301,27 @@ class Guidance(_DiffusionBase):
 
     def validation_step(self, batch, batch_idx):
         self.eval()
-        loss = self._batch_forward(batch)
-        self.log("val/loss", loss, on_epoch=True, on_step=False)
+        theta, simulator_out, x_target = batch
+        batch_size = len(theta)
+
+        loss_aggr = 0
+        sample_corr = 0
+        for sampled_t, t_repr in zip(self.val_t, self.val_t_repr):
+            sampled_t = sampled_t.repeat(batch_size)
+            t_repr = t_repr[None].repeat(batch_size, 1)
+            theta_t, _ = self.diff_schedule.forward(theta, sampled_t)
+            pred = self.forward(theta_t, x_target, t_repr)
+            loss = self.criterion.forward(pred, simulator_out, x_target)
+            loss_aggr += loss
+            sample_corr += self.criterion.get_sample_correlation().mean()
+        # import sys
+        # sys.exit()
+        # return
+        # loss = self._batch_forward(batch)
+        self.log("val/loss", loss_aggr / len(self.val_t), on_epoch=True, on_step=False)
         self.log(
             "val/cost_corr",
-            self.criterion.get_sample_correlation().mean(),
+            sample_corr / len(self.val_t),
             on_epoch=True,
             on_step=False,
         )
