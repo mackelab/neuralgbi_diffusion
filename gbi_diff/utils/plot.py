@@ -69,13 +69,13 @@ def plot_correlation(
 
 
 def plot_diffusion_step_loss(
-    pred: torch.Tensor, target: torch.Tensor, agg: bool = False
+    pred: torch.Tensor, target: torch.Tensor, x_low: float = 0, x_high: float = 999, agg: bool = False
 ) -> Tuple[Figure, Axes]:
     """plot squared error over diffusion time
 
     Args:
-        pred (Tensor): (batch_size, n_target)
-        target (Tensor): (batch_size, n_target)
+        pred (Tensor): (batch_size, n_times_steps, n_target)
+        target (Tensor): (batch_size,  n_times_steps, n_target)
 
     Returns:
         Tuple[Figure, Axes]:
@@ -87,23 +87,21 @@ def plot_diffusion_step_loss(
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
 
-    diff = torch.square(pred - target[:, None])
-    # diff = rearrange(diff, "B D T -> (B T) D")
-
+    mse = torch.square(pred - target).mean(-1)
+    
     fig, ax = plt.subplots()
 
-    mean = diff.mean(dim=0)
-    std = diff.std(dim=0)
-    x = torch.arange(pred.shape[1])
-
+    mean = mse.mean(dim=0)
+    std = mse.std(dim=0)
+    x = torch.linspace(x_low, x_high, pred.shape[1])
     ax.fill_between(x, mean - std, mean + std, alpha=0.6, label="std")
-    ax.plot(diff.mean(dim=0), label="mean")
+    ax.plot(mse.mean(dim=0), label="mean")
     ax.legend()
 
     ax.set_ylabel(r"Squared Loss.")
     ax.set_xlabel("Diffusion steps")
     ax.set_title("Squared Loss over Diffusion Steps")
-
+    
     return fig, ax
 
 

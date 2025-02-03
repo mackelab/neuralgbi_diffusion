@@ -2,6 +2,7 @@ from copy import deepcopy
 import functools
 from typing import Tuple
 
+from einops import rearrange
 from matplotlib import pyplot as plt
 import numpy as np
 import torch
@@ -306,6 +307,8 @@ class Guidance(_DiffusionBase):
 
         loss_aggr = 0
         sample_corr = 0
+        preds = []
+        targets = []
         for sampled_t, t_repr in zip(self.val_t, self.val_t_repr):
             sampled_t = sampled_t.repeat(batch_size)
             t_repr = t_repr[None].repeat(batch_size, 1)
@@ -314,6 +317,14 @@ class Guidance(_DiffusionBase):
             loss = self.criterion.forward(pred, simulator_out, x_target)
             loss_aggr += loss
             sample_corr += self.criterion.get_sample_correlation().mean()
+            preds.append(self.criterion.pred)
+            targets.append(self.criterion.d)
+        
+        preds = torch.stack(preds)
+        targets = torch.stack(targets)
+        self._val_step_outputs["pred"].append(preds)
+        self._val_step_outputs["d"].append(targets)
+
         # import sys
         # sys.exit()
         # return
@@ -326,29 +337,27 @@ class Guidance(_DiffusionBase):
             on_step=False,
         )
 
-        self._val_step_outputs["pred"].append(self.criterion.pred)
-        self._val_step_outputs["d"].append(self.criterion.d)
         return loss
 
     def on_validation_epoch_end(self):
-        self._val_step_outputs = {"pred": [], "d": []}
-        return
         if self._val_step_outputs == {"pred": [], "d": []}:
             return
-        pred = torch.cat(self._val_step_outputs["pred"], dim=0)
-        d = torch.cat(self._val_step_outputs["d"], dim=0)
-
+        pred = torch.cat(self._val_step_outputs["pred"], dim=1)
+        pred = rearrange(pred, "T B F -> B T F")
+        d = torch.cat(self._val_step_outputs["d"], dim=1)
+        d = rearrange(d, "T B F -> B T F")
+        
         tb_logger: TensorBoardLogger = self.loggers[0]
 
-        fig, _ = plot_diffusion_step_loss(pred, d[:, 0], agg=True)
+        fig, _ = plot_diffusion_step_loss(pred, d, x_high=self.diffusion_steps- 1, agg=True)
         tb_logger.experiment.add_figure(
             "val/diff_loss_plot", fig, global_step=self.global_step
         )
 
-        fig, ax = plot_diffusion_step_corr(pred, d[:, 0], agg=True)
-        tb_logger.experiment.add_figure(
-            "val/diff_corr_plot", fig, global_step=self.global_step
-        )
+        # fig, ax = plot_diffusion_step_corr(pred, d[:, 0], agg=True)   
+        # tb_logger.experiment.add_figure(
+        #     "val/diff_corr_plot", fig, global_step=self.global_step
+        # )
 
         plt.close(fig)
 
