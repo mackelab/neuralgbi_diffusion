@@ -15,8 +15,8 @@ from gbi_diff.model.networks import DiffusionNetwork, SBINetwork
 # from gbi_diff.utils.metrics import batch_correlation
 from gbi_diff.utils.encoding import get_positional_encoding
 
-from gbi_diff.utils.train_config import _Model as ModelConfig
-from gbi_diff.utils.train_config import _Optimizer as OptimizerConfig
+from gbi_diff.utils.train_potential_config import _Model as ModelConfig
+from gbi_diff.utils.train_potential_config import _Optimizer as OptimizerConfig
 
 from gbi_diff.utils.train_guidance_config import _Diffusion as DiffusionGuidanceConfig
 from gbi_diff.utils.train_guidance_config import _Model as ModelGuidanceConfig

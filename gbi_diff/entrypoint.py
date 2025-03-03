@@ -46,7 +46,7 @@ class Entrypoint:
         """
         # >>>> add import here for faster help message
         from gbi_diff.scripts.train import train_potential  # pylint: disable=C0415
-        from gbi_diff.utils.train_config import Config  # pylint: disable=C0415
+        from gbi_diff.utils.train_potential_config import Config  # pylint: disable=C0415
 
         # <<<<
 

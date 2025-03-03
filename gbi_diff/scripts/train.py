@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from gbi_diff.dataset import dataset as sbi_datasets
 from gbi_diff.model.lit_module import DiffusionModel, PotentialNetwork, Guidance
 from gbi_diff.utils.cast import to_camel_case
-from gbi_diff.utils.train_config import Config as Config_Potential
+from gbi_diff.utils.train_potential_config import Config as Config_Potential
 from gbi_diff.utils.train_guidance_config import Config as Config_Guidance
 from gbi_diff.utils.train_diffusion_config import Config as Config_Diffusion
 
