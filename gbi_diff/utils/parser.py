@@ -2,6 +2,47 @@ from argparse import ArgumentParser
 from typing import Tuple, Dict, List
 
 
+def add_evaluate_diffusion_sampling_args(parser: ArgumentParser) -> ArgumentParser:
+    parser.add_argument(
+        "--diffusion-ckpt",
+        help="--no-documentation-exists--",
+        dest="diffusion_ckpt",
+        type=str,
+        required=True,
+    )
+    parser.add_argument(
+        "--guidance-ckpt",
+        help="--no-documentation-exists--",
+        dest="guidance_ckpt",
+        type=str,
+        required=True,
+    )
+    parser.add_argument(
+        "--output",
+        help="--no-documentation-exists--",
+        dest="output",
+        type=str,
+        default=None,
+        required=False,
+    )
+    parser.add_argument(
+        "--n-samples",
+        help="--no-documentation-exists--",
+        dest="n_samples",
+        type=int,
+        default=100,
+        required=False,
+    )
+    parser.add_argument(
+        "--plot",
+        help="--no-documentation-exists--",
+        dest="plot",
+        action="store_true",
+        required=False,
+    )
+    return parser
+
+
 def add_mcmc_sample_args(parser: ArgumentParser) -> ArgumentParser:
     parser.add_argument(
         "--checkpoint",
@@ -240,6 +281,14 @@ def setup_entrypoint_parser(
     mcmc_sample = command_subparser.add_parser("mcmc-sample", help="sample mcmc")
     mcmc_sample = add_mcmc_sample_args(mcmc_sample)
     subparser["mcmc_sample"] = mcmc_sample
+    evaluate_diffusion_sampling = command_subparser.add_parser(
+        "evaluate-diffusion-sampling", help="--no-documentation-exists--"
+    )
+    evaluate_diffusion_sampling = add_evaluate_diffusion_sampling_args(
+        evaluate_diffusion_sampling
+    )
+    evaluate_diffusion_sampling = add_hydra_parser(evaluate_diffusion_sampling)
+    subparser["evaluate_diffusion_sampling"] = evaluate_diffusion_sampling
     return parser, subparser
 
 

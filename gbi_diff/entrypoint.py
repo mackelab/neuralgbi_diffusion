@@ -172,3 +172,20 @@ class Entrypoint:
         # <<<<
         config = Config.from_file(config_file)
         mcmc_sampling(checkpoint, config, output, n_samples, plot)
+
+    @add_hydra(
+        "config",
+        version_base=None,
+        config_name="sampling_diffusion.yaml",
+        config_path="config/",
+    )
+    def evaluate_diffusion_sampling(
+        self,
+        config: DictConfig,
+        diffusion_ckpt: str,
+        guidance_ckpt: str,
+        output: str = None,
+        n_samples: int = 100,
+        plot: bool = False,
+    ):
+        pass

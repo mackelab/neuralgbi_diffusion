@@ -59,6 +59,17 @@ def execute(args: dict) -> bool:
                 num_worker=args["num_worker"],
             )
 
+        case "evaluate-diffusion-sampling":
+            api.hydra_plugin.hydra_wrapper(
+                module.evaluate_diffusion_sampling,
+                args,
+                command_parser["evaluate_diffusion_sampling"],
+                config_var_name="config",
+                version_base=None,
+                config_name="sampling_diffusion.yaml",
+                config_path=str(Path.cwd().joinpath("config/")),
+            )
+
         case _:
             return False
 
