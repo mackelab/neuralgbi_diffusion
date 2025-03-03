@@ -1,7 +1,7 @@
 data_entity: two_moons
 results_dir: "results/guidance/${data_entity}"
 check_val_every_n_epochs: 5
-num_worker: 12
+num_worker: 8
 
 max_epochs: 100
 batch_size: 256
@@ -16,7 +16,7 @@ dataset:
 model:
   TimeEncoder:
     enabled: True
-    input_dim: 512
+    input_dim:    
     output_dim: 512
     activation_func: ELU
     architecture: [512, 512,]
@@ -32,7 +32,7 @@ model:
     activation_func: "ReLU"
     final_activation: ReLU # Sigmoid only needed for cosine similarity -> otherwise null
   LatentMLP:
-    architecture: [256, 156, 128]
+    architecture: [256, 156, 128, 128]
     activation_func: "ReLU"
     final_activation: Softplus   # Sigmoid only needed for cosine similarity -> otherwise null
 

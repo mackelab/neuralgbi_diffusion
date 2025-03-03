@@ -99,7 +99,7 @@ def plot_diffusion_step_loss(
     std = mse.std(dim=0)
     x = torch.linspace(x_low, x_high, pred.shape[1])
     ax.fill_between(x, mean - std, mean + std, alpha=0.6, label="std")
-    ax.plot(mse.mean(dim=0), label="mean")
+    ax.plot(x, mse.mean(dim=0), label="mean")
     ax.legend()
 
     ax.set_ylabel(r"Squared Loss.")

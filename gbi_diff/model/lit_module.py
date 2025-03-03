@@ -102,6 +102,11 @@ class PotentialNetwork(LightningModule):
         self._train_step_outputs["d"].append(self.criterion.d)
 
         return loss
+    
+    def on_train_epoch_end(self):
+        # reset logging data
+        self._train_step_outputs = {"pred": [], "d": []}
+
 
     def validation_step(self, batch: Tuple[Tensor, Tensor, Tensor], batch_idx: int):
         loss = self._batch_forward(batch)
