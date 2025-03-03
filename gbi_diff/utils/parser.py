@@ -167,7 +167,7 @@ def add_train_diffusion_args(parser: ArgumentParser) -> ArgumentParser:
 def add_train_guidance_args(parser: ArgumentParser) -> ArgumentParser:
     parser.add_argument(
         "--config-file",
-        help='path to config file (allowed are yaml, toml and json). Defaults to: "config/train.yaml"',
+        help='path to config file (allowed are yaml, toml and json). Defaults to: "config/train_guidance.yaml"',
         dest="config_file",
         type=str,
         default="config/train_guidance.yaml",
@@ -194,10 +194,10 @@ def add_train_guidance_args(parser: ArgumentParser) -> ArgumentParser:
 def add_train_potential_args(parser: ArgumentParser) -> ArgumentParser:
     parser.add_argument(
         "--config-file",
-        help='path to config file (allowed are yaml, toml and json). Defaults to: "config/train.yaml"',
+        help='path to config file (allowed are yaml, toml and json). Defaults to: "config/train_potential.yaml"',
         dest="config_file",
         type=str,
-        default="config/train.yaml",
+        default="config/train_potential.yaml",
         required=False,
     )
     parser.add_argument(

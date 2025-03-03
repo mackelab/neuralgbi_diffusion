@@ -33,14 +33,14 @@ class Entrypoint:
 
     def train_potential(
         self,
-        config_file: str = "config/train.yaml",
+        config_file: str = "config/train_potential.yaml",
         device: int = 1,
         force: bool = False,
     ):
         """start training process as defined in your config file
 
         Args:
-            config_file (str): path to config file (allowed are yaml, toml and json). Defaults to: "config/train.yaml"
+            config_file (str): path to config file (allowed are yaml, toml and json). Defaults to: "config/train_potential.yaml"
             device (int, optional): set to a number to indicate multiple devices. Defaults to 1.
             force (bool, optional): If you would like to start training without any questions
         """
@@ -62,7 +62,7 @@ class Entrypoint:
         """start training process as defined in your config file
 
         Args:
-            config_file (str): path to config file (allowed are yaml, toml and json). Defaults to: "config/train.yaml"
+            config_file (str): path to config file (allowed are yaml, toml and json). Defaults to: "config/train_guidance.yaml"
             device (int, optional): set to a number to indicate multiple devices. Defaults to 1.
             force (bool, optional): If you would like to start training without any questions
         """
