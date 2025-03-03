@@ -325,10 +325,7 @@ class Guidance(_DiffusionBase):
         self._val_step_outputs["pred"].append(preds)
         self._val_step_outputs["d"].append(targets)
 
-        # import sys
-        # sys.exit()
-        # return
-        # loss = self._batch_forward(batch)
+        
         self.log("val/loss", loss_aggr / len(self.val_t), on_epoch=True, on_step=False)
         self.log(
             "val/cost_corr",

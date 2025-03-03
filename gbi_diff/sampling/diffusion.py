@@ -207,7 +207,7 @@ class DiffusionSampler(PosteriorSampler):
             output (str | Path): where to store the figures
 
         """
-        batch_size, n_target, _ = samples.shape
+        batch_size, n_target, _ = samples.shape         
         time_repr = self._guidance_model.get_diff_time_repr(np.zeros(batch_size))
         x_o = x_o[None].repeat(batch_size, 1, 1)
         
