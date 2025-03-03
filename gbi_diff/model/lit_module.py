@@ -150,8 +150,10 @@ class _DiffusionBase(LightningModule):
         """same thing as: T (capital T)"""
         self.t = torch.linspace(0, 1, self.diffusion_steps)
 
-        assert self.diffusion_steps % 100 == 0, "For validation, T has to be a multiple of 100"
-        self.val_t = torch.linspace(0, self.diffusion_steps -1, 100).int()
+        assert (
+            self.diffusion_steps % 100 == 0
+        ), "For validation, T has to be a multiple of 100"
+        self.val_t = torch.linspace(0, self.diffusion_steps - 1, 100).int()
         self.val_t_repr = self.get_diff_time_repr(self.val_t).float()
 
     def _build_schedule(
@@ -319,13 +321,12 @@ class Guidance(_DiffusionBase):
             sample_corr += self.criterion.get_sample_correlation().mean()
             preds.append(self.criterion.pred)
             targets.append(self.criterion.d)
-        
+
         preds = torch.stack(preds)
         targets = torch.stack(targets)
         self._val_step_outputs["pred"].append(preds)
         self._val_step_outputs["d"].append(targets)
 
-        
         self.log("val/loss", loss_aggr / len(self.val_t), on_epoch=True, on_step=False)
         self.log(
             "val/cost_corr",
@@ -343,15 +344,17 @@ class Guidance(_DiffusionBase):
         pred = rearrange(pred, "T B F -> B T F")
         d = torch.cat(self._val_step_outputs["d"], dim=1)
         d = rearrange(d, "T B F -> B T F")
-        
+
         tb_logger: TensorBoardLogger = self.loggers[0]
 
-        fig, _ = plot_diffusion_step_loss(pred, d, x_high=self.diffusion_steps- 1, agg=True)
+        fig, _ = plot_diffusion_step_loss(
+            pred, d, x_high=self.diffusion_steps - 1, agg=True
+        )
         tb_logger.experiment.add_figure(
             "val/diff_loss_plot", fig, global_step=self.global_step
         )
 
-        # fig, ax = plot_diffusion_step_corr(pred, d[:, 0], agg=True)   
+        # fig, ax = plot_diffusion_step_corr(pred, d[:, 0], agg=True)
         # tb_logger.experiment.add_figure(
         #     "val/diff_corr_plot", fig, global_step=self.global_step
         # )

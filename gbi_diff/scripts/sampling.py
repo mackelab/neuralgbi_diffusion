@@ -90,7 +90,7 @@ def mcmc_sampling(
 
 def diffusion_sampling(
     diffusion_ckpt: str,
-    guidance_ckpt: str,     
+    guidance_ckpt: str,
     config: str,
     output: str,
     n_samples: int,

@@ -25,7 +25,7 @@ class PosteriorSampler(ABC):
     def _get_default_path(self) -> Path:
         """gets the default save path where to save the produced samples
 
-        Returns:    
+        Returns:
             Path: _description_
         """
         raise NotImplementedError
