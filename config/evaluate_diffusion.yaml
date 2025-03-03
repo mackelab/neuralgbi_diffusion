@@ -1,0 +1,4 @@
+betas: [10, 100, 1000]
+n_samples: 1000
+observed_data_file: data/gbi_data/specified_known/two_moons_10.pt
+simulator: "two_moons"  # same argument as in generate dataset, has to fit to the observed data file. 
