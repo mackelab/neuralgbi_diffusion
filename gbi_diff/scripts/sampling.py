@@ -1,9 +1,11 @@
 from pathlib import Path
+from omegaconf import DictConfig
 import torch
 from gbi_diff.sampling.diffusion import DiffusionSampler
 from gbi_diff.sampling.mcmc import MCMCSampler
 from gbi_diff.sampling.utils import save_torch, get_datetime_str
 from gbi_diff.utils.sampling_mcmc_config import Config as MCMCConfig
+from gbi_diff.utils.sampling_diffusion_config import Config as DiffusionConfig
 
 
 # NOTE: does not work yet with multiple worker
@@ -91,7 +93,7 @@ def mcmc_sampling(
 def diffusion_sampling(
     diffusion_ckpt: str,
     guidance_ckpt: str,
-    config: str,
+    config: DiffusionConfig,
     output: str,
     n_samples: int,
     plot: bool,

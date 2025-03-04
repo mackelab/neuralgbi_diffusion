@@ -10,7 +10,7 @@ precision: 32 # 64: extended, 32: standard, 16: half
 dataset:
   train_file: "data/${data_entity}_10000.pt"
   val_file: "data/${data_entity}_1000.pt"
-  n_target: 50
+  n_target: 20
   noise_std: 0.1 # how strong to noise the augmentations in x_target
 
 model:
@@ -48,6 +48,6 @@ diffusion:
     beta_schedule_cls: "LinearSchedule"  
 
 optimizer:
-  name: Adam
+  name: AdamW
   lr: 0.0001
   weight_decay: 0

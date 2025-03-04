@@ -30,6 +30,6 @@ model:
     final_activation: Softplus # Sigmoid only needed for cosine similarity -> otherwise null
 
 optimizer:
-  name: Adam
+  name: AdamW
   lr: 0.0001
   weight_decay: 0

@@ -17,7 +17,7 @@ class Schedule(ABC):
 
         Args:
             x_0 (Tensor): vector you want to noise (batch_size, n_features) or (n_features,)
-            t (Tensor): interpolation vector between 0 and diffusion time in index space (n_timesteps,)
+            t (Tensor): interpolation vector between 0 and diffusion time T in index space (batch_size,)
 
         Returns:
             Tuple[Tensor, Tensor]: noised x and noise ((batch_size), n_features)
@@ -154,7 +154,6 @@ class DDPMSchedule(Schedule):
         self.beta_schedule = beta_schedule_cls(self.beta_start, self.beta_end, self.T)
 
     def forward(self, x_0, t):
-        print(x_0.shape, t.shape)
         noise = torch.normal(0, 1, size=x_0.shape)
         alpha_bar = self.beta_schedule.get_alpha_bar(t)[:, None]
         noised_x = torch.sqrt(alpha_bar) * x_0 + torch.sqrt(1 - alpha_bar) * noise

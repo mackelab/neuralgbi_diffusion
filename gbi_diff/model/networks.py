@@ -221,6 +221,15 @@ class DiffusionNetwork(Module):
         )
 
     def forward(self, theta: Tensor, time_repr: Tensor) -> Tensor:
+        """_summary_
+
+        Args:
+            theta (Tensor): (batch_size, param_dim)
+            time_repr (Tensor): (batch_size, time_repr_dim)
+
+        Returns:
+            Tensor: (batch_size, param_dim)
+        """
         concat_dim = 1
         if len(theta.shape) == 1:
             concat_dim = 0

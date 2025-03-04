@@ -200,7 +200,7 @@ class _DiffusionBase(LightningModule):
             )
         else:
             # always take the same subsample
-            sampled_t = self.val_t[:batch_size]
+            raise NotImplementedError 
         return sampled_t
 
     def _sample_diffusions(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
@@ -312,7 +312,7 @@ class Guidance(_DiffusionBase):
         theta, simulator_out, x_target = batch
         batch_size = len(theta)
 
-        loss_aggr = 0
+        loss_acc = 0
         sample_corr = 0
         preds = []
         targets = []
@@ -322,7 +322,7 @@ class Guidance(_DiffusionBase):
             theta_t, _ = self.diff_schedule.forward(theta, sampled_t)
             pred = self.forward(theta_t, x_target, t_repr)
             loss = self.criterion.forward(pred, simulator_out, x_target)
-            loss_aggr += loss
+            loss_acc += loss
             sample_corr += self.criterion.get_sample_correlation().mean()
             preds.append(self.criterion.pred)
             targets.append(self.criterion.d)
@@ -332,7 +332,7 @@ class Guidance(_DiffusionBase):
         self._val_step_outputs["pred"].append(preds)
         self._val_step_outputs["d"].append(targets)
 
-        self.log("val/loss", loss_aggr / len(self.val_t), on_epoch=True, on_step=False)
+        self.log("val/loss", loss_acc / len(self.val_t), on_epoch=True, on_step=False)
         self.log(
             "val/cost_corr",
             sample_corr / len(self.val_t),
@@ -405,6 +405,11 @@ class DiffusionModel(_DiffusionBase):
         self.criterion = DiffusionCriterion()
         self._optimizer_config = optimizer_config.__dict__
 
+        # this thing should not leave the class. Inconsistencies with strings feared
+        self._train_step_outputs = {"pred": [], "target": []}
+        self._val_step_outputs = {"pred": [], "target": []}
+
+
     def forward(self, theta_t: Tensor, time_repr: Tensor) -> Tensor:
         return self._net.forward(theta_t, time_repr)
 
@@ -421,12 +426,53 @@ class DiffusionModel(_DiffusionBase):
         loss = self._batch_forward(batch)
         self.log("train/loss", loss, on_epoch=True, on_step=False)
         return loss
+    
+    def on_train_epoch_end(self):
+        self._train_step_outputs = {"pred": [], "target": []}
 
     def validation_step(self, batch, batch_idx):
         self.eval()
-        loss = self._batch_forward(batch)
-        self.log("val/loss", loss, on_epoch=True, on_step=False)
+        theta, _, _ = batch
+        batch_size = len(theta)
+
+        loss_acc = 0
+        preds = []
+        targets = []
+        for sampled_t, t_repr in zip(self.val_t, self.val_t_repr):
+            sampled_t = sampled_t.repeat(batch_size)
+            t_repr = t_repr[None].repeat(batch_size, 1)
+            theta_t, noise = self.diff_schedule.forward(theta, sampled_t)
+            pred = self.forward(theta_t, t_repr)
+            loss = self.criterion.forward(pred, noise)
+            loss_acc += loss
+            preds.append(pred)
+            targets.append(noise)
+
+        preds = torch.stack(preds)
+        targets = torch.stack(targets)
+        self._val_step_outputs["pred"].append(preds)
+        self._val_step_outputs["target"].append(targets)
+
+        self.log("val/loss", loss_acc / len(self.val_t), on_epoch=True, on_step=False)
         return loss
+    
+    def on_validation_epoch_end(self):
+        if self._val_step_outputs == {"pred": [], "target": []}:
+            return
+        pred = torch.cat(self._val_step_outputs["pred"], dim=1)
+        pred = rearrange(pred, "T B F -> B T F")
+        target = torch.cat(self._val_step_outputs["target"], dim=1)
+        target = rearrange(target, "T B F -> B T F")
+
+        tb_logger: TensorBoardLogger = self.loggers[0]  
+        fig, _ = plot_diffusion_step_loss(
+            pred, target, x_high=self.diffusion_steps - 1, agg=True
+        )
+        tb_logger.experiment.add_figure(
+            "val/diff_loss_plot", fig, global_step=self.global_step
+        )
+        plt.close(fig)
+        self._val_step_outputs = {"pred": [], "target": []}
 
     def configure_optimizers(self):
         optimizer_cls = getattr(optim, self._optimizer_config.pop("name"))
