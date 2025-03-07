@@ -33,7 +33,10 @@ class DiffusionSampler(_PosteriorSampler):
 
         self._observed_data_file = observed_data_file
         self._beta = beta
-        self._config = {"observed_data_file": self._observed_data_file, "beta": self._beta}
+        self._config = {
+            "observed_data_file": self._observed_data_file,
+            "beta": self._beta,
+        }
 
         self._check_model_compatibility(diff_model_ckpt, guidance_model_ckpt)
         self._check_config(self._observed_data_file, guidance_model_ckpt)
@@ -105,7 +108,9 @@ class DiffusionSampler(_PosteriorSampler):
     def _get_default_path(self):
         return get_sample_path(self.diff_model_ckpt)
 
-    def single_forward(self, x_o: Tensor, n_samples: int, quiet: bool = False) -> Tensor:
+    def single_forward(
+        self, x_o: Tensor, n_samples: int, quiet: bool = False
+    ) -> Tensor:
         """_summary_
 
         Args:
@@ -122,11 +127,11 @@ class DiffusionSampler(_PosteriorSampler):
 
         T = self._diff_model.diffusion_steps
         T = np.arange(T)[::-1]
-        
+
         iterator = T
         if not quiet:
             iterator = tqdm(T, desc="Step in diffusion process", leave=True)
-        
+
         for t_idx in iterator:
             beta = self._diff_beta_schedule.forward(t_idx)
             alpha = self._diff_beta_schedule.get_alphas(t_idx)
@@ -195,7 +200,7 @@ class DiffusionSampler(_PosteriorSampler):
 
     def forward(self, n_samples: int, quiet: int = 0) -> Tensor:
         """_summary_
-    
+
         Args:
             n_samples (int): _description_
             quiet (optional, bool): 0 no progress bar at all. 1: only the upper progress bar. 2. all progress bars
@@ -210,7 +215,7 @@ class DiffusionSampler(_PosteriorSampler):
             iterator = tqdm(self.x_o, desc="Sample in observed data")
 
         for idx, x_o in enumerate(iterator):
-            res[:, idx] = self.single_forward(x_o, n_samples, quiet<2)
+            res[:, idx] = self.single_forward(x_o, n_samples, quiet < 2)
         return res
 
     def pair_plot(self, samples: Tensor, x_o: Tensor, output: str | Path = None):
