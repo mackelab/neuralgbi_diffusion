@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from gbi_diff.model.lit_module import PotentialNetwork
 from gbi_diff.sampling import prior_distr
-from gbi_diff.sampling.sampler import PosteriorSampler
+from gbi_diff.sampling.sampler import _PosteriorSampler
 from gbi_diff.sampling.utils import get_sample_path, load_observed_data
 from gbi_diff.utils.plot import _pair_plot
 from gbi_diff.utils.sampling_mcmc_config import Config
@@ -94,7 +94,7 @@ class PotentialFunc:
         return True
 
 
-class MCMCSampler(PosteriorSampler):
+class MCMCSampler(_PosteriorSampler):
     def __init__(self, checkpoint: str | Path, config: Config):
         super().__init__()
         self._checkpoint = checkpoint
@@ -141,7 +141,7 @@ class MCMCSampler(PosteriorSampler):
         samples = mcmc.get_samples()
         return samples["theta"]
 
-    def forward(self, n_samples: int) -> torch.Tensor:
+    def forward(self, n_samples: int, quiet: bool = False) -> torch.Tensor:
         """_summary_
 
         Args:
@@ -152,7 +152,12 @@ class MCMCSampler(PosteriorSampler):
         """
         batch_size = len(self._x_o)
         res = torch.zeros((n_samples, batch_size, self.theta_dim))
-        for idx, x in enumerate(tqdm(self._x_o, desc="Sample in observed data")):
+
+        iterator = self._x_o
+        if not quiet:
+            iterator = tqdm(self._x_o, desc="Sample in observed data")
+
+        for idx, x in enumerate(iterator):
             res[:, idx] = self.single_forward(x, n_samples)
         return res
 

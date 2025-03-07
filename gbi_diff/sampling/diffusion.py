@@ -6,20 +6,20 @@ import torch
 from tqdm import tqdm
 
 from gbi_diff.model.lit_module import DiffusionModel, Guidance
-from gbi_diff.sampling.sampler import PosteriorSampler
+from gbi_diff.sampling.sampler import _PosteriorSampler
 from gbi_diff.sampling.utils import get_sample_path, load_observed_data
 from gbi_diff.utils.plot import _pair_plot
 from gbi_diff.utils.train_diffusion_config import Config as DiffusionConfig
 from gbi_diff.utils.train_guidance_config import Config as GuidanceConfig
-from gbi_diff.utils.sampling_diffusion_config import Config
 
 
-class DiffusionSampler(PosteriorSampler):
+class DiffusionSampler(_PosteriorSampler):
     def __init__(
         self,
         diff_model_ckpt: str | Path,
         guidance_model_ckpt: str | Path,
-        config: Config,
+        observed_data_file: str | Path,
+        beta: float = 1,
         *args,
         **kwargs,
     ):
@@ -31,15 +31,16 @@ class DiffusionSampler(PosteriorSampler):
             guidance_model_ckpt = Path(guidance_model_ckpt)
         self.guidance_model_ckpt = guidance_model_ckpt
 
-        config.to_container
-        self._check_model_compatibility(diff_model_ckpt, guidance_model_ckpt)
-        self._check_config(config.observed_data_file, guidance_model_ckpt)
+        self._observed_data_file = observed_data_file
+        self._beta = beta
+        self._config = {"observed_data_file": self._observed_data_file, "beta": self._beta}
 
-        self._config = config
-        self._beta = self._config.beta
+        self._check_model_compatibility(diff_model_ckpt, guidance_model_ckpt)
+        self._check_config(self._observed_data_file, guidance_model_ckpt)
+
         self._guidance_model = Guidance.load_from_checkpoint(guidance_model_ckpt)
         self._diff_model = DiffusionModel.load_from_checkpoint(diff_model_ckpt)
-        self.x_o, _ = load_observed_data(config.observed_data_file)
+        self.x_o, _ = load_observed_data(self._observed_data_file)
 
         self._diff_beta_schedule = self._diff_model.diff_schedule.beta_schedule
 
@@ -101,7 +102,7 @@ class DiffusionSampler(PosteriorSampler):
     def _get_default_path(self):
         return get_sample_path(self.diff_model_ckpt)
 
-    def single_forward(self, x_o: Tensor, n_samples: int) -> Tensor:
+    def single_forward(self, x_o: Tensor, n_samples: int, quiet: bool = False) -> Tensor:
         """_summary_
 
         Args:
@@ -118,7 +119,12 @@ class DiffusionSampler(PosteriorSampler):
 
         T = self._diff_model.diffusion_steps
         T = np.arange(T)[::-1]
-        for t_idx in tqdm(T, desc="Step in diffusion process", leave=True):
+        
+        iterator = T
+        if not quiet:
+            iterator = tqdm(T, desc="Step in diffusion process", leave=True)
+        
+        for t_idx in iterator:
             beta = self._diff_beta_schedule.forward(t_idx)
             alpha = self._diff_beta_schedule.get_alphas(t_idx)
             alpha_bar = self._diff_beta_schedule.get_alpha_bar(t_idx)
@@ -184,18 +190,24 @@ class DiffusionSampler(PosteriorSampler):
         theta = theta.detach()
         return grad
 
-    def forward(self, n_samples: int) -> Tensor:
+    def forward(self, n_samples: int, quiet: int = 0) -> Tensor:
         """_summary_
-
+    
         Args:
             n_samples (int): _description_
+            quiet (optional, bool): 0 no progress bar at all. 1: only the upper progress bar. 2. all progress bars
 
         Returns:
-            Tensor: (n_samples, n_observed_data)
+            Tensor: (n_samples, n_observed_data, param_dim)
         """
         res = torch.zeros((n_samples, len(self.x_o), self.theta_dim))
-        for idx, x_o in enumerate(tqdm(self.x_o, desc="Sample in observed data")):
-            res[:, idx] = self.single_forward(x_o, n_samples)
+
+        iterator = self.x_o
+        if not (quiet >= 2):
+            iterator = tqdm(self.x_o, desc="Sample in observed data")
+
+        for idx, x_o in enumerate(iterator):
+            res[:, idx] = self.single_forward(x_o, n_samples, quiet<2)
         return res
 
     def pair_plot(self, samples: Tensor, x_o: Tensor, output: str | Path = None):

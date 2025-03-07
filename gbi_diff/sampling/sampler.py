@@ -7,14 +7,14 @@ from torch import Tensor
 from gbi_diff.sampling.utils import save_torch
 
 
-class PosteriorSampler(ABC):
+class _PosteriorSampler(ABC):
     def __init__(self):
         super().__init__()
-        self._config: DictConfig
+        self._config: DictConfig = {}
         self.x_o: Tensor
 
     @abstractmethod
-    def forward(self, n_sample: int) -> Tensor:
+    def forward(self, n_sample: int, quiet: bool = False) -> Tensor:
         raise NotImplementedError
 
     @abstractmethod
