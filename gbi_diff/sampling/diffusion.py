@@ -49,11 +49,14 @@ class DiffusionSampler(_PosteriorSampler):
         guidance_model_config: GuidanceConfig = GuidanceConfig.from_file(
             guidance_model_ckpt.parent / "config.yaml"
         )
-        guidance_train_set_name = guidance_model_config.dataset.train_file
-        guidance_train_set_name = guidance_train_set_name.rstrip("10.pt")
+        guidance_train_set_name = Path(guidance_model_config.dataset.train_file)
+        guidance_train_set_name = "_".join(guidance_train_set_name.stem.split("_")[:-1])
 
-        observed_set_name = observed_data.rstrip("10.pt")
-        msg = f"Observed dataset has to be compatible with training sets but: {observed_set_name}, {guidance_train_set_name}"
+        # observed_set_name = observed_data.rstrip("10.pt")
+        observed_data = Path(observed_data)
+        observed_set_name = "_".join(observed_data.stem.split("_")[:-1])
+        msg = f"Observed dataset has to be compatible with training sets but: {observed_set_name=}, {guidance_train_set_name=}"
+        print(guidance_train_set_name, observed_set_name)
         assert (
             guidance_train_set_name.split("/")[-1] == observed_set_name.split("/")[-1]
         ), msg
@@ -74,13 +77,13 @@ class DiffusionSampler(_PosteriorSampler):
         diff_train_set_name = diff_train_set_name.rstrip("10.pt")
         guidance_train_set_name = guidance_model_config.dataset.train_file
         guidance_train_set_name = guidance_train_set_name.rstrip("10.pt")
-        msg = "Guidance and diffusion model have to be trained on the same datafile"
+        msg = f"Guidance and diffusion model have to be trained on the same datafile. Given: {diff_model_config.dataset.train_file=}, {guidance_model_config.dataset.train_file}"
         assert diff_train_set_name == guidance_train_set_name, msg
 
         # check if diffusion steps are the same
         diff_steps = diff_model_config.diffusion.steps
         guidance_steps = guidance_model_config.diffusion.steps
-        msg = "Both models have to be trained on the same number of diffusion steps"
+        msg = f"Both models have to be trained on the same number of diffusion steps. Given: {diff_steps=} {guidance_steps=}"
         assert diff_steps == guidance_steps, msg
 
         # check iff diffusion schedule is the same
@@ -91,12 +94,12 @@ class DiffusionSampler(_PosteriorSampler):
             guidance_model_config.diffusion,
             guidance_model_config.diffusion.diffusion_schedule,
         ).to_container()
-        msg = "Diffusion Schedules have to be the same"
+        msg = f"Diffusion Schedules have to be the same. Given: {diff_schedule=}, {guidance_schedule=}"
         assert diff_schedule == guidance_schedule, msg
         # check if time representation dimension is the same
         diff_time_repr_dim = diff_model_config.model.TimeEncoder.input_dim
         guidance_time_repr_dim = guidance_model_config.model.TimeEncoder.input_dim
-        msg = "Both, diffusion and guidance have to use the same time encoding and representation dimension"
+        msg = f"Both, diffusion and guidance have to use the same time encoding and representation dimension. Given {diff_time_repr_dim=}, {guidance_time_repr_dim=}"
         assert diff_time_repr_dim == guidance_time_repr_dim, msg
 
     def _get_default_path(self):
