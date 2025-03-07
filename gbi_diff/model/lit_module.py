@@ -102,11 +102,10 @@ class PotentialNetwork(LightningModule):
         self._train_step_outputs["d"].append(self.criterion.d)
 
         return loss
-    
+
     def on_train_epoch_end(self):
         # reset logging data
         self._train_step_outputs = {"pred": [], "d": []}
-
 
     def validation_step(self, batch: Tuple[Tensor, Tensor, Tensor], batch_idx: int):
         loss = self._batch_forward(batch)
@@ -200,7 +199,7 @@ class _DiffusionBase(LightningModule):
             )
         else:
             # always take the same subsample
-            raise NotImplementedError 
+            raise NotImplementedError
         return sampled_t
 
     def _sample_diffusions(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
@@ -409,7 +408,6 @@ class DiffusionModel(_DiffusionBase):
         self._train_step_outputs = {"pred": [], "target": []}
         self._val_step_outputs = {"pred": [], "target": []}
 
-
     def forward(self, theta_t: Tensor, time_repr: Tensor) -> Tensor:
         return self._net.forward(theta_t, time_repr)
 
@@ -426,7 +424,7 @@ class DiffusionModel(_DiffusionBase):
         loss = self._batch_forward(batch)
         self.log("train/loss", loss, on_epoch=True, on_step=False)
         return loss
-    
+
     def on_train_epoch_end(self):
         self._train_step_outputs = {"pred": [], "target": []}
 
@@ -455,7 +453,7 @@ class DiffusionModel(_DiffusionBase):
 
         self.log("val/loss", loss_acc / len(self.val_t), on_epoch=True, on_step=False)
         return loss
-    
+
     def on_validation_epoch_end(self):
         if self._val_step_outputs == {"pred": [], "target": []}:
             return
@@ -464,7 +462,7 @@ class DiffusionModel(_DiffusionBase):
         target = torch.cat(self._val_step_outputs["target"], dim=1)
         target = rearrange(target, "T B F -> B T F")
 
-        tb_logger: TensorBoardLogger = self.loggers[0]  
+        tb_logger: TensorBoardLogger = self.loggers[0]
         fig, _ = plot_diffusion_step_loss(
             pred, target, x_high=self.diffusion_steps - 1, agg=True
         )
