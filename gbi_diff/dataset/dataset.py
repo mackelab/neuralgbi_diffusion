@@ -82,6 +82,10 @@ class _SBIDataset(Dataset):
     def _sample_data(self, size: int) -> Tuple[Tensor, Tensor]:
         raise NotImplementedError
 
+    @abstractmethod
+    def sample_posterior(self, prior_samples: Tensor) -> Tensor:
+        raise NotImplementedError
+
     def generate_dataset(self, size: int):
         theta, x = self._sample_data(size)
         self._theta = theta
@@ -171,13 +175,17 @@ class _SourcererDataset(_SBIDataset):
             *args,
             **kwargs,
         )
-
-    def _sample_data(self, size):
         cls_name = type(self).__name__ + "Simulator"
         simulator_cls = getattr(simulators, cls_name)
-        simulator = simulator_cls()
-        theta = simulator.sample_prior(size)
-        x = simulator.sample(theta)
+        self.simulator = simulator_cls()
+
+    def sample_posterior(self, prior_samples):
+        x = self.simulator.sample(prior_samples)
+        return x
+
+    def _sample_data(self, size):
+        theta = self.simulator.sample_prior(size)
+        x = self.sample_posterior(theta)
         return theta, x
 
 
@@ -309,11 +317,14 @@ class GaussianMixture(_SBIDataset):
             *args,
             **kwargs,
         )
-        self._simulator = GaussianMixtureSimulator(num_trials=1, seed=self._seed)
+        self.simulator = GaussianMixtureSimulator(num_trials=1, seed=self._seed)
+
+    def sample_posterior(self, prior_samples):
+        return self.simulator.simulate(prior_samples)
 
     def _sample_data(self, size):
-        theta = self._simulator.prior.sample((size,))
-        x = self._simulator.simulate(theta)
+        theta = self.simulator.prior.sample((size,))
+        x = self.sample_posterior(theta)
         # remove the trial dimension
         x = x[:, 0]
         return theta, x
@@ -321,7 +332,7 @@ class GaussianMixture(_SBIDataset):
     def _generate_misspecified_data(self):
         n_samples = min(self._n_misspecified, len(self._x))
         sample_idx = np.random.choice(len(self._x), size=n_samples, replace=False)
-        x_miss = self._simulator.simulate_misspecified(self._theta[sample_idx])
+        x_miss = self.simulator.simulate_misspecified(self._theta[sample_idx])
         # remove the trial dimension
         x_miss = x_miss[:, 0]
         return x_miss
@@ -355,9 +366,12 @@ class LinearGaussian(_SBIDataset):
 
         self._simulator = LinearGaussianSimulator(dim, seed=self._seed)
 
+    def sample_posterior(self, prior_samples):
+        return self._simulator.simulate(prior_samples)
+
     def _sample_data(self, size):
         theta = self._simulator.prior.sample((size,))
-        x = self._simulator.simulate(theta)
+        x = self.sample_posterior(theta)
         return theta, x
 
 
@@ -389,14 +403,17 @@ class Uniform(_SBIDataset):
             **kwargs,
         )
 
-        self._simulator = UniformNoise1DSimulator(
+        self.simulator = UniformNoise1DSimulator(
             prior_bounds=prior_bounds,
             seed=self._seed,
             poly_coeffs=poly_coeffs,
             epsilon=epsilon,
         )
 
+    def sample_posterior(self, prior_samples):
+        return self.simulator.simulate(prior_samples)
+
     def _sample_data(self, size):
-        theta = self._simulator.prior.sample((size,))
-        x = self._simulator.simulate(theta)
+        theta = self.simulator.prior.sample((size,))
+        x = self.sample_posterior(theta)
         return theta, x
