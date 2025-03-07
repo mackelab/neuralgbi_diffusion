@@ -98,7 +98,12 @@ def diffusion_sampling(
     n_samples: int,
     plot: bool,
 ) -> torch.Tensor:
-    sampler = DiffusionSampler(diffusion_ckpt, guidance_ckpt, config)
+    sampler = DiffusionSampler(
+        diffusion_ckpt,
+        guidance_ckpt,
+        observed_data_file=config.observed_data_file,
+        beta=config.beta,
+    )
     samples = sampler.forward(n_samples)
     sampler.save_samples(
         sampler.x_o, samples, output, f"samples_{get_datetime_str()}.pt"
