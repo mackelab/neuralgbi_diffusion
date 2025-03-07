@@ -187,7 +187,7 @@ class Entrypoint:
         diffusion_ckpt: str,
         guidance_ckpt: str,
         output: str = None,
-        file_name: str = "evaluate_samples.pt",
+        file_name: str = "evaluate_samples.h5",
     ):
         from gbi_diff.scripts.evaluate import evaluate_diffusion_sampling
 

@@ -1,6 +1,8 @@
+import json
 from pathlib import Path
 from typing import List
 
+import h5py
 import torch
 from tqdm import tqdm
 import yaml
@@ -18,7 +20,7 @@ def evaluate_diffusion_sampling(
     guidance_ckpt: str | Path,
     eval_config: DictConfig,
     output: str | Path = None,
-    file_name: str = "eval_samples.pt",
+    file_name: str = "eval_samples.h5",
 ):
     """resulting torch save:
 
@@ -34,7 +36,7 @@ def evaluate_diffusion_sampling(
         guidance_ckpt (str | Path): _description_
         eval_config (DictConfig): _description_
         output (str | Path, optional): _description_. Defaults to None.
-        file_name (str, optional): _description_. Defaults to "eval_samples.pt".
+        file_name (str, optional): _description_. Defaults to "eval_samples.h5".
     """
     eval_config: EvalDiffConfig = EvalDiffConfig.from_dict_config(
         eval_config, resolve=True
@@ -45,9 +47,9 @@ def evaluate_diffusion_sampling(
         guidance_ckpt,
         observed_data_file=eval_config.observed_data_file,
         beta=eval_config.betas[0],
-    )
+    )       
     print(yaml.dump(eval_config.to_container(), indent=4))
-    
+
     cls_name = to_camel_case(eval_config.data_entity)
     cls_name = cls_name[0].upper() + cls_name[1:]
     dataset_cls = getattr(sbi_datasets, cls_name)
@@ -55,11 +57,35 @@ def evaluate_diffusion_sampling(
         eval_config.observed_data_file
     )
 
-    param_samples = []
-    obs_samples = []
+    if output is None:
+        output = sampler._get_default_path()
+    elif isinstance(output, str):
+        output = Path(output)
+    output = output / file_name
+    print(f"Save Eval samples at: {output}")
+    output.parent.mkdir(exist_ok=True, parents=True)
+    file = h5py.File(output, "w")
+    file.attrs["x_0"] = sampler.x_o
+    for key, value in eval_config.to_container().items():
+        file.attrs[key] = (
+            json.dumps(value) if isinstance(value, (dict, list)) else value
+        )
+
+    theta_dim = sampler._guidance_model.hparams.theta_dim
+    x_dim = sampler._guidance_model.hparams.simulator_out_dim
+    param_samples = file.create_dataset(
+        "theta",
+        (len(eval_config.betas), eval_config.n_samples, len(sampler.x_o), theta_dim),
+        dtype="float32",
+    )
+    obs_samples = file.create_dataset(
+        "x_pred",
+        (len(eval_config.betas), eval_config.n_samples, len(sampler.x_o), x_dim),
+        dtype="float32",
+    )
 
     iterator = tqdm(eval_config.betas, desc=f"Beta: {eval_config.betas[0]}")
-    for beta in iterator:
+    for beta_idx, beta in enumerate(iterator):
         iterator.set_description(f"Beta: {beta}")
         sampler.update_beta(beta)
         theta_pred = sampler.forward(eval_config.n_samples, quiet=1)
@@ -67,23 +93,25 @@ def evaluate_diffusion_sampling(
             dataset.sample_posterior(theta) for theta in theta_pred.permute((1, 0, 2))
         ]
         x_pred = torch.stack(x_pred).permute(1, 0, 2)
-        param_samples.append(theta_pred)
-        obs_samples.append(x_pred)
-    param_samples = torch.stack(param_samples).detach()
-    obs_samples = torch.stack(obs_samples).detach()
-    
-    res = {
-        **eval_config.to_container(),
-        "x_o": sampler.x_o,
-        "theta": param_samples,
-        "x_pred": obs_samples,
-    }
 
-    if output is None:
-        output = sampler._get_default_path()
-    elif isinstance(output, str):
-        output = Path(output)
-    output = output / file_name
+        param_samples[beta_idx] = theta_pred.detach().cpu()
+        obs_samples[beta_idx] = x_pred.detach().cpu()
+        del theta_pred
+        del x_pred
+    # param_samples = torch.stack(param_samples).detach()
+    # obs_samples = torch.stack(obs_samples).detach()
 
-    print(f"Save Eval samples at: {output}")
-    save_torch(res, output)
+    # res = {
+    #    **eval_config.to_container(),
+    #    "x_o": sampler.x_o,
+    #    "theta": param_samples,
+    #    "x_pred": obs_samples,
+    # }
+    # if output is None:
+    #     output = sampler._get_default_path()
+    # elif isinstance(output, str):
+    #     output = Path(output)
+    # output = output / file_name
+    # save_torch(res, output)
+    print("Finished saving")
+    file.close()

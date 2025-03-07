@@ -30,7 +30,7 @@ def add_evaluate_diffusion_sampling_args(parser: ArgumentParser) -> ArgumentPars
         help="--no-documentation-exists--",
         dest="file_name",
         type=str,
-        default="evaluate_samples.pt",
+        default="evaluate_samples.h5",
         required=False,
     )
     return parser
