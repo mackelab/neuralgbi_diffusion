@@ -66,7 +66,7 @@ def execute(args: dict) -> bool:
                 command_parser["evaluate_diffusion_sampling"],
                 config_var_name="config",
                 version_base=None,
-                config_name="sampling_diffusion.yaml",
+                config_name="evaluate_diffusion.yaml",
                 config_path=str(Path.cwd().joinpath("config/")),
             )
 

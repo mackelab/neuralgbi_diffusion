@@ -46,7 +46,9 @@ class Entrypoint:
         """
         # >>>> add import here for faster help message
         from gbi_diff.scripts.train import train_potential  # pylint: disable=C0415
-        from gbi_diff.utils.train_potential_config import Config  # pylint: disable=C0415
+        from gbi_diff.utils.train_potential_config import (
+            Config,
+        )  # pylint: disable=C0415
 
         # <<<<
 
@@ -176,7 +178,7 @@ class Entrypoint:
     @add_hydra(
         "config",
         version_base=None,
-        config_name="sampling_diffusion.yaml",
+        config_name="evaluate_diffusion.yaml",
         config_path="config/",
     )
     def evaluate_diffusion_sampling(
@@ -185,7 +187,10 @@ class Entrypoint:
         diffusion_ckpt: str,
         guidance_ckpt: str,
         output: str = None,
-        n_samples: int = 100,
-        plot: bool = False,
+        file_name: str = "evaluate_samples.pt",
     ):
-        pass
+        from gbi_diff.scripts.evaluate import evaluate_diffusion_sampling
+
+        evaluate_diffusion_sampling(
+            diffusion_ckpt, guidance_ckpt, config, output, file_name
+        )

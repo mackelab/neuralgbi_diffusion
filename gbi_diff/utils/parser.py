@@ -26,18 +26,11 @@ def add_evaluate_diffusion_sampling_args(parser: ArgumentParser) -> ArgumentPars
         required=False,
     )
     parser.add_argument(
-        "--n-samples",
+        "--file-name",
         help="--no-documentation-exists--",
-        dest="n_samples",
-        type=int,
-        default=100,
-        required=False,
-    )
-    parser.add_argument(
-        "--plot",
-        help="--no-documentation-exists--",
-        dest="plot",
-        action="store_true",
+        dest="file_name",
+        type=str,
+        default="evaluate_samples.pt",
         required=False,
     )
     return parser
