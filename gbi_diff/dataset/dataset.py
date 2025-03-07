@@ -320,13 +320,14 @@ class GaussianMixture(_SBIDataset):
         self.simulator = GaussianMixtureSimulator(num_trials=1, seed=self._seed)
 
     def sample_posterior(self, prior_samples):
-        return self.simulator.simulate(prior_samples)
+        x = self.simulator.simulate(prior_samples)
+        # remove the trial dimension
+        x = x[:, 0]
+        return x
 
     def _sample_data(self, size):
         theta = self.simulator.prior.sample((size,))
         x = self.sample_posterior(theta)
-        # remove the trial dimension
-        x = x[:, 0]
         return theta, x
 
     def _generate_misspecified_data(self):
