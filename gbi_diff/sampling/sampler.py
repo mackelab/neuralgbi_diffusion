@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Tuple
 
+import h5py
 from omegaconf import DictConfig
 from torch import Tensor
 
@@ -14,7 +16,7 @@ class _PosteriorSampler(ABC):
         self.x_o: Tensor
 
     @abstractmethod
-    def forward(self, n_sample: int, quiet: bool = False) -> Tensor:
+    def forward(self, n_sample: int, quiet: bool = False, h5_file: Tuple[h5py.File, slice] = None) -> Tensor | h5py.File:
         raise NotImplementedError
 
     @abstractmethod

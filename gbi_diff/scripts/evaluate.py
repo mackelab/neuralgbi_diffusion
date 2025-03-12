@@ -47,7 +47,8 @@ def evaluate_diffusion_sampling(
         guidance_ckpt,
         observed_data_file=eval_config.observed_data_file,
         beta=eval_config.betas[0],
-    )       
+    )
+    # sampler.x_o = sampler.x_o[:2]
     print(yaml.dump(eval_config.to_container(), indent=4))
 
     cls_name = to_camel_case(eval_config.data_entity)
@@ -65,22 +66,20 @@ def evaluate_diffusion_sampling(
     print(f"Save Eval samples at: {output}")
     output.parent.mkdir(exist_ok=True, parents=True)
     file = h5py.File(output, "w")
-    file.attrs["x_0"] = sampler.x_o
+    file.attrs["x_o"] = sampler.x_o
     for key, value in eval_config.to_container().items():
-        file.attrs[key] = (
-            json.dumps(value) if isinstance(value, (dict, list)) else value
-        )
-
+        file.attrs[key] = value
     theta_dim = sampler._guidance_model.hparams.theta_dim
     x_dim = sampler._guidance_model.hparams.simulator_out_dim
+    n_x_o = len(sampler.x_o)
     param_samples = file.create_dataset(
         "theta",
-        (len(eval_config.betas), eval_config.n_samples, len(sampler.x_o), theta_dim),
+        (len(eval_config.betas), eval_config.n_samples, n_x_o, theta_dim),
         dtype="float32",
     )
     obs_samples = file.create_dataset(
         "x_pred",
-        (len(eval_config.betas), eval_config.n_samples, len(sampler.x_o), x_dim),
+        (len(eval_config.betas), eval_config.n_samples, n_x_o, x_dim),
         dtype="float32",
     )
 
@@ -88,30 +87,14 @@ def evaluate_diffusion_sampling(
     for beta_idx, beta in enumerate(iterator):
         iterator.set_description(f"Beta: {beta}")
         sampler.update_beta(beta)
-        theta_pred = sampler.forward(eval_config.n_samples, quiet=1)
-        x_pred = [
-            dataset.sample_posterior(theta) for theta in theta_pred.permute((1, 0, 2))
-        ]
-        x_pred = torch.stack(x_pred).permute(1, 0, 2)
-
-        param_samples[beta_idx] = theta_pred.detach().cpu()
-        obs_samples[beta_idx] = x_pred.detach().cpu()
-        del theta_pred
-        del x_pred
-    # param_samples = torch.stack(param_samples).detach()
-    # obs_samples = torch.stack(obs_samples).detach()
-
-    # res = {
-    #    **eval_config.to_container(),
-    #    "x_o": sampler.x_o,
-    #    "theta": param_samples,
-    #    "x_pred": obs_samples,
-    # }
-    # if output is None:
-    #     output = sampler._get_default_path()
-    # elif isinstance(output, str):
-    #     output = Path(output)
-    # output = output / file_name
-    # save_torch(res, output)
+        file = sampler.forward(
+            eval_config.n_samples,
+            quiet=1,
+            h5_file=(file, slice(beta_idx + 1, beta_idx + 2)),
+        )
+        for x_o_idx in range(n_x_o):
+            obs_samples[beta_idx, :, x_o_idx] = dataset.sample_posterior(
+                torch.from_numpy(param_samples[beta_idx, :, x_o_idx])
+            )
     print("Finished saving")
     file.close()

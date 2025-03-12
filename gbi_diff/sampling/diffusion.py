@@ -1,5 +1,7 @@
+from typing      import Tuple
 from pathlib import Path
 
+import h5py
 import numpy as np
 from torch import Tensor
 import torch
@@ -150,8 +152,8 @@ class DiffusionSampler(_PosteriorSampler):
 
             theta_t = (
                 (1 / torch.sqrt(alpha))
-                * (theta_t - (1 - alpha) / torch.sqrt(1 - alpha_bar) * diffusion_step)
-                + beta * guidance_grad
+                * (theta_t - (1 - alpha) / torch.sqrt(1 - alpha_bar) * diffusion_step
+                + beta      * guidance_grad)
                 + z
             )
 
@@ -198,25 +200,39 @@ class DiffusionSampler(_PosteriorSampler):
         theta = theta.detach()
         return grad
 
-    def forward(self, n_samples: int, quiet: int = 0) -> Tensor:
+    def forward(self, n_samples: int, quiet: int = 0, h5_file: Tuple[h5py.File, slice] = None) -> Tensor | h5py.File:
         """_summary_
 
         Args:
             n_samples (int): _description_
             quiet (optional, bool): 0 no progress bar at all. 1: only the upper progress bar. 2. all progress bars
-
+            h5_file (optional, Tuple[h5py.File, slice]): is a combination of h5 file which has to contain the dataset 
+                "theta" in the shape such that it fits the gained samples 
         Returns:
-            Tensor: (n_samples, n_observed_data, param_dim)
+            Tensor: (n_samples, n_observed_data, param_dim) | h5py.File
         """
-        res = torch.zeros((n_samples, len(self.x_o), self.theta_dim))
+
+        if h5_file is None:
+            res = torch.zeros((1, n_samples, len(self.x_o), self.theta_dim))
+            s = slice(0, 1)
+        else:
+            file, s = h5_file
+            res = file["theta"]
 
         iterator = self.x_o
         if not (quiet >= 2):
             iterator = tqdm(self.x_o, desc="Sample in observed data")
 
         for idx, x_o in enumerate(iterator):
-            res[:, idx] = self.single_forward(x_o, n_samples, quiet < 2)
-        return res
+            samples = self.single_forward(x_o, n_samples, quiet < 2).detach().cpu()
+            if h5_file is not None:
+                samples = samples.numpy().copy()
+            res[s, :, idx] = samples
+
+        if h5_file is None:
+            # remove artificial dimension and return stacked tensor
+            return res[0]
+        return file
 
     def pair_plot(self, samples: Tensor, x_o: Tensor, output: str | Path = None):
         """_summary_
