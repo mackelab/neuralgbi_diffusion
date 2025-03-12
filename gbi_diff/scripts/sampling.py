@@ -5,7 +5,8 @@ from gbi_diff.sampling.diffusion import DiffusionSampler
 from gbi_diff.sampling.mcmc import MCMCSampler
 from gbi_diff.sampling.utils import save_torch, get_datetime_str
 from gbi_diff.utils.sampling_mcmc_config import Config as MCMCConfig
-from gbi_diff.utils.sampling_diffusion_config import Config as DiffusionConfig
+from gbi_diff.utils.sampling_diffusion_config import Config as DiffusionSamplingConfig
+from gbi_diff.utils.train_diffusion_config import Config as DiffusionTrainConfig
 
 
 # NOTE: does not work yet with multiple worker
@@ -93,16 +94,18 @@ def mcmc_sampling(
 def diffusion_sampling(
     diffusion_ckpt: str,
     guidance_ckpt: str,
-    config: DiffusionConfig,
+    config: DiffusionSamplingConfig,
     output: str,
     n_samples: int,
     plot: bool,
 ) -> torch.Tensor:
+    train_config: DiffusionTrainConfig = DiffusionTrainConfig.from_file(Path(diffusion_ckpt).parent.joinpath("config.yaml"))
     sampler = DiffusionSampler(
         diffusion_ckpt,
         guidance_ckpt,
         observed_data_file=config.observed_data_file,
         beta=config.beta,
+        normalize_data=train_config.dataset.normalize
     )
     samples = sampler.forward(n_samples)
     sampler.save_samples(

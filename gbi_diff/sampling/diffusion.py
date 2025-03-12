@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from gbi_diff.model.lit_module import DiffusionModel, Guidance
 from gbi_diff.sampling.sampler import _PosteriorSampler
-from gbi_diff.sampling.utils import get_sample_path, load_observed_data
+from gbi_diff.sampling.utils import get_sample_path, load_data_stats, load_observed_data
 from gbi_diff.utils.plot import _pair_plot
 from gbi_diff.utils.train_diffusion_config import Config as DiffusionConfig
 from gbi_diff.utils.train_guidance_config import Config as GuidanceConfig
@@ -22,6 +22,7 @@ class DiffusionSampler(_PosteriorSampler):
         guidance_model_ckpt: str | Path,
         observed_data_file: str | Path,
         beta: float = 1,
+        normalize_data: bool = False,
         *args,
         **kwargs,
     ):
@@ -35,9 +36,11 @@ class DiffusionSampler(_PosteriorSampler):
 
         self._observed_data_file = observed_data_file
         self._beta = beta
+        self._normalize_data = normalize_data
         self._config = {
             "observed_data_file": self._observed_data_file,
             "beta": self._beta,
+            "normalize_data": self._normalize_data
         }
 
         self._check_model_compatibility(diff_model_ckpt, guidance_model_ckpt)
@@ -46,9 +49,9 @@ class DiffusionSampler(_PosteriorSampler):
         self._guidance_model = Guidance.load_from_checkpoint(guidance_model_ckpt)
         self._diff_model = DiffusionModel.load_from_checkpoint(diff_model_ckpt)
         self.x_o, _ = load_observed_data(self._observed_data_file)
-
+        self._data_stats = load_data_stats(guidance_model_ckpt.parent.joinpath("data_stats.pt"))
         self._diff_beta_schedule = self._diff_model.diff_schedule.beta_schedule
-
+    
     def _check_config(self, observed_data: str | Path, guidance_model_ckpt: Path):
         # check if dataset is compatible with guidance and therefor with diffusion model
         guidance_model_config: GuidanceConfig = GuidanceConfig.from_file(
@@ -130,6 +133,10 @@ class DiffusionSampler(_PosteriorSampler):
         T = self._diff_model.diffusion_steps
         T = np.arange(T)[::-1]
 
+        if self._normalize_data:
+            _, (x_mean, x_std) = self._data_stats
+            x_o = (x_o - x_mean) / x_std
+        
         iterator = T
         if not quiet:
             iterator = tqdm(T, desc="Step in diffusion process", leave=True)
@@ -161,6 +168,9 @@ class DiffusionSampler(_PosteriorSampler):
             del guidance_grad
             del time_repr
 
+        if self._normalize_data:
+            (theta_mean, theta_std), _ = self._data_stats
+            theta_t = theta_t * theta_std + theta_mean
         return theta_t
 
     def get_log_boltzmann_grad(

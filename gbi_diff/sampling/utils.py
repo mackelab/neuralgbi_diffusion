@@ -29,6 +29,25 @@ def load_observed_data(path: str) -> Tuple[Tensor, Tensor]:
     return x_o, theta
 
 
+def load_data_stats(
+    path: str | Path,
+) -> Tuple[Tuple[Tensor, Tensor], Tuple[Tensor, Tensor]]:
+    """load stats from stats file
+
+    Args:
+        path (str | Path): path to stats file
+
+    Returns:
+        Tuple[Tuple[Tensor, Tensor], Tuple[Tensor, Tensor]]: mean and std from theta and x
+        - ((theta_mean, theta_std), (x_mean, x_std))
+    """
+    content = torch.load(path)
+    return (
+        (content["theta_mean"], content["theta_std"]),
+        (content["x_mean"], content["x_std"]),
+    )
+
+
 def get_sample_path(
     checkpoint: Path,
     output: str = None,

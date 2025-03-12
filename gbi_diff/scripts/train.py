@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 import sys
 
 import torch
@@ -64,9 +65,8 @@ def _setup_datasets(config):
     cls_name = cls_name[0].upper() + cls_name[1:]
     dataset_cls = getattr(sbi_datasets, cls_name)
     train_set: sbi_datasets._SBIDataset = dataset_cls.from_file(
-        config.dataset.train_file
+        config.dataset.train_file, normalize=config.dataset.normalize
     )
-
     train_set.set_n_target(config.dataset.n_target)
     train_loader = DataLoader(
         train_set,
@@ -74,7 +74,11 @@ def _setup_datasets(config):
         shuffle=True,
         num_workers=config.num_worker,
     )
-    val_set: sbi_datasets._SBIDataset = dataset_cls.from_file(config.dataset.val_file)
+
+    val_set: sbi_datasets._SBIDataset = dataset_cls.from_file(
+        config.dataset.val_file, normalize=config.dataset.normalize
+    )
+    val_set.set_stats(train_set.get_stats())
     val_set.set_n_target(config.dataset.n_target)
     val_loader = DataLoader(
         val_set,
@@ -85,9 +89,11 @@ def _setup_datasets(config):
     return train_loader, train_set, val_loader, val_set
 
 
-def _print_state(config, model):
+def _print_state(config, model, dataset):
     print("============= Config ===============")
     print(yaml.dump(config.to_container(), indent=4))
+    print("============ Dataset ===============")
+    print(dataset)
     print("============== Net =================")
     print(model)
 
@@ -116,10 +122,11 @@ def train_potential(config: Config_Potential, devices: int = 1, force: bool = Fa
         net_config=config.model,
     )
 
-    _print_state(config, model)
+    _print_state(config, model, train_set)
     _ask(force)
 
     serial_config.to_file(log_dir + "/config.yaml")
+    train_set.save_stats(log_dir)
     trainer.fit(model, train_loader, val_loader)
 
 
@@ -128,7 +135,7 @@ def train_guidance(config: Config_Guidance, devices: int = 1, force: bool = Fals
     serial_config = config
     trainer, log_dir = _setup_trainer(config, devices)
     train_loader, train_set, val_loader, _ = _setup_datasets(config)
-
+    
     model = Guidance(
         theta_dim=train_set.get_theta_dim(),
         simulator_out_dim=train_set.get_sim_out_dim(),
@@ -136,10 +143,11 @@ def train_guidance(config: Config_Guidance, devices: int = 1, force: bool = Fals
         net_config=config.model,
         diff_config=config.diffusion,
     )
-    _print_state(config, model)
+    _print_state(config, model, train_set)
     _ask(force)
 
     serial_config.to_file(log_dir + "/config.yaml")
+    train_set.save_stats(log_dir)
     trainer.fit(model, train_loader, val_loader)
 
 
@@ -149,13 +157,14 @@ def train_diffusion(config: Config_Diffusion, devices: int = 1, force: bool = Fa
     trainer, log_dir = _setup_trainer(config, devices)
     train_loader, train_set, val_loader, _ = _setup_datasets(config)
 
+    train_set.save_stats(log_dir)
     model = DiffusionModel(
         theta_dim=train_set.get_theta_dim(),
         optimizer_config=config.optimizer,
         net_config=config.model,
         diff_config=config.diffusion,
     )
-    _print_state(config, model)
+    _print_state(config, model, train_set)
     _ask(force)
 
     serial_config.to_file(log_dir + "/config.yaml")

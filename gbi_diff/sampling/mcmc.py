@@ -11,7 +11,7 @@ from tqdm import tqdm
 from gbi_diff.model.lit_module import PotentialNetwork
 from gbi_diff.sampling import prior_distr
 from gbi_diff.sampling.sampler import _PosteriorSampler
-from gbi_diff.sampling.utils import get_sample_path, load_observed_data
+from gbi_diff.sampling.utils import get_sample_path, load_data_stats, load_observed_data
 from gbi_diff.utils.plot import _pair_plot
 from gbi_diff.utils.sampling_mcmc_config import Config
 
@@ -95,12 +95,15 @@ class PotentialFunc:
 
 
 class MCMCSampler(_PosteriorSampler):
-    def __init__(self, checkpoint: str | Path, config: Config):
+    def __init__(self, checkpoint: str | Path, config: Config, normalize_data: bool=False):
         super().__init__()
+        if isinstance(checkpoint, str):
+            checkpoint = Path(checkpoint)
         self._checkpoint = checkpoint
         self._config = config
+        self._normalize_data = normalize_data
         self._x_o, _ = load_observed_data(self._config.observed_data_file)
-
+        self._data_stats = load_data_stats(self._checkpoint.parent.joinpath("data_stats.pt"))
         self._potential_function = self._create_potential_fn(checkpoint)
 
     def _create_potential_fn(self, checkpoint: str) -> PotentialFunc:
@@ -127,6 +130,9 @@ class MCMCSampler(_PosteriorSampler):
         Returns:
             torch.Tensor: (n_samples, theta_dim)
         """
+        if self._normalize_data:
+            _, (x_mean, x_std) = self._data_stats
+            x_o = (x_o - x_mean) / x_std
         self._potential_function.update_x_o(x_o)
         kernel_cls = getattr(infer, self._config.kernel)
         kernel = kernel_cls(potential_fn=self._potential_function)
@@ -139,7 +145,13 @@ class MCMCSampler(_PosteriorSampler):
         )
         mcmc.run(x_o)
         samples = mcmc.get_samples()
-        return samples["theta"]
+        theta = samples["theta"]
+
+        if self._normalize_data:
+            (theta_mean, theta_std), _ = self._data_stats
+            theta = theta * theta_std + theta_mean
+        
+        return theta
 
     def forward(self, n_samples: int, quiet: bool = False) -> torch.Tensor:
         """_summary_

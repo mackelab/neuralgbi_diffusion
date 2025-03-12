@@ -13,6 +13,8 @@ from gbi_diff.utils.cast import to_camel_case
 from gbi_diff.utils.evaluate_diffusion_config import Config as EvalDiffConfig
 from gbi_diff.sampling.diffusion import DiffusionSampler
 from gbi_diff.dataset import dataset as sbi_datasets
+from gbi_diff.utils.train_diffusion_config import Config as DiffusionTrainConfig
+
 
 
 def evaluate_diffusion_sampling(
@@ -41,12 +43,13 @@ def evaluate_diffusion_sampling(
     eval_config: EvalDiffConfig = EvalDiffConfig.from_dict_config(
         eval_config, resolve=True
     )
-
+    train_config: DiffusionTrainConfig = DiffusionTrainConfig.from_file(Path(diffusion_ckpt).parent.joinpath("config.yaml"))
     sampler = DiffusionSampler(
         diffusion_ckpt,
         guidance_ckpt,
         observed_data_file=eval_config.observed_data_file,
         beta=eval_config.betas[0],
+        normalize_data=train_config.dataset.normalize
     )
     # sampler.x_o = sampler.x_o[:2]
     print(yaml.dump(eval_config.to_container(), indent=4))

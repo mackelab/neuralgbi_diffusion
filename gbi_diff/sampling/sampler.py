@@ -31,7 +31,7 @@ class _PosteriorSampler(ABC):
             Path: _description_
         """
         raise NotImplementedError
-
+    
     def save_samples(
         self,
         x_o: Tensor,
