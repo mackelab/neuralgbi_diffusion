@@ -1,5 +1,5 @@
 data_entity: two_moons
-results_dir: "results/guidance/${data_entity}"
+results_dir: "results_normalized/guidance/${data_entity}"
 check_val_every_n_epochs: 5
 num_worker: 8
 
@@ -12,6 +12,7 @@ dataset:
   val_file: "data/${data_entity}_1000.pt"
   n_target: 20
   noise_std: 0.1 # how strong to noise the augmentations in x_target
+  normalize: True
 
 model:
   TimeEncoder:
