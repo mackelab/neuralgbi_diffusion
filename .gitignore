@@ -147,3 +147,4 @@ gbi/benchmark/tasks/**/xos/
 data/
 gbi_results/
 results_old/
+results_normalized/
