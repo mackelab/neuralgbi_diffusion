@@ -1,0 +1,8 @@
+betas:
+- 4
+- 20
+- 100
+n_samples: 1000
+data_entity: uniform
+observed_data_file: data/gbi_data/misspecified_unknown/${data_entity}_10.pt
+simulator: ${data_entity}

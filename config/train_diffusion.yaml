@@ -1,4 +1,4 @@
-data_entity: two_moons
+data_entity: gaussian_mixture  
 results_dir: "results_normalized/diffusion/${data_entity}"
 check_val_every_n_epochs: 5
 num_worker: 8  
