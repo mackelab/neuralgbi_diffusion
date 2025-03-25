@@ -1,0 +1,14 @@
+steps: 1000
+time_repr_dim: ${model.TimeEncoder.input_dim}
+period_spread: 10000
+diffusion_schedule: DDPMSchedule
+VPSchedule:
+  beta_start: 0.0001
+  beta_end: 0.02
+  T: ${diffusion.steps}
+  beta_schedule_cls: LinearSchedule
+DDPMSchedule:
+  beta_start: 0.0001
+  beta_end: 0.02
+  T: ${diffusion.steps}
+  beta_schedule_cls: LinearSchedule

@@ -1,17 +1,16 @@
-# main.yaml
 defaults:
   - _self_
   - hydra: hydra
   - dataset: dataset
-  - model: guidance_model 
-  - diffusion: diffusion
+  - model: potential_model
   - optimizer: optimizer
+
 
 data_entity: two_moons
 results_dir: "results/guidance/${data_entity}"
 check_val_every_n_epochs: 5
 num_worker: 12
 
-max_epochs: 100 
+max_epochs: 100
 batch_size: 256
-precision: 32  # 64: extended, 32: standard, 16: half
+precision: 32 # 64: extended, 32: standard, 16: half

@@ -1,0 +1,4 @@
+train_file: "data/${data_entity}_10000.pt"
+val_file: "data/${data_entity}_1000.pt"
+n_target: 20
+noise_level: 2 # how strong to noise the augmentations in x_target

@@ -1,0 +1,2 @@
+run:
+  dir: results/${hydra.job.name}/${data_entity}
