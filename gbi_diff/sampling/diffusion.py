@@ -48,7 +48,7 @@ class DiffusionSampler(_PosteriorSampler):
 
         self._guidance_model = Guidance.load_from_checkpoint(guidance_model_ckpt)
         self._diff_model = DiffusionModel.load_from_checkpoint(diff_model_ckpt)
-        self.x_o, _ = load_observed_data(self._observed_data_file)
+        self.x_o, self.theta_o = load_observed_data(self._observed_data_file)
         self._data_stats = load_data_stats(guidance_model_ckpt.parent.joinpath("data_stats.pt"))
         self._diff_beta_schedule = self._diff_model.diff_schedule.beta_schedule
     

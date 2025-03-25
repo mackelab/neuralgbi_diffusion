@@ -108,7 +108,7 @@ def _ask(force: bool):
         sys.exit()
 
 
-def train_potential(config: Config_Potential, devices: int = 1, force: bool = False):
+def train_potential(config: Config_Potential, devices: int = 1, force: bool = False):       
     # TODO: fixup device config
     serial_config = config
 

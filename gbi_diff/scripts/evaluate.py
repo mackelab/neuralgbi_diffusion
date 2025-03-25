@@ -70,6 +70,7 @@ def evaluate_diffusion_sampling(
     output.parent.mkdir(exist_ok=True, parents=True)
     file = h5py.File(output, "w")
     file.attrs["x_o"] = sampler.x_o
+    file.attrs["theta_o"] = sampler.theta_o
     for key, value in eval_config.to_container().items():
         file.attrs[key] = value
     theta_dim = sampler._guidance_model.hparams.theta_dim
