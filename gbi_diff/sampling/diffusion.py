@@ -100,7 +100,7 @@ class DiffusionSampler(PosteriorSampler):
 
     def _get_default_path(self):
         return get_sample_path(self.diff_model_ckpt)
-    
+
     def single_forward(self, x_o: Tensor, n_samples: int) -> Tensor:
         """_summary_
 
@@ -134,12 +134,11 @@ class DiffusionSampler(PosteriorSampler):
             z = torch.normal(0, 1, size=theta_t.shape)
             z = torch.sqrt(beta) * z if t_idx > 0 else 0
 
-            theta_t = (
-                (1 / torch.sqrt(alpha))
-                * (theta_t - (1 - alpha) / torch.sqrt(1 - alpha_bar) * diffusion_step)
-            + beta * guidance_grad
-                + z
-            )
+            theta_t = (1 / torch.sqrt(alpha)) * (
+                theta_t
+                - (1 - alpha) / torch.sqrt(1 - alpha_bar) * diffusion_step
+                + beta * guidance_grad
+            ) + z
 
             del diffusion_step
             del guidance_grad
@@ -210,14 +209,13 @@ class DiffusionSampler(PosteriorSampler):
         batch_size, n_target, _ = samples.shape
         time_repr = self._guidance_model.get_diff_time_repr(np.zeros(batch_size))
         x_o = x_o[None].repeat(batch_size, 1, 1)
-        
+
         if output is None:
             save_dir = self._get_default_path()
         elif isinstance(output, Path):
             save_dir = output
         else:
             save_dir = Path(output)
-        
 
         for target_idx in range(n_target):
             log_prob = -self.beta * self._guidance_model.forward(
