@@ -137,7 +137,7 @@ class DiffusionSampler(PosteriorSampler):
             theta_t = (1 / torch.sqrt(alpha)) * (
                 theta_t
                 - (1 - alpha) / torch.sqrt(1 - alpha_bar) * diffusion_step
-                + beta * guidance_grad
+                + beta * guidance_grad      
             ) + z
 
             del diffusion_step
