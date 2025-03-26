@@ -15,33 +15,33 @@ class _Dataset(StructuredConfig):
 class _TimeEncoder(StructuredConfig):
     enabled: bool
     input_dim: int
-    output_dim: int
-    activation_func: str
-    architecture: list
-    final_activation: str
+    n_layers: int
+    hidden_dim: int
 
 
 @dataclass
 class _ThetaEncoder(StructuredConfig):
+    enabled: bool
     output_dim: int
-    architecture: list
-    activation_func: str
-    final_activation: str
+    n_layers: int
+    hidden_dim: int
 
 
 @dataclass
 class _SimulatorEncoder(StructuredConfig):
+    enabled: bool
+    n_layers: int
+    hidden_dim: int
     output_dim: int
-    architecture: list
-    activation_func: str
-    final_activation: str
 
 
 @dataclass
 class _LatentMLP(StructuredConfig):
-    architecture: list
-    activation_func: str
-    final_activation: str
+    net_type: str
+    n_layers: int
+    hidden_dim: int
+    dropout_prob: float
+    use_batch_norm: bool
 
 
 @dataclass
@@ -50,6 +50,8 @@ class _Model(StructuredConfig):
     ThetaEncoder: _ThetaEncoder
     SimulatorEncoder: _SimulatorEncoder
     LatentMLP: _LatentMLP
+    final_activation: str
+    standardize: bool
 
     def __post_init__(self):
         self.TimeEncoder = _TimeEncoder(**self.TimeEncoder)  #pylint: disable=E1134

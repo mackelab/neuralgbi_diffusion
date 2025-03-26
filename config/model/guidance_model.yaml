@@ -1,21 +1,24 @@
 TimeEncoder:
-  enabled: True
-  input_dim: 512
-  output_dim: 512
-  activation_func: ELU
-  architecture: [512, 512]
-  final_activation: ELU
+  enabled: False
+  input_dim: 64
+  n_layers: 2
+  hidden_dim: 64
 ThetaEncoder:
+  enabled: False
   output_dim: 128
-  architecture: [256]
-  activation_func: ReLU
-  final_activation: ReLU
+  n_layers: 1
+  hidden_dim: 64
 SimulatorEncoder:
+  enabled: False
+  n_layers: 1 
+  hidden_dim: 64
   output_dim: 128
-  architecture: [256]
-  activation_func: ReLU
-  final_activation: ReLU
 LatentMLP:
-  architecture: [256, 156, 128]
-  activation_func: ReLU
-  final_activation: Softplus
+  net_type: "res_net"
+  n_layers: 3
+  hidden_dim: 64
+  dropout_prob: 0.0
+  use_batch_norm: false   
+
+final_activation: Softplus
+standardize: false
