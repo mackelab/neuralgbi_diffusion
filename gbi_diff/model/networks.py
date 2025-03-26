@@ -238,11 +238,17 @@ class SBINetwork(Module):
     def forward(
         self, theta: Tensor, x_target: Tensor, time_repr: Tensor = None
     ) -> Tensor:
-        theta_embed = self._theta_enc.forward(theta)
         x_embed = self._sim_enc.forward(x_target)
+        theta_embed = self._theta_enc.forward(theta)
         time_embed = self._time_enc.forward(time_repr)
+        
 
-        hidden = torch.concat((theta_embed, x_embed, time_embed), dim=-1)
+        # repeat theta_embed, and time embed
+        n_target = x_target.shape[1]
+        theta_embed = dim_repeat(theta_embed, int(n_target), 1)
+        time_embed = dim_repeat(time_embed, int(n_target), 1)
+
+        hidden  = torch.concat((theta_embed, x_embed, time_embed), dim=-1)
         res = self._latent_mlp.forward(hidden)
         return res
 
@@ -256,7 +262,7 @@ class SBINetwork2(Module):
     )
 
     def __init__(
-        self,
+        self,   
         theta_dim: int,
         simulator_out_dim: int,
         theta_encoder: _ThetaEncoder,
