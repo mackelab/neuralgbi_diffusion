@@ -18,24 +18,36 @@ def execute(args: dict) -> bool:
             )
 
         case "train-potential":
-            module.train_potential(
-                config_file=args["config_file"],
-                device=args["device"],
-                force=args["force"],
+            api.hydra_plugin.hydra_wrapper(
+                module.train_potential,
+                args,
+                command_parser["train_potential"],
+                config_var_name="config",
+                version_base=None,
+                config_path=str(Path.cwd().joinpath("config")),
+                config_name="train_potential.yaml",
             )
 
         case "train-guidance":
-            module.train_guidance(
-                config_file=args["config_file"],
-                device=args["device"],
-                force=args["force"],
+            api.hydra_plugin.hydra_wrapper(
+                module.train_guidance,
+                args,
+                command_parser["train_guidance"],
+                config_var_name="config",
+                version_base=None,
+                config_path=str(Path.cwd().joinpath("config")),
+                config_name="train_guidance.yaml",
             )
 
         case "train-diffusion":
-            module.train_diffusion(
-                config_file=args["config_file"],
-                device=args["device"],
-                force=args["force"],
+            api.hydra_plugin.hydra_wrapper(
+                module.train_diffusion,
+                args,
+                command_parser["train_diffusion"],
+                config_var_name="config",
+                version_base=None,
+                config_path=str(Path.cwd().joinpath("config")),
+                config_name="train_diffusion.yaml",
             )
 
         case "diffusion-sample":
