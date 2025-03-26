@@ -60,7 +60,7 @@ class _SBIDataset(Dataset):
         for key, value in content.items():
             setattr(obj, key, value)
         setattr(obj, "_x_noised", obj._generate_x_noised())
-        setattr(obj, "_x_all", obj._get_x_target())
+        setattr(obj, "_x_target", obj._get_x_target())
 
         return obj
 
