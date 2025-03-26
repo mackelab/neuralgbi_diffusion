@@ -116,7 +116,7 @@ class MCMCSampler(PosteriorSampler):
 
     def _get_default_path(self):
         return get_sample_path(self._checkpoint)
-    
+
     def single_forward(self, x_o: torch.Tensor, n_samples: int) -> torch.Tensor:
         """single forward of one observed data point
 
@@ -175,7 +175,7 @@ class MCMCSampler(PosteriorSampler):
             save_dir = output
         else:
             save_dir = Path(output)
-            
+
         for target_idx in range(n_target):
             self._potential_function.update_x_o(x_o[target_idx])
             log_prob = self._potential_function.log_likelihood(samples[:, target_idx])

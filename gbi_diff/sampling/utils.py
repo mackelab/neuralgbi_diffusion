@@ -13,7 +13,7 @@ def load_observed_data(path: str) -> Tuple[Tensor, Tensor]:
         path (str): path to observed data file
 
     Returns:
-        Tuple[Tensor, Tensor]: 
+        Tuple[Tensor, Tensor]:
             - tensor with observed data (n_samples, n_features)
             - tensor with measured theta (n_samples, n_params)
     """
@@ -67,4 +67,4 @@ def get_datetime_str() -> str:
     """
     today = datetime.now()
     s = today.strftime("%Y_%m_%d__%H_%M_%S")
-    return s 
+    return s
