@@ -1,11 +1,32 @@
-from typing import List
+from typing import Callable, List, Union
 
+import numpy as np
 import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.nn import Linear, Sequential, Module
 
+from gbi_diff.utils.metrics import compute_distances
 from gbi_diff.utils.reshape import dim_repeat
+from sbi.utils.sbiutils import standardizing_net
+from sbi.neural_nets.embedding_nets import (
+    PermutationInvariantEmbedding,
+    FCEmbedding,
+)
+from pyknos.nflows.nn import nets
+
+
+class MultiplyByMean(nn.Module):
+    def __init__(self, mean: Union[Tensor, float], std: Union[Tensor, float]):
+        super(MultiplyByMean, self).__init__()
+        mean, std = map(torch.as_tensor, (mean, std))
+        self.mean = mean
+        self.std = std
+        self.register_buffer("_mean", mean)
+        self.register_buffer("_std", std)
+
+    def forward(self, tensor):
+        return tensor * self._mean
 
 
 class FeedForwardNetwork(Module):
@@ -71,7 +92,7 @@ class FeedForwardNetwork(Module):
 
 
 class SBINetwork(Module):
-    from gbi_diff.utils.train_guidance_config import (
+    from gbi_diff.utils.configs.train_guidance import (
         _ThetaEncoder,
         _TimeEncoder,
         _SimulatorEncoder,
@@ -80,6 +101,168 @@ class SBINetwork(Module):
 
     def __init__(
         self,
+        theta_dim: int,
+        simulator_out_dim: int,
+        trail_dim: int,
+        theta_encoder: _ThetaEncoder,
+        simulator_encoder: _SimulatorEncoder,
+        latent_mlp: _LatentMLP,
+        time_encoder: _TimeEncoder = None,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+
+        if simulator_encoder.enabled and trail_dim is not None and trail_dim > 1:
+            # permutation invariant embedding net required
+            trial_net = FCEmbedding(
+                input_dim=simulator_out_dim,
+                output_dim=simulator_encoder.hidden_dim,
+                num_layers=2,
+                num_hiddens=40,
+            )
+            self._sim_enc = PermutationInvariantEmbedding(
+                trial_net=trial_net,
+                trial_net_output_dim=simulator_encoder.hidden_dim,
+                output_dim=simulator_encoder.hidden_dim,
+            )
+            hidden_dim = simulator_encoder.hidden_dim
+        elif simulator_encoder.enabled and (trail_dim is None or trail_dim <= 1):
+            self._sim_enc = FCEmbedding(
+                input_dim=simulator_out_dim,
+                output_dim=simulator_encoder.hidden_dim,
+                num_layers=2,
+                num_hiddens=40,
+            )
+            hidden_dim = simulator_encoder.hidden_dim
+        else:
+            self._sim_enc = nn.Identity()
+            hidden_dim = simulator_out_dim
+
+        if time_encoder.enabled:
+            self._time_enc = FCEmbedding(
+                input_dim=time_encoder.input_dim,
+                output_dim=time_encoder.hidden_dim,
+                num_layers=time_encoder.n_layers,
+                num_hiddens=time_encoder.hidden_dim,
+            )
+            hidden_dim += time_encoder.hidden_dim
+        else:
+            self._time_enc = nn.Identity()
+            hidden_dim += time_encoder.input_dim
+
+        if theta_encoder.enabled:
+            self._theta_enc = FCEmbedding(
+                input_dim=theta_dim,
+                output_dim=theta_encoder.hidden_dim,
+                num_layers=theta_encoder.n_layers,
+                num_hiddens=theta_encoder.hidden_dim,
+            )
+            hidden_dim += theta_encoder.hidden_dim
+        else:
+            self._theta_enc = nn.Identity()
+            hidden_dim += theta_dim
+
+        if latent_mlp.net_type == "res_net":
+            self._latent_mlp = nets.ResidualNet(
+                in_features=hidden_dim,
+                out_features=1,
+                hidden_features=latent_mlp.hidden_dim,
+                num_blocks=latent_mlp.n_layers,
+                dropout_probability=latent_mlp.dropout_prob,
+                use_batch_norm=latent_mlp.use_batch_norm,
+            )
+        elif latent_mlp.net_type == "MLP":
+            self._latent_mlp = nets.MLP(
+                in_shape=[hidden_dim],
+                out_shape=[1],
+                hidden_sizes=[latent_mlp.hidden_dim] * latent_mlp.n_layers,
+                activate_output=False,
+            )
+        else:
+            raise ValueError(
+                f"Unrecognized net type: {latent_mlp.net_type}. Available are 'res_net' and 'MLP'."
+            )
+
+        self._latent_mlp = nn.Sequential(self._latent_mlp, nn.Softplus())
+
+        self._standardize_theta_nn = nn.Identity()
+        self._standardize_x_nn = nn.Identity()
+        self._dist_multiplier = nn.Identity()
+
+    def init_standardize_net(self, theta: Tensor, x: Tensor):
+        """init network standardizer for theta and x encoder 
+
+        Args:
+            theta (Tensor): (batch_dim, theta_dim)
+            x (Tensor): (batch_dim, x_dim)
+        """
+        self._standardize_theta_nn = standardizing_net(theta, False)
+        self._theta_enc = nn.Sequential(self._standardize_theta_nn, self._theta_enc)
+
+        self._standardize_x_nn = standardizing_net(x, False)
+        self._sim_enc = nn.Sequential(self._standardize_x_nn, self._sim_enc)
+
+    def init_distr_multiplier(
+        self,
+        x: Tensor,
+        x_target: Tensor,
+        distance_func: Callable[[Tensor, Tensor], Tensor],
+        monte_carlo: int = None,
+    ):
+        """init multiplier for distribution
+
+        Args:
+            x (Tensor): (batch_dim, x_dim) or (batch_dim, n_trial, x_dim)
+            x_target (Tensor): (n_target, x_dim) or (n_target, n_trial, x_dim)
+            distance_func (Callable[[Tensor, Tensor], Tensor]): distance function for pairwise comparison
+            monte_carlo (int, optional): if you would like to have only a rough estimate about
+                the distances, set this to an integer of how many samples you would like to look at.
+                Defaults to None.
+
+        """
+        if monte_carlo is not None and monte_carlo > 0:
+            idx = np.random.choice(len(x_target), size=monte_carlo)
+            x_target = x_target[idx]
+            idx = np.random.choice(len(x), size=monte_carlo)
+            x = x[idx]
+
+        distances = compute_distances(distance_func, x_target, x)
+        mean_distance = torch.mean(distances)
+        std_distance = torch.std(distances)
+        self._dist_multiplier = MultiplyByMean(mean_distance, std_distance)
+        self._latent_mlp = nn.Sequential(
+            self._latent_mlp, nn.Softplus(), self._dist_multiplier
+        )
+
+    def forward(
+        self, theta: Tensor, x_target: Tensor, time_repr: Tensor = None
+    ) -> Tensor:
+        x_embed = self._sim_enc.forward(x_target)
+        theta_embed = self._theta_enc.forward(theta)
+        time_embed = self._time_enc.forward(time_repr)
+        
+
+        # repeat theta_embed, and time embed
+        n_target = x_target.shape[1]
+        theta_embed = dim_repeat(theta_embed, int(n_target), 1)
+        time_embed = dim_repeat(time_embed, int(n_target), 1)
+
+        hidden  = torch.concat((theta_embed, x_embed, time_embed), dim=-1)
+        res = self._latent_mlp.forward(hidden)
+        return res
+
+
+class SBINetwork2(Module):
+    from gbi_diff.utils.configs.train_guidance import (
+        _ThetaEncoder,
+        _TimeEncoder,
+        _SimulatorEncoder,
+        _LatentMLP,
+    )
+
+    def __init__(
+        self,   
         theta_dim: int,
         simulator_out_dim: int,
         theta_encoder: _ThetaEncoder,
@@ -179,7 +362,7 @@ class SBINetwork(Module):
 
 
 class DiffusionNetwork(Module):
-    from gbi_diff.utils.train_diffusion_config import (
+    from gbi_diff.utils.configs.train_diffusion import (
         _ThetaEncoder,
         _TimeEncoder,
         _LatentMLP,
