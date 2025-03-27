@@ -50,7 +50,7 @@ class PotentialNetwork(LightningModule):
 
         self._net = SBINetwork(
             theta_dim=theta_dim,
-            simulator_out_dim=simulator_out_dim,
+            x_dim=simulator_out_dim,
             theta_encoder=net_config.ThetaEncoder,
             simulator_encoder=net_config.SimulatorEncoder,
             latent_mlp=net_config.LatentMLP,
@@ -178,9 +178,9 @@ class _DiffusionBase(LightningModule):
         """same thing as: T (capital T)"""
         self.t = torch.linspace(0, 1, self.diffusion_steps)
 
-        assert (
-            self.diffusion_steps % 100 == 0
-        ), "For validation, T has to be a multiple of 100"
+        assert self.diffusion_steps % 100 == 0, (
+            "For validation, T has to be a multiple of 100"
+        )
         self.val_t = torch.linspace(0, self.diffusion_steps - 1, 100).int()
         self.val_t_repr = self.get_diff_time_repr(self.val_t).float()
 
@@ -273,7 +273,7 @@ class Guidance(_DiffusionBase):
 
         self._net = SBINetwork(
             theta_dim=theta_dim,
-            simulator_out_dim=simulator_out_dim,
+            x_dim=simulator_out_dim,
             theta_encoder=net_config.ThetaEncoder,
             simulator_encoder=net_config.SimulatorEncoder,
             time_encoder=net_config.TimeEncoder,
@@ -285,13 +285,15 @@ class Guidance(_DiffusionBase):
         if trial_dim > 0:
             self.example_input_array = (
                 torch.zeros(1, theta_dim),
-                torch.zeros(1, 1, trial_dim, simulator_out_dim),
+                torch.zeros(
+                    1, net_config.LatentMLP.n_target, trial_dim, simulator_out_dim
+                ),
                 torch.zeros(1, net_config.TimeEncoder.input_dim),
             )
         else:
             self.example_input_array = (
                 torch.zeros(1, theta_dim),
-                torch.zeros(1, 1, simulator_out_dim),
+                torch.zeros(1, net_config.LatentMLP.n_target, simulator_out_dim),
                 torch.zeros(1, net_config.TimeEncoder.input_dim),
             )
         self.criterion = SBICriterion(distance_order=2)
@@ -490,7 +492,9 @@ class DiffusionModel(_DiffusionBase):
         preds = []
         targets = []
         for sampled_t, time_repr in zip(self.val_t, self.val_t_repr):
-            theta_t, noise = self.diff_schedule.forward(theta, torch.tensor([sampled_t]))
+            theta_t, noise = self.diff_schedule.forward(
+                theta, torch.tensor([sampled_t])
+            )
             time_repr = time_repr[None].repeat(batch_size, 1)
             pred = self.forward(theta_t, time_repr)
             loss = self.criterion.forward(pred, noise)

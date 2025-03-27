@@ -1,14 +1,11 @@
-from typing import Callable, List, Tuple, Union
+from typing import List, Tuple, Union
 
-import numpy as np
 import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.nn import Linear, Sequential, Module
 
-from gbi_diff.utils.metrics import compute_distances
 from gbi_diff.utils.reshape import dim_repeat
-from sbi.utils.sbiutils import standardizing_net
 from sbi.neural_nets.embedding_nets import (
     PermutationInvariantEmbedding,
     FCEmbedding,
@@ -28,6 +25,15 @@ class MultiplyByMean(nn.Module):
 
     def forward(self, tensor):
         return tensor * self._mean
+
+
+class Concatenate(nn.Module):
+    def __init__(self, dim: int, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.dim = dim
+        
+    def forward(self, inputs: List[Tensor]) -> Tensor:
+        return torch.cat(inputs, dim=self.dim)
 
 
 class FeedForwardNetwork(Module):
@@ -92,6 +98,162 @@ class FeedForwardNetwork(Module):
         return self._linear(x)
 
 
+class AdaMLPBlock(nn.Module):
+    r"""Creates a residual MLP block module with adaptive layer norm for conditioning.
+
+    Arguments:
+        hidden_dim: The dimensionality of the MLP block.
+        cond_dim: The number of embedding features.
+    """
+
+    def __init__(
+        self,
+        hidden_dim: int,
+        cond_dim: int,
+        mlp_ratio: int = 1,
+    ):
+        super().__init__()
+
+        self.ada_ln = nn.Sequential(
+            nn.Linear(cond_dim, hidden_dim),
+            nn.SiLU(),
+            nn.Linear(hidden_dim, 3 * hidden_dim),
+        )
+
+        # Initialize the last layer to zero
+        self.ada_ln[-1].weight.data.zero_()
+        self.ada_ln[-1].bias.data.zero_()
+
+        # MLP block
+        # NOTE: This can be made more flexible to support layer types.
+        self.block = nn.Sequential(
+            nn.LayerNorm(hidden_dim, elementwise_affine=False),
+            nn.Linear(hidden_dim, hidden_dim * mlp_ratio),
+            nn.GELU(),
+            nn.Linear(hidden_dim * mlp_ratio, hidden_dim),
+        )
+
+    def forward(self, x: Tensor, yt: Tensor) -> Tensor:
+        """
+        Arguments:
+            x: The input tensor, with shape (B, D_x).
+            t: The embedding vector, with shape (B, D_t).
+
+        Returns:
+            The output tensor, with shape (B, D_x).
+        """
+
+        a, b, c = self.ada_ln(yt).chunk(3, dim=-1)
+
+        y = (a + 1) * x + b
+        y = self.block(y)
+        y = x + c * y
+        y = y / torch.sqrt(1 + c * c)
+
+        return y
+
+
+class AdaMLP(nn.Module):
+    """
+    MLP denoising network using adaptive layer normalization for conditioning.
+    Relevant literature:
+
+    See "Scalable Diffusion Models with Transformers", by William Peebles, Saining Xie.
+
+    Arguments:
+        x_dim: The dimensionality of the input tensor.
+        emb_dim: The number of embedding features.
+        input_handler: The input handler module.
+        hidden_dim: The dimensionality of the MLP block.
+        num_layers: The number of MLP blocks.
+        **kwargs: Key word arguments handed to the AdaMLPBlock.
+    """
+
+    def __init__(
+        self,
+        x_dim: int,
+        emb_dim: int,
+        input_handler: nn.Module,
+        hidden_dim: int = 100,
+        num_layers: int = 3,
+        **kwargs,
+    ):
+        super().__init__()
+        self.input_handler = input_handler
+        self.num_layers = num_layers
+
+        self.ada_blocks = nn.ModuleList()
+        for _i in range(num_layers):
+            self.ada_blocks.append(AdaMLPBlock(hidden_dim, emb_dim, **kwargs))
+
+        self.input_layer = nn.Linear(x_dim, hidden_dim)
+        self.output_layer = nn.Linear(hidden_dim, x_dim)
+
+    def forward(self, inputs: Tuple[Tensor, Tensor, Tensor]) -> Tensor:
+        x, y, t = inputs
+        x, y, t = self.input_handler(x, y, t)
+        yt = torch.cat([y, t], dim=-1)
+
+        h = self.input_layer(x)
+        for i in range(self.num_layers):
+            h = self.ada_blocks[i](h, yt)
+        return self.output_layer(h)
+
+
+class AdaMLP_Scoring(nn.Module):
+    """
+    MLP denoising network using adaptive layer normalization for conditioning.
+    Relevant literature: https://arxiv.org/abs/2212.09748
+
+    See "Scalable Diffusion Models with Transformers", by William Peebles, Saining Xie.
+
+    Arguments:
+        x_dim: The dimensionality of the input tensor.
+        emb_dim: The number of embedding features.
+        input_handler: The input handler module.
+        hidden_dim: The dimensionality of the MLP block.
+        num_layers: The number of MLP blocks.
+        **kwargs: Key word arguments handed to the AdaMLPBlock.
+    """
+
+    def __init__(
+        self,
+        x_dim: int,
+        emb_dim: int,
+        input_handler: nn.Module = None,
+        hidden_dim: int = 100,
+        num_layers: int = 3,
+        **kwargs,
+    ):
+        super().__init__()
+
+        def pass_through(*args):
+            return args
+
+        self.input_handler = (
+            input_handler if input_handler is not None else pass_through
+        )
+        self.num_layers = num_layers
+
+        self.ada_blocks = nn.ModuleList()
+        for _i in range(num_layers):
+            self.ada_blocks.append(AdaMLPBlock(hidden_dim, emb_dim, **kwargs))
+
+        self.input_layer = nn.Linear(x_dim, hidden_dim)
+        self.output_layer = nn.Linear(hidden_dim, 1)
+        # add softplus to output
+        self.softplus = nn.Softplus()
+
+    def forward(self, inputs: Tuple[Tensor, Tensor, Tensor]) -> Tensor:
+        x, y, t = inputs
+        yt = torch.cat([y, t], dim=-1)
+
+        h = self.input_layer(x)
+        for i in range(self.num_layers):
+            h = self.ada_blocks[i](h, yt)
+        return self.softplus(self.output_layer(h))
+
+
 class SBINetwork(Module):
     from gbi_diff.utils.configs.train_guidance import (
         _ThetaEncoder,
@@ -103,7 +265,7 @@ class SBINetwork(Module):
     def __init__(
         self,
         theta_dim: int,
-        simulator_out_dim: int,
+        x_dim: int,
         trail_dim: int,
         theta_encoder: _ThetaEncoder,
         simulator_encoder: _SimulatorEncoder,
@@ -117,93 +279,134 @@ class SBINetwork(Module):
     ):
         super().__init__(*args, **kwargs)
         self.theta_dim = theta_dim
-        self.simulator_out_dim = simulator_out_dim
+        self.x_dim = x_dim
         self.trail_dim = trail_dim
         self.theta_stats = theta_stats
         self.x_stats = x_stats
         self.distance_stats = distance_stats
-        
-        if simulator_encoder.enabled and trail_dim is not None and trail_dim > 1:
+
+        self._sim_enc, self._sim_enc_out_dim = self._build_x_encoder(simulator_encoder)
+        self._theta_enc, self._theta_enc_out_dim = self._build_theta_encoder(
+            theta_encoder
+        )
+        self._time_enc, self._time_enc_out_dim = self._build_time_encoder(time_encoder)
+        hidden_dim = (
+            self._sim_enc_out_dim + self._theta_enc_out_dim + self._time_enc_out_dim
+        )
+        self._latent_mlp = self._build_latent_mlp(latent_mlp, hidden_dim)
+
+    def _build_x_encoder(self, config: _SimulatorEncoder) -> Tuple[nn.Module, int]:
+        if self.x_stats is not None:
+            net = Standardize(*self.x_stats)
+        else:
+            net = nn.Identity()
+        sim_enc = nn.Sequential(net)
+
+        if config.enabled and self.trail_dim is not None and self.trail_dim > 1:
             # permutation invariant embedding net required
             trial_net = FCEmbedding(
-                input_dim=simulator_out_dim,
-                output_dim=simulator_encoder.hidden_dim,
+                input_dim=self.x_dim,
+                output_dim=config.hidden_dim,
                 num_layers=2,
                 num_hiddens=40,
             )
-            self._sim_enc = PermutationInvariantEmbedding(
+            net = PermutationInvariantEmbedding(
                 trial_net=trial_net,
-                trial_net_output_dim=simulator_encoder.hidden_dim,
-                output_dim=simulator_encoder.hidden_dim,
+                trial_net_output_dim=config.hidden_dim,
+                output_dim=config.hidden_dim,
             )
-            hidden_dim = simulator_encoder.hidden_dim
-        elif simulator_encoder.enabled and (trail_dim is None or trail_dim <= 1):
-            self._sim_enc = FCEmbedding(
-                input_dim=simulator_out_dim,
-                output_dim=simulator_encoder.hidden_dim,
+            out_dim = config.hidden_dim
+        elif config.enabled and (self.trail_dim is None or self.trail_dim <= 1):
+            net = FCEmbedding(
+                input_dim=self.x_dim,
+                output_dim=config.hidden_dim,
                 num_layers=2,
                 num_hiddens=40,
             )
-            hidden_dim = simulator_encoder.hidden_dim
+            out_dim = config.hidden_dim
         else:
             self._sim_enc = nn.Identity()
-            hidden_dim = simulator_out_dim
+            out_dim = self.x_dim
+        sim_enc = sim_enc.append(net)
 
-        if time_encoder.enabled:
-            self._time_enc = FCEmbedding(
-                input_dim=time_encoder.input_dim,
-                output_dim=time_encoder.hidden_dim,
-                num_layers=time_encoder.n_layers,
-                num_hiddens=time_encoder.hidden_dim,
-            )
-            hidden_dim += time_encoder.hidden_dim
+        return sim_enc, out_dim
+
+    def _build_theta_encoder(self, config: _ThetaEncoder) -> Tuple[nn.Module, int]:
+        if self.theta_stats is not None:
+            net = Standardize(*self.theta_stats)
         else:
-            self._time_enc = nn.Identity()
-            hidden_dim += time_encoder.input_dim
+            net = nn.Identity()
+        theta_enc = nn.Sequential(net)
 
-        if theta_encoder.enabled:
-            self._theta_enc = FCEmbedding(
-                input_dim=theta_dim,
-                output_dim=theta_encoder.hidden_dim,
-                num_layers=theta_encoder.n_layers,
-                num_hiddens=theta_encoder.hidden_dim,
+        if config.enabled:
+            net = FCEmbedding(
+                input_dim=self.theta_dim,
+                output_dim=config.hidden_dim,
+                num_layers=config.n_layers,
+                num_hiddens=config.hidden_dim,
             )
-            hidden_dim += theta_encoder.hidden_dim
+            out_dim = config.hidden_dim
         else:
-            self._theta_enc = nn.Identity()
-            hidden_dim += theta_dim
+            net = nn.Identity()
+            out_dim = self.theta_dim
+        theta_enc.append(net)
+        return theta_enc, out_dim
 
-        if latent_mlp.net_type == "res_net":
-            self._latent_mlp = nets.ResidualNet(
-                in_features=hidden_dim,
-                out_features=1,
-                hidden_features=latent_mlp.hidden_dim,
-                num_blocks=latent_mlp.n_layers,
-                dropout_probability=latent_mlp.dropout_prob,
-                use_batch_norm=latent_mlp.use_batch_norm,
+    def _build_time_encoder(self, config: _TimeEncoder) -> Tuple[nn.Module, int]:
+        if config.enabled:
+            time_enc = FCEmbedding(
+                input_dim=config.input_dim,
+                output_dim=config.hidden_dim,
+                num_layers=config.n_layers,
+                num_hiddens=config.hidden_dim,
             )
-        elif latent_mlp.net_type == "MLP":
-            self._latent_mlp = nets.MLP(
-                in_shape=[hidden_dim],
-                out_shape=[1],
-                hidden_sizes=[latent_mlp.hidden_dim] * latent_mlp.n_layers,
-                activate_output=False,
+            out_dim = config.hidden_dim
+        else:
+            time_enc = nn.Identity()
+            out_dim = config.input_dim
+        return time_enc, out_dim
+
+    def _build_latent_mlp(self, config: _LatentMLP, input_dim: int) -> nn.Module:
+        if config.net_type == "res_net":
+            net = nn.Sequential(
+                Concatenate(dim=-1),
+                nets.ResidualNet(
+                    in_features=input_dim,
+                    out_features=1,
+                    hidden_features=config.hidden_dim,
+                    num_blocks=config.n_layers,
+                    dropout_probability=config.dropout_prob,
+                    use_batch_norm=config.use_batch_norm,
+                ),
+            )
+        elif config.net_type == "MLP":
+            net = nn.Sequential(
+                Concatenate(dim=-1),
+                FCEmbedding(
+                    input_dim=input_dim,
+                    output_dim=config.hidden_dim,
+                    num_layers=config.n_layers - 1,
+                    num_hiddens=config.hidden_dim,
+                ),
+                nn.Linear(config.hidden_dim, 1),
+            )
+        elif config.net_type == "AdaMLP":
+            net = AdaMLP_Scoring(
+        x_dim=self.             _sim_enc_out_dim,
+                emb_dim=input_dim - self._sim_enc_out_dim,
+                input_handler=None,
+                hidden_dim=config.hidden_dim,
+                num_layers=config.n_layers,
             )
         else:
             raise ValueError(
-                f"Unrecognized net type: {latent_mlp.net_type}. Available are 'res_net' and 'MLP'."
+                f"Unrecognized net type: {config.net_type}. Available are 'res_net', 'MLP' and 'AdaMLP."
             )
+        latent_mlp = nn.Sequential(net, nn.Softplus())
 
-        self._latent_mlp = nn.Sequential(self._latent_mlp, nn.Softplus())
-
-        if theta_stats is not None:
-            self._theta_enc = nn.Sequential(Standardize(*theta_stats), self._theta_enc)
-        if x_stats is not None:
-            self._sim_enc = nn.Sequential(Standardize(*x_stats), self._sim_enc)
-        if distance_stats is not None:
-            self._latent_mlp = nn.Sequential(
-                self._latent_mlp, nn.Softplus(), MultiplyByMean(*distance_stats)
-            )
+        if self.distance_stats is not None:
+            latent_mlp = latent_mlp.append(MultiplyByMean(*self.distance_stats))
+        return latent_mlp
 
     def forward(
         self, theta: Tensor, x_target: Tensor, time_repr: Tensor = None
@@ -217,8 +420,7 @@ class SBINetwork(Module):
         theta_embed = dim_repeat(theta_embed, int(n_target), 1)
         time_embed = dim_repeat(time_embed, int(n_target), 1)
 
-        hidden = torch.concat((theta_embed, x_embed, time_embed), dim=-1)
-        res = self._latent_mlp.forward(hidden)
+        res = self._latent_mlp.forward([theta_embed, x_embed, time_embed])
         return res
 
 
