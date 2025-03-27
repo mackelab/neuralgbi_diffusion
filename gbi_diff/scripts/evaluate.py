@@ -49,7 +49,7 @@ def evaluate_diffusion_sampling(
         diffusion_ckpt,
         guidance_ckpt,
         observed_data_file=eval_config.observed_data_file,
-        beta=eval_config.betas[0],
+        gamma=eval_config.betas[0],
         normalize_data=train_config.dataset.normalize,
     )
     # sampler.x_o = sampler.x_o[:2]
@@ -91,7 +91,7 @@ def evaluate_diffusion_sampling(
     iterator = tqdm(eval_config.betas, desc=f"Beta: {eval_config.betas[0]}")
     for beta_idx, beta in enumerate(iterator):
         iterator.set_description(f"Beta: {beta}")
-        sampler.update_beta(beta)
+        sampler.update_gamma(beta)
         file = sampler.forward(
             eval_config.n_samples,
             quiet=1,

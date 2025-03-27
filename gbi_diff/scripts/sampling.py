@@ -106,7 +106,7 @@ def diffusion_sampling(
         diffusion_ckpt,
         guidance_ckpt,
         observed_data_file=config.observed_data_file,
-        beta=config.beta,
+        gamma=config.beta,
         normalize_data=train_config.dataset.normalize,
     )
     samples = sampler.forward(n_samples)
