@@ -58,7 +58,6 @@ class _Optimizer(StructuredConfig):
 @dataclass
 class Config(StructuredConfig):
     data_entity: str
-    results_dir: str
     check_val_every_n_epochs: int
     num_worker: int
     max_epochs: int
