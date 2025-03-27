@@ -31,75 +31,78 @@ class Entrypoint:
 
         generate_dataset(dataset_type, sizes, path)
 
+    @add_hydra("config", None, "config", "train_potential.yaml")
     def train_potential(
         self,
-        config_file: str = "config/train_potential.yaml",
+        config: DictConfig,
         device: int = 1,
         force: bool = False,
     ):
         """start training process as defined in your config file
 
         Args:
-            config_file (str): path to config file (allowed are yaml, toml and json). Defaults to: "config/train_potential.yaml"
+            config (str): path to config file (allowed are yaml, toml and json). Defaults to: "config/train.yaml"
             device (int, optional): set to a number to indicate multiple devices. Defaults to 1.
             force (bool, optional): If you would like to start training without any questions
         """
         # >>>> add import here for faster help message
         from gbi_diff.scripts.train import train_potential  # pylint: disable=C0415
-        from gbi_diff.utils.train_potential_config import (
+        from gbi_diff.utils.configs.train_potential import (
             Config,
         )  # pylint: disable=C0415
 
         # <<<<
 
-        config = Config.from_file(config_file, resolve=True)
+        config = Config.from_dict_config(config, resolve=True)
         train_potential(config, device, force)
 
+    @add_hydra("config", None, "config", "train_guidance.yaml")
     def train_guidance(
         self,
-        config_file: str = "config/train_guidance.yaml",
+        config: DictConfig,
         device: int = 1,
         force: bool = False,
     ):
         """start training process as defined in your config file
 
         Args:
-            config_file (str): path to config file (allowed are yaml, toml and json). Defaults to: "config/train_guidance.yaml"
+            config (str): path to config file (allowed are yaml, toml and json). Defaults to: "config/train.yaml"
             device (int, optional): set to a number to indicate multiple devices. Defaults to 1.
             force (bool, optional): If you would like to start training without any questions
         """
         # >>>> add import here for faster help message
         from gbi_diff.scripts.train import train_guidance  # pylint: disable=C0415
-        from gbi_diff.utils.train_guidance_config import (
+        from gbi_diff.utils.configs.train_guidance import (
             Config,
         )  # pylint: disable=C0415
 
         # <<<<
 
-        config = Config.from_file(config_file, resolve=True)
+        config = Config.from_dict_config(config, resolve=True)
         train_guidance(config, device, force)
 
+    @add_hydra("config", None, "config", "train_diffusion.yaml")
     def train_diffusion(
         self,
-        config_file: str = "config/train_diffusion.yaml",
+        config: DictConfig,
         device: int = 1,
         force: bool = False,
     ):
         """train diffusion model which is also the prior for the sampling process
 
         Args:
-            config_file (str, optional): _description_. Defaults to "config/train_diffusion.yaml".
+            config (str, optional): _description_. Defaults to "config/train_diffusion.yaml".
             device (int, optional): _description_. Defaults to 1.
             force (bool, optional): _description_. Defaults to False.
         """
         # >>>> add import here for faster help message
         from gbi_diff.scripts.train import train_diffusion  # pylint: disable=C0415
-        from gbi_diff.utils.train_diffusion_config import (
+        from gbi_diff.utils.configs.train_diffusion import (
             Config,
         )  # pylint: disable=C0415
 
         # <<<<
-        config = Config.from_file(config_file, resolve=True)
+        config = Config.from_dict_config(config, resolve=True)
         train_diffusion(config, device, force)
 
     @add_hydra(
@@ -131,7 +134,7 @@ class Entrypoint:
         from gbi_diff.scripts.sampling import (
             diffusion_sampling,
         )  # pylint: disable=C0415
-        from gbi_diff.utils.sampling_diffusion_config import (
+        from gbi_diff.utils.configs.sampling_diffusion import (
             Config,
         )  # pylint: disable=C0415
 
@@ -168,7 +171,7 @@ class Entrypoint:
             )
 
         # >>>> add import here for faster help message
-        from gbi_diff.utils.sampling_mcmc_config import Config  # pylint: disable=C0415
+        from gbi_diff.utils.configs.sampling_mcmc import Config  # pylint: disable=C0415
         from gbi_diff.scripts.sampling import mcmc_sampling  # pylint: disable=C0415
 
         # <<<<
