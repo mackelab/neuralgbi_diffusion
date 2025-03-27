@@ -99,13 +99,15 @@ def diffusion_sampling(
     n_samples: int,
     plot: bool,
 ) -> torch.Tensor:
-    train_config: DiffusionTrainConfig = DiffusionTrainConfig.from_file(Path(diffusion_ckpt).parent.joinpath("config.yaml"))
+    train_config: DiffusionTrainConfig = DiffusionTrainConfig.from_file(
+        Path(diffusion_ckpt).parent.joinpath("config.yaml")
+    )
     sampler = DiffusionSampler(
         diffusion_ckpt,
         guidance_ckpt,
         observed_data_file=config.observed_data_file,
         beta=config.beta,
-        normalize_data=train_config.dataset.normalize
+        normalize_data=train_config.dataset.normalize,
     )
     samples = sampler.forward(n_samples)
     sampler.save_samples(
