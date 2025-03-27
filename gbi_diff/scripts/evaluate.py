@@ -79,7 +79,7 @@ def evaluate_diffusion_sampling(
     x_dim = sampler._guidance_model.hparams.simulator_out_dim
     n_x_o = len(sampler.x_o)
     param_samples = file.create_dataset(
-        "theta",
+        "theta_pred",
         (len(eval_config.betas), eval_config.n_samples, n_x_o, theta_dim),
         dtype="float32",
     )
@@ -105,7 +105,7 @@ def evaluate_diffusion_sampling(
     )
     trajectory = file.create_dataset(
         "trajectory",
-        (len(eval_config.betas), n_x_o, sampler._diff_model.diffusion_steps, eval_config.n_samples, theta_dim),
+        (len(eval_config.betas), n_x_o, sampler._diff_model.diffusion_steps + 1, eval_config.n_samples, theta_dim),
         dtype="float32",
     )
     
@@ -124,9 +124,9 @@ def evaluate_diffusion_sampling(
             quiet=1,
             h5_file=(file, slice(beta_idx + 1, beta_idx + 2)),
         )
-        guidance_grads[beta_idx] = sampler._info["guidance_grads"]
-        diffusion_steps[beta_idx] = sampler._info["diffusion_steps"]
-        trajectory[beta_idx] = sampler._info["trajectory"]
+        # guidance_grads[beta_idx] = sampler._info["guidance_grads"]
+        # diffusion_steps[beta_idx] = sampler._info["diffusion_steps"]
+        # trajectory[beta_idx] = sampler._info["trajectory"]
         
         for x_o_idx in range(n_x_o):
             obs_samples[beta_idx, :, x_o_idx] = dataset.sample_posterior(
