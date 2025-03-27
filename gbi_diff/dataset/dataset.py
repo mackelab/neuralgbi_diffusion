@@ -17,12 +17,12 @@ from gbi_diff.dataset.utils import generate_x_misspecified
 class _SBIDataset(Dataset):
     def __init__(
         self,
-        target_noise_std: float = 0.01,
+        target_noise_level: float = 0.01,
         n_target: int = 100,
         seed: int = 42,
         diffusion_scale: float = 0.5,
         max_diffusion_steps: int = 1000,
-        n_misspecified: int = 20,
+        n_misspecified: int = None,
         n_noised: int = 100,
         normalize: bool = False,
         *args,
@@ -34,18 +34,18 @@ class _SBIDataset(Dataset):
         """simulator parameter"""
 
         self._x: Tensor
-        """simulator result dependent on self._theta"""
+        """(specified) simulator result dependent on self._theta"""
 
-        self._x_target: Tensor
+        self._x_noised: Tensor
         """simulator results and noised with iid noised simulator results"""
 
         self._x_miss: Tensor
-        """misspecified data"""
+        """(misspecified) simulator result dependent on self._theta"""
 
-        self._x_all: Tensor
-        """concat of self._x, self._target, self._measured"""
+        self._x_target: Tensor
+        """concat of self._x, self._x_noised, self._x_mis"""
 
-        self._target_noise_std = target_noise_std
+        self._target_noise_level = target_noise_level
         self._n_target = n_target  # how big should be the target subsample -> TODO: same as batch size
         self._seed = seed
         self._diffusion_scale = diffusion_scale
@@ -67,9 +67,8 @@ class _SBIDataset(Dataset):
         obj = cls(**content)
         for key, value in content.items():
             setattr(obj, key, value)
-        setattr(obj, "_x_target", obj._generate_x_target())
-        setattr(obj, "_x_miss", obj._generate_misspecified_data())
-        setattr(obj, "_x_all", obj._get_all())
+        setattr(obj, "_x_noised", obj._generate_x_noised())
+        setattr(obj, "_x_target", obj._get_x_target())
 
         obj._theta_stats, obj._x_stats = obj.get_stats()
 
@@ -79,7 +78,8 @@ class _SBIDataset(Dataset):
         data = {
             "_theta": self._theta,
             "_x": self._x,
-            "_target_noise_std": self._target_noise_std,
+            "_x_miss": self._x_miss,
+            "_target_noise_std": self._target_noise_level,
             "_seed": self._seed,
             "_diffusion_scale": self._diffusion_scale,
             "_max_diffusion_steps": self._max_diffusion_steps,
@@ -100,14 +100,17 @@ class _SBIDataset(Dataset):
         theta, x = self._sample_data(size)
         self._theta = theta
         self._x = x
-        self._x_target = self._generate_x_target()
+        self._x_noised = self._generate_x_noised()
         self._x_miss = self._generate_misspecified_data()
-        self._x_all = self._get_all()
+        self._x_target = self._get_x_target()
 
         self._theta_stats, self._x_stats = self.get_stats()
 
     def _generate_misspecified_data(self) -> Tensor:
-        x = self._x[: self._n_misspecified].clone()
+        n_misspecified = (
+            len(self._theta) if self._n_misspecified is None else self._n_misspecified
+        )
+        x = self._x[:n_misspecified].clone()
         x_miss = generate_x_misspecified(
             x, self._diffusion_scale, self._max_diffusion_steps
         )
@@ -132,7 +135,7 @@ class _SBIDataset(Dataset):
         x = self._x[index]
 
         sample_idx = np.random.choice(
-            len(self._x_all), size=self._n_target, replace=False
+            len(self._x_target), size=self._n_target, replace=False
         )
         target_sample = self._x_all[sample_idx]
 
@@ -156,18 +159,20 @@ class _SBIDataset(Dataset):
     def set_n_target(self, value: int):
         self._n_target = value
 
-    def _generate_x_target(self):
+    def _generate_x_noised(self):
         random_state = np.random.default_rng(self._seed)
+
         n_samples = min(self._n_noised, len(self._x))
         x_sample = self._x[
             np.random.choice(len(self._x), size=n_samples, replace=False)
         ].clone()
-        noise = random_state.normal(0, 1, size=x_sample.shape)
-        res = x_sample + noise * self._target_noise_std
+
+        noise = random_state.standard_normal(size=x_sample.shape)
+        res = x_sample + self._target_noise_level * self._x.std() * noise
         return res.float()
 
-    def _get_all(self):
-        concat = torch.cat([self._x, self._x_target, self._x_miss], dim=0)
+    def _get_x_target(self):
+        concat = torch.cat([self._x, self._x_noised, self._x_miss], dim=0)
         return concat.float()
 
     def get_theta_mean(self) -> Tensor:
@@ -241,7 +246,7 @@ class _SourcererDataset(_SBIDataset):
         seed=42,
         diffusion_scale=0.5,
         max_diffusion_steps=1000,
-        n_misspecified=20,
+        n_misspecified=None,
         n_noised=100,
         normalize=False,
         *args,
@@ -281,7 +286,7 @@ class TwoMoons(_SourcererDataset):
         seed=42,
         diffusion_scale=0.5,
         max_diffusion_steps=1000,
-        n_misspecified=20,
+        n_misspecified=None,
         n_noised=100,
         normalize=False,
         *args,
@@ -309,7 +314,7 @@ class LotkaVolterra(_SourcererDataset):
         seed=42,
         diffusion_scale=0.5,
         max_diffusion_steps=1000,
-        n_misspecified=20,
+        n_misspecified=None,
         n_noised=100,
         normalize=False,
         *args,
@@ -337,7 +342,7 @@ class InverseKinematics(_SourcererDataset):
         seed=42,
         diffusion_scale=0.5,
         max_diffusion_steps=1000,
-        n_misspecified=20,
+        n_misspecified=None,
         n_noised=100,
         normalize=False,
         *args,
@@ -365,7 +370,7 @@ class SIR(_SourcererDataset):
         seed=42,
         diffusion_scale=0.5,
         max_diffusion_steps=1000,
-        n_misspecified=20,
+        n_misspecified=None,
         n_noised=100,
         normalize=False,
         *args,
@@ -393,8 +398,8 @@ class GaussianMixture(_SBIDataset):
         seed=42,
         diffusion_scale=0.5,
         max_diffusion_steps=1000,
-        n_misspecified=20,
-        n_noised=1100,
+        n_misspecified=None,
+        n_noised=100,
         normalize=False,
         *args,
         **kwargs,
@@ -411,25 +416,29 @@ class GaussianMixture(_SBIDataset):
             *args,
             **kwargs,
         )
-        self.simulator = GaussianMixtureSimulator(num_trials=1, seed=self._seed)
+        self._simulator = GaussianMixtureSimulator(seed=self._seed)
 
     def sample_posterior(self, prior_samples):
         x = self.simulator.simulate(prior_samples)
         # remove the trial dimension
-        x = x[:, 0]
         return x
 
     def _sample_data(self, size):
         theta = self.simulator.prior.sample((size,))
         x = self.sample_posterior(theta)
         return theta, x
-
+    
+    def _sample_data(self, size):
+        theta = self.simulator.prior.sample((size,))
+        x = self.sample_posterior(theta)
+        return theta, x
     def _generate_misspecified_data(self):
-        n_samples = min(self._n_misspecified, len(self._x))
+        if self._n_misspecified is None:
+            n_samples = len(self._x)
+        else:
+            n_samples = min(self._n_misspecified, len(self._x))
         sample_idx = np.random.choice(len(self._x), size=n_samples, replace=False)
-        x_miss = self.simulator.simulate_misspecified(self._theta[sample_idx])
-        # remove the trial dimension
-        x_miss = x_miss[:, 0]
+        x_miss = self._simulator.simulate_misspecified(self._theta[sample_idx])
         return x_miss
 
 
@@ -441,8 +450,8 @@ class LinearGaussian(_SBIDataset):
         seed=42,
         diffusion_scale=0.5,
         max_diffusion_steps=1000,
-        n_misspecified=20,
-        n_noised=1100,
+        n_misspecified=None,
+        n_noised=100,
         normalize=False,
         dim: int = 10,
         *args,
@@ -480,7 +489,7 @@ class Uniform(_SBIDataset):
         seed=42,
         diffusion_scale=0.5,
         max_diffusion_steps=1000,
-        n_misspecified=20,
+        n_misspecified=None,
         n_noised=1100,
         prior_bounds: Tuple = (-1.5, 1.5),
         poly_coeffs: Tensor = Tensor([0.1627, 0.9073, -1.2197, -1.4639, 1.4381]),
