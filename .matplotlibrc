@@ -16,6 +16,7 @@ font.sans-serif      : Arial, sans-serif
 font.cursive         : Arial, sans-serif
 font.size            : 6
 figure.titlesize     : 6
+figure.dpi           : 300
 legend.fontsize      : 6
 axes.titlesize       : 6
 axes.labelsize       : 6
