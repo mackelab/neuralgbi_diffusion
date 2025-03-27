@@ -86,9 +86,6 @@ def add_mcmc_sample_args(parser: ArgumentParser) -> ArgumentParser:
     return parser
 
 
-from pyargwriter.api.hydra_plugin import add_hydra_parser
-
-
 def add_diffusion_sample_args(parser: ArgumentParser) -> ArgumentParser:
     parser.add_argument(
         "--diffusion-ckpt",
@@ -132,14 +129,6 @@ def add_diffusion_sample_args(parser: ArgumentParser) -> ArgumentParser:
 
 def add_train_diffusion_args(parser: ArgumentParser) -> ArgumentParser:
     parser.add_argument(
-        "--config-file",
-        help='_description_. Defaults to "config/train_diffusion.yaml".',
-        dest="config_file",
-        type=str,
-        default="config/train_diffusion.yaml",
-        required=False,
-    )
-    parser.add_argument(
         "--device",
         help="_description_. Defaults to 1.",
         dest="device",
@@ -159,14 +148,6 @@ def add_train_diffusion_args(parser: ArgumentParser) -> ArgumentParser:
 
 def add_train_guidance_args(parser: ArgumentParser) -> ArgumentParser:
     parser.add_argument(
-        "--config-file",
-        help='path to config file (allowed are yaml, toml and json). Defaults to: "config/train_guidance.yaml"',
-        dest="config_file",
-        type=str,
-        default="config/train_guidance.yaml",
-        required=False,
-    )
-    parser.add_argument(
         "--device",
         help="set to a number to indicate multiple devices. Defaults to 1.",
         dest="device",
@@ -184,15 +165,10 @@ def add_train_guidance_args(parser: ArgumentParser) -> ArgumentParser:
     return parser
 
 
+from pyargwriter.api.hydra_plugin import add_hydra_parser
+
+
 def add_train_potential_args(parser: ArgumentParser) -> ArgumentParser:
-    parser.add_argument(
-        "--config-file",
-        help='path to config file (allowed are yaml, toml and json). Defaults to: "config/train_potential.yaml"',
-        dest="config_file",
-        type=str,
-        default="config/train_potential.yaml",
-        required=False,
-    )
     parser.add_argument(
         "--device",
         help="set to a number to indicate multiple devices. Defaults to 1.",
@@ -253,17 +229,20 @@ def setup_entrypoint_parser(
         "train-potential", help="start training process as defined in your config file"
     )
     train_potential = add_train_potential_args(train_potential)
+    train_potential = add_hydra_parser(train_potential)
     subparser["train_potential"] = train_potential
     train_guidance = command_subparser.add_parser(
         "train-guidance", help="start training process as defined in your config file"
     )
     train_guidance = add_train_guidance_args(train_guidance)
+    train_guidance = add_hydra_parser(train_guidance)
     subparser["train_guidance"] = train_guidance
     train_diffusion = command_subparser.add_parser(
         "train-diffusion",
         help="train diffusion model which is also the prior for the sampling process",
     )
     train_diffusion = add_train_diffusion_args(train_diffusion)
+    train_diffusion = add_hydra_parser(train_diffusion)
     subparser["train_diffusion"] = train_diffusion
     diffusion_sample = command_subparser.add_parser(
         "diffusion-sample", help="sample from diffusion process"
