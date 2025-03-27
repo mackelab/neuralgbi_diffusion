@@ -72,7 +72,7 @@ def train_guidance(config: Config_Guidance, devices: int = 1, force: bool = Fals
     )
     # model.init_wrt_dataset(train_set._theta, train_set._x, train_set._x_miss, dist_func)
 
-    _print_state(config, model)
+    _print_state(config, model, train_set)
     _ask(force)
 
     serial_config.to_file(log_dir + "/config.yaml")
