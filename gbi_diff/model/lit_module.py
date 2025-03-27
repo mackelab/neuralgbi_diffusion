@@ -1,6 +1,6 @@
 import functools
 from copy import deepcopy
-from typing import Callable, Tuple
+from typing import Any, Callable, Dict, Tuple
 
 import numpy as np
 import torch
@@ -261,6 +261,7 @@ class Guidance(_DiffusionBase):
         net_config: ModelGuidanceConfig,
         diff_config: DiffusionGuidanceConfig,
         trial_dim: int = 0,
+        net_kwargs: Dict[str, Any] = None,
         *args,
         **kwargs,
     ):
@@ -278,6 +279,7 @@ class Guidance(_DiffusionBase):
             time_encoder=net_config.TimeEncoder,
             latent_mlp=net_config.LatentMLP,
             trail_dim=trial_dim,
+            **net_kwargs,
         )
 
         if trial_dim > 0:
@@ -484,16 +486,15 @@ class DiffusionModel(_DiffusionBase):
         theta, _, _ = batch
         batch_size = len(theta)
 
-        loss_acc = 0
+        loss_aggr = 0
         preds = []
         targets = []
-        for sampled_t, t_repr in zip(self.val_t, self.val_t_repr):
-            sampled_t = sampled_t.repeat(batch_size)
-            t_repr = t_repr[None].repeat(batch_size, 1)
-            theta_t, noise = self.diff_schedule.forward(theta, sampled_t)
-            pred = self.forward(theta_t, t_repr)
+        for sampled_t, time_repr in zip(self.val_t, self.val_t_repr):
+            theta_t, noise = self.diff_schedule.forward(theta, torch.tensor([sampled_t]))
+            time_repr = time_repr[None].repeat(batch_size, 1)
+            pred = self.forward(theta_t, time_repr)
             loss = self.criterion.forward(pred, noise)
-            loss_acc += loss
+            loss_aggr += loss
             preds.append(pred)
             targets.append(noise)
 
@@ -502,7 +503,7 @@ class DiffusionModel(_DiffusionBase):
         self._val_step_outputs["pred"].append(preds)
         self._val_step_outputs["target"].append(targets)
 
-        self.log("val/loss", loss_acc / len(self.val_t), on_epoch=True, on_step=False)
+        self.log("val/loss", loss_aggr / len(self.val_t), on_epoch=True, on_step=False)
         return loss
 
     def on_validation_epoch_end(self):

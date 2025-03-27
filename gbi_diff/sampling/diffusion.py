@@ -11,8 +11,9 @@ from gbi_diff.model.lit_module import DiffusionModel, Guidance
 from gbi_diff.sampling.sampler import _PosteriorSampler
 from gbi_diff.sampling.utils import get_sample_path, load_data_stats, load_observed_data
 from gbi_diff.utils.plot import _pair_plot
-from gbi_diff.utils.train_diffusion_config import Config as DiffusionConfig
-from gbi_diff.utils.train_guidance_config import Config as GuidanceConfig
+from gbi_diff.utils.configs.train_diffusion import Config as DiffusionConfig
+from gbi_diff.utils.configs.train_guidance import Config as GuidanceConfig
+from gbi_diff.utils.configs.sampling_diffusion import Config
 
 
 class DiffusionSampler(_PosteriorSampler):
@@ -285,7 +286,7 @@ class DiffusionSampler(_PosteriorSampler):
 
     @property
     def theta_dim(self) -> int:
-        return self._guidance_model._net._theta_encoder._input_dim
+        return self._guidance_model._net.theta_dim
 
     @property
     def beta(self) -> float:

@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Tuple
 from torch import Tensor
 import torch
 from torch import Tensor
@@ -179,3 +179,12 @@ def compute_distances(
         distances.T
 
     return distances
+
+
+def get_distance_stats(
+    distance_func: Callable[[Tensor, Tensor], Tensor],
+    x_target: Tensor,
+    x_o: Tensor,
+) -> Tuple[Tensor, Tensor]:
+    distances = compute_distances(distance_func, x_target, x_o)
+    return distances.mean(), distances.std()

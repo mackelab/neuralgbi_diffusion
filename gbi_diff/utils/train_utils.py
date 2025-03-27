@@ -2,6 +2,7 @@ import logging
 import sys
 from typing import Tuple
 
+import hydra
 import torch
 import yaml
 from lightning import Trainer
@@ -26,11 +27,12 @@ def _setup_trainer(
         accelerator = "cpu"
 
     # setup logger
-    tb_logger = TensorBoardLogger(config.results_dir, log_graph=True)
+    log_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
+    tb_logger = TensorBoardLogger(log_dir, log_graph=True)
     csv_logger = CSVLogger(tb_logger.log_dir, name="csv_logs", version="")
 
     trainer = Trainer(
-        default_root_dir=config.results_dir,
+        default_root_dir=log_dir,
         logger=(
             # NOTE: make sure tensor board stays at first places
             tb_logger,
