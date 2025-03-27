@@ -1,0 +1,15 @@
+TimeEncoder:
+  input_dim: 64
+  output_dim: 64
+  activation_func: "ReLU"
+  architecture: [64]
+  final_activation: ReLU # Sigmoid only needed for cosine similarity -> otherwise null
+ThetaEncoder:
+  output_dim: 64
+  architecture: [64]
+  activation_func: "ReLU"
+  final_activation: ReLU # Sigmoid only needed for cosine similarity -> otherwise null
+LatentMLP:
+  architecture: [64, 64, 64       ]
+  activation_func: "ReLU"
+  final_activation: null # Sigmoid only needed for cosine similarity -> otherwise null

@@ -1,54 +1,16 @@
-data_entity: gaussian_mixture  
-results_dir: "results_normalized/diffusion/${data_entity}"
+# main.yaml
+defaults:
+  - _self_
+  - hydra: hydra
+  - dataset: dataset
+  - model: diffusion_model 
+  - diffusion: diffusion
+  - optimizer: optimizer
+
+data_entity: two_moons
 check_val_every_n_epochs: 5
 num_worker: 8  
 
-max_epochs: 100
+max_epochs: 100 
 batch_size: 256
-precision: 32 # 64: extended, 32: standard, 16: half
-
-dataset:
-  train_file: "data/${data_entity}_10000.pt"
-  val_file: "data/${data_entity}_1000.pt"
-  n_target: 20
-  noise_std: 0.1 # how strong to noise the augmentations in x_target
-  normalize: True 
-
-model:
-  TimeEncoder:
-    input_dim: 512
-    output_dim: 512
-    activation_func: "ReLU"
-    architecture: [1024]
-    final_activation: ReLU # Sigmoid only needed for cosine similarity -> otherwise null
-  ThetaEncoder:
-    output_dim: 128
-    architecture: [256]
-    activation_func: "ReLU"
-    final_activation: ReLU # Sigmoid only needed for cosine similarity -> otherwise null
-  LatentMLP:
-    architecture: [256, 156, 128]
-    activation_func: "ReLU"
-    final_activation: null # Sigmoid only needed for cosine similarity -> otherwise null
-
-diffusion:
-  steps: 1000
-  time_repr_dim: ${model.TimeEncoder.input_dim}  # sinusoidal position encoding dimensions 
-  period_spread: 10000  # parameter for sinusoidal positional encoding
-  diffusion_schedule: "DDPMSchedule"
-  # Variance Preserving Schedule
-  VPSchedule:
-    beta_start: 0.0001     
-    beta_end: 0.02
-    T: ${diffusion.steps}
-    beta_schedule_cls: "LinearSchedule"  
-  DDPMSchedule:
-    beta_start: 0.0001     
-    beta_end: 0.02
-    T: ${diffusion.steps}
-    beta_schedule_cls: "LinearSchedule"  
-
-optimizer:
-  name: AdamW
-  lr: 0.0001
-  weight_decay: 0
+precision: 32  # 64: extended, 32: standard, 16: half

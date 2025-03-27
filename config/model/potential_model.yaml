@@ -1,0 +1,14 @@
+ThetaEncoder:
+  output_dim: 128
+  architecture: [256]
+  activation_func: "ReLU"
+  final_activation: ReLU # Sigmoid only needed for cosine similarity -> otherwise null
+SimulatorEncoder:
+  output_dim: 128
+  architecture: [256]
+  activation_func: "ReLU"
+  final_activation: ReLU # Sigmoid only needed for cosine similarity -> otherwise null
+LatentMLP:
+  architecture: [256, 156, 128]
+  activation_func: "ReLU"
+  final_activation: Softplus # Sigmoid only needed for cosine similarity -> otherwise null

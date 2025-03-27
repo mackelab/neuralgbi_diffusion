@@ -1,35 +1,14 @@
-data_entity: uniform
-results_dir: "results/gbi/${data_entity}"
-check_val_every_n_epochs: 5
-num_worker: 8
+defaults:
+  - _self_
+  - hydra: hydra
+  - dataset: dataset
+  - model: potential_model
+  - optimizer: optimizer  
+
+data_entity: two_moons
+check_val_every_n_epochs: 5   
+num_worker: 12
 
 max_epochs: 100
 batch_size: 256
 precision: 32 # 64: extended, 32: standard, 16: half
-
-dataset:
-  train_file: "data/${data_entity}_10000.pt"
-  val_file: "data/${data_entity}_1000.pt"
-  n_target: 20
-  noise_std: 0.1 # how strong to noise the augmentations in x_target
-
-model:
-  ThetaEncoder:   
-    output_dim: 128
-    architecture: [256]
-    activation_func: "ReLU"
-    final_activation: ReLU # Sigmoid only needed for cosine similarity -> otherwise null
-  SimulatorEncoder:
-    output_dim: 128
-    architecture: [256]
-    activation_func: "ReLU"
-    final_activation: ReLU # Sigmoid only needed for cosine similarity -> otherwise null
-  LatentMLP:
-    architecture: [256, 156, 128]
-    activation_func: "ReLU"
-    final_activation: Softplus # Sigmoid only needed for cosine similarity -> otherwise null
-
-optimizer:
-  name: AdamW
-  lr: 0.0001
-  weight_decay: 0
