@@ -12,7 +12,7 @@ from gbi_diff.utils.train_utils import (
 )
 
 
-def train_potential(config: Config_Potential, devices: int = 1, force: bool = False):       
+def train_potential(config: Config_Potential, devices: int = 1, force: bool = False):
     # TODO: fixup device config
     serial_config = config
 
@@ -65,7 +65,7 @@ def train_guidance(config: Config_Guidance, devices: int = 1, force: bool = Fals
         trial_dim=trial_dim,
     )
     model.init_wrt_dataset(train_set._theta, train_set._x, train_set._x_miss, dist_func)
-    
+
     _print_state(config, model)
     _ask(force)
 
