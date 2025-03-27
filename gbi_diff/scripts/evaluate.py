@@ -51,6 +51,7 @@ def evaluate_diffusion_sampling(
         observed_data_file=eval_config.observed_data_file,
         gamma=eval_config.betas[0],
         normalize_data=train_config.dataset.normalize,
+        extended_information=True
     )
     # sampler.x_o = sampler.x_o[:2]
     print(yaml.dump(eval_config.to_container(), indent=4))
@@ -82,12 +83,38 @@ def evaluate_diffusion_sampling(
         (len(eval_config.betas), eval_config.n_samples, n_x_o, theta_dim),
         dtype="float32",
     )
+    obs_gt = file.create_dataset(
+        "x_gt",
+        (n_x_o, eval_config.n_samples, x_dim),
+        dtype="float32",
+    )
     obs_samples = file.create_dataset(
         "x_pred",
         (len(eval_config.betas), eval_config.n_samples, n_x_o, x_dim),
         dtype="float32",
     )
+    guidance_grads = file.create_dataset(
+        "guidance_grads",
+        (len(eval_config.betas), n_x_o, sampler._diff_model.diffusion_steps, eval_config.n_samples, theta_dim),
+        dtype="float32",
+    )
+    diffusion_steps = file.create_dataset(
+        "diffusion_steps",
+        (len(eval_config.betas), n_x_o, sampler._diff_model.diffusion_steps, eval_config.n_samples, theta_dim),
+        dtype="float32",
+    )
+    trajectory = file.create_dataset(
+        "trajectory",
+        (len(eval_config.betas), n_x_o, sampler._diff_model.diffusion_steps, eval_config.n_samples, theta_dim),
+        dtype="float32",
+    )
+    
+    # add ground truth samples
+    print("sample ground truth")
+    for x_o_idx, theta in enumerate(sampler.theta_o):
+        obs_gt[x_o_idx] = dataset.sample_posterior(theta[None].repeat(eval_config.n_samples, 1))
 
+    print("Sample from predicted distribution")
     iterator = tqdm(eval_config.betas, desc=f"Beta: {eval_config.betas[0]}")
     for beta_idx, beta in enumerate(iterator):
         iterator.set_description(f"Beta: {beta}")
@@ -97,6 +124,10 @@ def evaluate_diffusion_sampling(
             quiet=1,
             h5_file=(file, slice(beta_idx + 1, beta_idx + 2)),
         )
+        guidance_grads[beta_idx] = sampler._info["guidance_grads"]
+        diffusion_steps[beta_idx] = sampler._info["diffusion_steps"]
+        trajectory[beta_idx] = sampler._info["trajectory"]
+        
         for x_o_idx in range(n_x_o):
             obs_samples[beta_idx, :, x_o_idx] = dataset.sample_posterior(
                 torch.from_numpy(param_samples[beta_idx, :, x_o_idx])
