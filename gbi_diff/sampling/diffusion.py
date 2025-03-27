@@ -24,6 +24,7 @@ class DiffusionSampler(_PosteriorSampler):
         observed_data_file: str | Path,
         gamma: float = 1,
         normalize_data: bool = False,
+        extended_information: bool = False,
         *args,
         **kwargs,
     ):
@@ -50,15 +51,18 @@ class DiffusionSampler(_PosteriorSampler):
         self._guidance_model = Guidance.load_from_checkpoint(guidance_model_ckpt)
         self._diff_model = DiffusionModel.load_from_checkpoint(diff_model_ckpt)
         self.x_o, self.theta_o = load_observed_data(self._observed_data_file)
-        
+
         if self._normalize_data:
             self._data_stats = load_data_stats(
                 guidance_model_ckpt.parent.joinpath("data_stats.pt")
             )
         else:
             self._data_stats = None
-        
+
         self._diff_beta_schedule = self._diff_model.diff_schedule.beta_schedule
+
+        self._extended_information = extended_information
+        self._info = {"guidance_grad": [], "diffusion_grad": [], "trajectory": []}
 
     def _check_config(self, observed_data: str | Path, guidance_model_ckpt: Path):
         # check if dataset is compatible with guidance and therefor with diffusion model
@@ -121,7 +125,7 @@ class DiffusionSampler(_PosteriorSampler):
         return get_sample_path(self.diff_model_ckpt)
 
     def single_forward(
-        self, x_o: Tensor, n_samples: int, quiet: bool = False
+        self, x_o: Tensor, n_samples: int, quiet: bool = False, extended_information: bool = False,
     ) -> Tensor:
         """_summary_
 
@@ -148,6 +152,9 @@ class DiffusionSampler(_PosteriorSampler):
         if not quiet:
             iterator = tqdm(T, desc="Step in diffusion process", leave=True)
 
+        guidance_grads = []
+        diffusion_steps = []
+        trajectory = [theta_t]
         for t_idx in iterator:
             beta = self._diff_beta_schedule.forward(t_idx)
             alpha = self._diff_beta_schedule.get_alphas(t_idx)
@@ -156,23 +163,35 @@ class DiffusionSampler(_PosteriorSampler):
             time_repr = self._diff_model.get_diff_time_repr(np.array([t_idx]))
             time_repr = time_repr.repeat(n_samples, 1)
 
-            diffusion_step = self._diff_model.forward(theta_t, time_repr)
-            diffusion_step = diffusion_step.detach()
-            guidance_grad = self.get_log_boltzmann_grad(theta_t, x_o, time_repr)
+            with torch.no_grad():
+                diffusion_step = self._diff_model.forward(theta_t.clone(), time_repr)
+                diffusion_step = diffusion_step.detach()
+
+            guidance_grad = self.get_log_boltzmann_grad(theta_t.clone(), x_o, time_repr)
             guidance_grad = guidance_grad.detach()
 
             z = torch.normal(0, 1, size=theta_t.shape)
             z = torch.sqrt(beta) * z if t_idx > 0 else 0
 
-            theta_t = (1 / torch.sqrt(alpha)) * (
+            theta_t = (1 / torch.sqrt(alpha)) * (   
                 theta_t
                 - (1 - alpha) / torch.sqrt(1 - alpha_bar) * diffusion_step
                 + beta * guidance_grad
             ) + z
 
+            if extended_information:
+                guidance_grads.append(guidance_grad)
+                diffusion_steps.append(diffusion_step)
+                trajectory.append(theta_t.clone())
+
             del diffusion_step
             del guidance_grad
             del time_repr
+
+        if extended_information:
+            self._info["guidance_grad"].append(torch.stack(guidance_grads))
+            self._info["diffusion_grad"].append(torch.stack(diffusion_steps))
+            self._info["trajectory"].append(torch.stack(trajectory))
 
         if self._normalize_data:
             (theta_mean, theta_std), _ = self._data_stats
@@ -229,6 +248,7 @@ class DiffusionSampler(_PosteriorSampler):
         Returns:
             Tensor: (n_samples, n_observed_data, param_dim) | h5py.File
         """
+        self._info = {"guidance_grad": [], "diffusion_grad": [], "trajectory": []}
 
         if h5_file is None:
             res = torch.zeros((1, n_samples, len(self.x_o), self.theta_dim))
@@ -242,10 +262,15 @@ class DiffusionSampler(_PosteriorSampler):
             iterator = tqdm(self.x_o, desc="Sample in observed data")
 
         for idx, x_o in enumerate(iterator):
-            samples = self.single_forward(x_o, n_samples, quiet < 2).detach().cpu()
+            samples = self.single_forward(x_o, n_samples, quiet < 2, self._extended_information).detach().cpu()
             if h5_file is not None:
                 samples = samples.numpy().copy()
             res[s, :, idx] = samples
+
+        if self._extended_information:
+            self._info["guidance_grad"] = torch.stack(self._info["guidance_grad"])
+            self._info["diffusion_grad"] = torch.stack(self._info["diffusion_grad"])
+            self._info["trajectory"] = torch.stack(self._info["trajectory"])
 
         if h5_file is None:
             # remove artificial dimension and return stacked tensor
