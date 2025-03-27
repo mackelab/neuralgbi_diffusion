@@ -14,7 +14,7 @@ SimulatorEncoder:
   hidden_dim: 64
   output_dim: 128
 LatentMLP:
-  net_type: "AdaMLP"
+  net_type: "res_net"
   n_target: ${dataset.n_target}
   n_layers: 5 
   hidden_dim: 64
