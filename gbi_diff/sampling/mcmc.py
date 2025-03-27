@@ -95,7 +95,9 @@ class PotentialFunc:
 
 
 class MCMCSampler(_PosteriorSampler):
-    def __init__(self, checkpoint: str | Path, config: Config, normalize_data: bool=False):
+    def __init__(
+        self, checkpoint: str | Path, config: Config, normalize_data: bool = False
+    ):
         super().__init__()
         if isinstance(checkpoint, str):
             checkpoint = Path(checkpoint)
@@ -103,7 +105,9 @@ class MCMCSampler(_PosteriorSampler):
         self._config = config
         self._normalize_data = normalize_data
         self._x_o, _ = load_observed_data(self._config.observed_data_file)
-        self._data_stats = load_data_stats(self._checkpoint.parent.joinpath("data_stats.pt"))
+        self._data_stats = load_data_stats(
+            self._checkpoint.parent.joinpath("data_stats.pt")
+        )
         self._potential_function = self._create_potential_fn(checkpoint)
 
     def _create_potential_fn(self, checkpoint: str) -> PotentialFunc:
@@ -150,7 +154,7 @@ class MCMCSampler(_PosteriorSampler):
         if self._normalize_data:
             (theta_mean, theta_std), _ = self._data_stats
             theta = theta * theta_std + theta_mean
-        
+
         return theta
 
     def forward(self, n_samples: int, quiet: bool = False) -> torch.Tensor:

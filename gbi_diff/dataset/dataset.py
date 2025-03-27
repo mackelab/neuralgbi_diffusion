@@ -200,7 +200,7 @@ class _SBIDataset(Dataset):
 
     def set_stats(self, stats: Tuple[Tuple[Tensor, Tensor], Tuple[Tensor, Tensor]]):
         self._theta_stats, self._x_stats = stats
-    
+
     def save_stats(self, path: Path | str = None):
         """save stats in data_stats.pt
 
@@ -215,7 +215,15 @@ class _SBIDataset(Dataset):
         elif isinstance(path, str):
             path = Path(path)
         path.mkdir(parents=True, exist_ok=True)
-        torch.save({"theta_mean": theta_mean, "theta_std": theta_std, "x_mean": x_mean, "x_std": x_std}, path.joinpath("data_stats.pt"))
+        torch.save(
+            {
+                "theta_mean": theta_mean,
+                "theta_std": theta_std,
+                "x_mean": x_mean,
+                "x_std": x_std,
+            },
+            path.joinpath("data_stats.pt"),
+        )
 
     def normalize_theta(self, theta: Tensor) -> Tensor:
         theta_mean, theta_std = self._theta_stats
@@ -427,11 +435,12 @@ class GaussianMixture(_SBIDataset):
         theta = self.simulator.prior.sample((size,))
         x = self.sample_posterior(theta)
         return theta, x
-    
+
     def _sample_data(self, size):
         theta = self.simulator.prior.sample((size,))
         x = self.sample_posterior(theta)
         return theta, x
+
     def _generate_misspecified_data(self):
         if self._n_misspecified is None:
             n_samples = len(self._x)

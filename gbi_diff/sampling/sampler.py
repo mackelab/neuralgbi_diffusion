@@ -16,7 +16,12 @@ class _PosteriorSampler(ABC):
         self.x_o: Tensor
 
     @abstractmethod
-    def forward(self, n_sample: int, quiet: bool = False, h5_file: Tuple[h5py.File, slice] = None) -> Tensor | h5py.File:
+    def forward(
+        self,
+        n_sample: int,
+        quiet: bool = False,
+        h5_file: Tuple[h5py.File, slice] = None,
+    ) -> Tensor | h5py.File:
         raise NotImplementedError
 
     @abstractmethod
@@ -31,7 +36,7 @@ class _PosteriorSampler(ABC):
             Path: _description_
         """
         raise NotImplementedError
-    
+
     def save_samples(
         self,
         x_o: Tensor,

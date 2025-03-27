@@ -76,7 +76,13 @@ class PotentialNetwork(LightningModule):
         self._train_step_outputs = {"pred": [], "d": []}
         self._val_step_outputs = {"pred": [], "d": []}
 
-    def init_wrt_dataset(self, theta: Tensor, x: Tensor, x_target: Tensor, distance_func: Callable[[Tensor, Tensor], Tensor]):
+    def init_wrt_dataset(
+        self,
+        theta: Tensor,
+        x: Tensor,
+        x_target: Tensor,
+        distance_func: Callable[[Tensor, Tensor], Tensor],
+    ):
         """init network standardizer and distribution multipliers
 
         Args:
@@ -87,7 +93,6 @@ class PotentialNetwork(LightningModule):
         """
         self._net.init_standardize_net(theta, x)
         self._net.init_distr_multiplier(x, x_target, distance_func)
-
 
     def _batch_forward(self, batch: Tuple[Tensor, Tensor, Tensor]) -> Tensor:
         theta, simulator_out, x_target = batch
@@ -294,7 +299,13 @@ class Guidance(_DiffusionBase):
         self._train_step_outputs = {"pred": [], "d": []}
         self._val_step_outputs = {"pred": [], "d": []}
 
-    def init_wrt_dataset(self, theta: Tensor, x: Tensor, x_target: Tensor, distance_func: Callable[[Tensor, Tensor], Tensor]):
+    def init_wrt_dataset(
+        self,
+        theta: Tensor,
+        x: Tensor,
+        x_target: Tensor,
+        distance_func: Callable[[Tensor, Tensor], Tensor],
+    ):
         """init network standardizer and distribution multipliers
 
         Args:

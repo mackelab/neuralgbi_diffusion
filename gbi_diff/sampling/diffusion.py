@@ -1,4 +1,4 @@
-from typing      import Tuple
+from typing import Tuple
 from pathlib import Path
 
 import h5py
@@ -40,7 +40,7 @@ class DiffusionSampler(_PosteriorSampler):
         self._config = {
             "observed_data_file": self._observed_data_file,
             "beta": self._beta,
-            "normalize_data": self._normalize_data
+            "normalize_data": self._normalize_data,
         }
 
         self._check_model_compatibility(diff_model_ckpt, guidance_model_ckpt)
@@ -49,9 +49,11 @@ class DiffusionSampler(_PosteriorSampler):
         self._guidance_model = Guidance.load_from_checkpoint(guidance_model_ckpt)
         self._diff_model = DiffusionModel.load_from_checkpoint(diff_model_ckpt)
         self.x_o, self.theta_o = load_observed_data(self._observed_data_file)
-        self._data_stats = load_data_stats(guidance_model_ckpt.parent.joinpath("data_stats.pt"))
+        self._data_stats = load_data_stats(
+            guidance_model_ckpt.parent.joinpath("data_stats.pt")
+        )
         self._diff_beta_schedule = self._diff_model.diff_schedule.beta_schedule
-    
+
     def _check_config(self, observed_data: str | Path, guidance_model_ckpt: Path):
         # check if dataset is compatible with guidance and therefor with diffusion model
         guidance_model_config: GuidanceConfig = GuidanceConfig.from_file(
@@ -136,7 +138,7 @@ class DiffusionSampler(_PosteriorSampler):
         if self._normalize_data:
             _, (x_mean, x_std) = self._data_stats
             x_o = (x_o - x_mean) / x_std
-        
+
         iterator = T
         if not quiet:
             iterator = tqdm(T, desc="Step in diffusion process", leave=True)
@@ -157,12 +159,11 @@ class DiffusionSampler(_PosteriorSampler):
             z = torch.normal(0, 1, size=theta_t.shape)
             z = torch.sqrt(beta) * z if t_idx > 0 else 0
 
-            theta_t = (
-                (1 / torch.sqrt(alpha))
-                * (theta_t - (1 - alpha) / torch.sqrt(1 - alpha_bar) * diffusion_step
-                + beta * guidance_grad)
-                + z
-            )
+            theta_t = (1 / torch.sqrt(alpha)) * (
+                theta_t
+                - (1 - alpha) / torch.sqrt(1 - alpha_bar) * diffusion_step
+                + beta * guidance_grad
+            ) + z
 
             del diffusion_step
             del guidance_grad
@@ -210,14 +211,16 @@ class DiffusionSampler(_PosteriorSampler):
         theta = theta.detach()
         return grad
 
-    def forward(self, n_samples: int, quiet: int = 0, h5_file: Tuple[h5py.File, slice] = None) -> Tensor | h5py.File:
+    def forward(
+        self, n_samples: int, quiet: int = 0, h5_file: Tuple[h5py.File, slice] = None
+    ) -> Tensor | h5py.File:
         """_summary_
 
         Args:
             n_samples (int): _description_
             quiet (optional, bool): 0 no progress bar at all. 1: only the upper progress bar. 2. all progress bars
-            h5_file (optional, Tuple[h5py.File, slice]): is a combination of h5 file which has to contain the dataset 
-                "theta" in the shape such that it fits the gained samples 
+            h5_file (optional, Tuple[h5py.File, slice]): is a combination of h5 file which has to contain the dataset
+                "theta" in the shape such that it fits the gained samples
         Returns:
             Tensor: (n_samples, n_observed_data, param_dim) | h5py.File
         """
