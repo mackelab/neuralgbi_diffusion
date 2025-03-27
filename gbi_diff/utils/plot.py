@@ -12,7 +12,7 @@ from matplotlib.axis import Axis
 from matplotlib.figure import Figure
 from tqdm import tqdm
 
-from gbi_diff.utils.sampling_mcmc_config import Config
+from gbi_diff.utils.configs.sampling_diffusion import Config
 from gbi_diff.utils.metrics import batch_correlation
 
 
@@ -141,7 +141,7 @@ def plot_diffusion_step_corr(
     x = torch.arange(n_diff_steps)
 
     ax.fill_between(x, mean - std, mean + std, alpha=0.6, label="std")
-    ax.plot(mean, label="mean")
+    ax.plot(x, mean, label="mean")
     ax.legend()
 
     ax.set_ylim([-0.05, 1.05])
