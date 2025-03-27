@@ -1,38 +1,34 @@
-from copy import deepcopy
 import functools
-from typing import Tuple
+from copy import deepcopy
+from typing import Callable, Tuple
 
-from einops import rearrange
-from matplotlib import pyplot as plt
 import numpy as np
 import torch
+from einops import rearrange
 from lightning import LightningModule
 from lightning.pytorch.loggers import TensorBoardLogger
+from matplotlib import pyplot as plt
 from torch import Tensor, optim
 
+import gbi_diff.diffusion.schedule as diffusion_schedule
 from gbi_diff.model.networks import DiffusionNetwork, SBINetwork
+from gbi_diff.utils.configs.train_diffusion import (
+    _Diffusion as DiffusionDiffusionConfig,
+)
+from gbi_diff.utils.configs.train_diffusion import _Model as DiffusionModelConfig
+from gbi_diff.utils.configs.train_diffusion import (
+    _Optimizer as DiffusionOptimizerConfig,
+)
+from gbi_diff.utils.configs.train_guidance import _Diffusion as DiffusionGuidanceConfig
+from gbi_diff.utils.configs.train_guidance import _Model as ModelGuidanceConfig
+from gbi_diff.utils.configs.train_guidance import _Optimizer as OptimizerGuidanceConfig
+from gbi_diff.utils.configs.train_potential import _Model as PotentialModelConfig
+from gbi_diff.utils.configs.train_potential import _Optimizer as OptimizerConfig
+from gbi_diff.utils.criterion import DiffusionCriterion, SBICriterion
 
 # from gbi_diff.utils.metrics import batch_correlation
 from gbi_diff.utils.encoding import get_positional_encoding
-
-from gbi_diff.utils.train_potential_config import _Model as ModelConfig
-from gbi_diff.utils.train_potential_config import _Optimizer as OptimizerConfig
-
-from gbi_diff.utils.train_guidance_config import _Diffusion as DiffusionGuidanceConfig
-from gbi_diff.utils.train_guidance_config import _Model as ModelGuidanceConfig
-from gbi_diff.utils.train_guidance_config import _Optimizer as OptimizerGuidanceConfig
-
-from gbi_diff.utils.train_diffusion_config import _Optimizer as DiffusionOptimizerConfig
-from gbi_diff.utils.train_diffusion_config import _Model as DiffusionModelConfig
-from gbi_diff.utils.train_diffusion_config import _Diffusion as DiffusionDiffusionConfig
-
-from gbi_diff.utils.criterion import DiffusionCriterion, SBICriterion
-from gbi_diff.utils.plot import (
-    plot_correlation,
-    plot_diffusion_step_corr,
-    plot_diffusion_step_loss,
-)
-import gbi_diff.diffusion.schedule as diffusion_schedule
+from gbi_diff.utils.plot import plot_correlation, plot_diffusion_step_loss
 
 
 class PotentialNetwork(LightningModule):
@@ -41,9 +37,10 @@ class PotentialNetwork(LightningModule):
         theta_dim: int,
         simulator_out_dim: int,
         optimizer_config: OptimizerConfig,
-        net_config: ModelConfig,
+        net_config: PotentialModelConfig,
+        trial_dim: int = 0,
         *args,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.save_hyperparameters()
@@ -57,11 +54,20 @@ class PotentialNetwork(LightningModule):
             theta_encoder=net_config.ThetaEncoder,
             simulator_encoder=net_config.SimulatorEncoder,
             latent_mlp=net_config.LatentMLP,
+            trail_dim=trial_dim,
         )
-        self.example_input_array = (
-            torch.zeros(1, theta_dim),
-            torch.zeros(1, 1, simulator_out_dim),
-        )
+        if trial_dim > 0:
+            self.example_input_array = (
+                torch.zeros(1, theta_dim),
+                torch.zeros(1, 1, trial_dim, simulator_out_dim),
+                torch.zeros(1, net_config.TimeEncoder.input_dim),
+            )
+        else:
+            self.example_input_array = (
+                torch.zeros(1, theta_dim),
+                torch.zeros(1, 1, simulator_out_dim),
+                torch.zeros(1, net_config.TimeEncoder.input_dim),
+            )
 
         self.criterion = SBICriterion(distance_order=2)
         self._optimizer_config = optimizer_config.__dict__
@@ -69,6 +75,19 @@ class PotentialNetwork(LightningModule):
         # this thing should not leave the class. Inconsistencies with strings feared
         self._train_step_outputs = {"pred": [], "d": []}
         self._val_step_outputs = {"pred": [], "d": []}
+
+    def init_wrt_dataset(self, theta: Tensor, x: Tensor, x_target: Tensor, distance_func: Callable[[Tensor, Tensor], Tensor]):
+        """init network standardizer and distribution multipliers
+
+        Args:
+            theta (Tensor): _description_
+            x (Tensor): _description_
+            x_target (Tensor): _description_
+            distance_func (Callable[[Tensor, Tensor], Tensor]): _description_
+        """
+        self._net.init_standardize_net(theta, x)
+        self._net.init_distr_multiplier(x, x_target, distance_func)
+
 
     def _batch_forward(self, batch: Tuple[Tensor, Tensor, Tensor]) -> Tensor:
         theta, simulator_out, x_target = batch
@@ -236,8 +255,9 @@ class Guidance(_DiffusionBase):
         optimizer_config: OptimizerGuidanceConfig,
         net_config: ModelGuidanceConfig,
         diff_config: DiffusionGuidanceConfig,
+        trial_dim: int = 0,
         *args,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(diff_config, *args, **kwargs)
         self.save_hyperparameters()
@@ -252,19 +272,39 @@ class Guidance(_DiffusionBase):
             simulator_encoder=net_config.SimulatorEncoder,
             time_encoder=net_config.TimeEncoder,
             latent_mlp=net_config.LatentMLP,
-        )
-        self.example_input_array = (
-            torch.zeros(1, theta_dim),
-            torch.zeros(1, 1, simulator_out_dim),
-            torch.zeros(1, net_config.TimeEncoder.input_dim),
+            trail_dim=trial_dim,
         )
 
+        if trial_dim > 0:
+            self.example_input_array = (
+                torch.zeros(1, theta_dim),
+                torch.zeros(1, 1, trial_dim, simulator_out_dim),
+                torch.zeros(1, net_config.TimeEncoder.input_dim),
+            )
+        else:
+            self.example_input_array = (
+                torch.zeros(1, theta_dim),
+                torch.zeros(1, 1, simulator_out_dim),
+                torch.zeros(1, net_config.TimeEncoder.input_dim),
+            )
         self.criterion = SBICriterion(distance_order=2)
         self._optimizer_config = optimizer_config.__dict__
 
         # this thing should not leave the class. Inconsistencies with strings feared
         self._train_step_outputs = {"pred": [], "d": []}
         self._val_step_outputs = {"pred": [], "d": []}
+
+    def init_wrt_dataset(self, theta: Tensor, x: Tensor, x_target: Tensor, distance_func: Callable[[Tensor, Tensor], Tensor]):
+        """init network standardizer and distribution multipliers
+
+        Args:
+            theta (Tensor): _description_
+            x (Tensor): _description_
+            x_target (Tensor): _description_
+            distance_func (Callable[[Tensor, Tensor], Tensor]): _description_
+        """
+        self._net.init_standardize_net(theta, x)
+        self._net.init_distr_multiplier(x, x_target, distance_func)
 
     def forward(self, theta_t: Tensor, x_target: Tensor, time_repr: Tensor) -> Tensor:
         """_summary_
@@ -381,7 +421,7 @@ class DiffusionModel(_DiffusionBase):
         optimizer_config: DiffusionOptimizerConfig,
         net_config: DiffusionModelConfig,
         *args,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(diff_config, *args, **kwargs)
         self.save_hyperparameters()
