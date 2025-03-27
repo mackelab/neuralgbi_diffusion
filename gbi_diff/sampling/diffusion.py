@@ -22,7 +22,7 @@ class DiffusionSampler(_PosteriorSampler):
         diff_model_ckpt: str | Path,
         guidance_model_ckpt: str | Path,
         observed_data_file: str | Path,
-        beta: float = 1,
+        gamma: float = 1,
         normalize_data: bool = False,
         *args,
         **kwargs,
@@ -36,11 +36,11 @@ class DiffusionSampler(_PosteriorSampler):
         self.guidance_model_ckpt = guidance_model_ckpt
 
         self._observed_data_file = observed_data_file
-        self._beta = beta
+        self._gamma = gamma
         self._normalize_data = normalize_data
         self._config = {
             "observed_data_file": self._observed_data_file,
-            "beta": self._beta,
+            "gamma": self._gamma,
             "normalize_data": self._normalize_data,
         }
 
@@ -50,9 +50,14 @@ class DiffusionSampler(_PosteriorSampler):
         self._guidance_model = Guidance.load_from_checkpoint(guidance_model_ckpt)
         self._diff_model = DiffusionModel.load_from_checkpoint(diff_model_ckpt)
         self.x_o, self.theta_o = load_observed_data(self._observed_data_file)
-        self._data_stats = load_data_stats(
-            guidance_model_ckpt.parent.joinpath("data_stats.pt")
-        )
+        
+        if self._normalize_data:
+            self._data_stats = load_data_stats(
+                guidance_model_ckpt.parent.joinpath("data_stats.pt")
+            )
+        else:
+            self._data_stats = None
+        
         self._diff_beta_schedule = self._diff_model.diff_schedule.beta_schedule
 
     def _check_config(self, observed_data: str | Path, guidance_model_ckpt: Path):
@@ -67,7 +72,6 @@ class DiffusionSampler(_PosteriorSampler):
         observed_data = Path(observed_data)
         observed_set_name = "_".join(observed_data.stem.split("_")[:-1])
         msg = f"Observed dataset has to be compatible with training sets but: {observed_set_name=}, {guidance_train_set_name=}"
-        print(guidance_train_set_name, observed_set_name)
         assert (
             guidance_train_set_name.split("/")[-1] == observed_set_name.split("/")[-1]
         ), msg
@@ -186,9 +190,9 @@ class DiffusionSampler(_PosteriorSampler):
 
         Note: batchsize = n_samples. n_samples is the number of samples we sample per given observation we put in.
         Args:
-            theta (Tensor): theta tensor for guidance model (batch_size / n_samples, n_features)
+            theta (Tensor): theta tensor for guidance model (batch_size or n_samples, n_features)
             x_target (Tensor): guidance signal, observed data (n_target, n_sim_features)
-            time_repr (Tensor): time representation (batch_size, time_features)
+            time_repr (Tensor): time representation (batch_size or n_samples, time_features)
 
         Returns:
             Tensor: log gradient (batch_size, n_theta_features)
@@ -208,7 +212,7 @@ class DiffusionSampler(_PosteriorSampler):
 
         log_prob = self._guidance_model.forward(theta, x_target, time_repr)
         grad = torch.autograd.grad(outputs=log_prob.sum(), inputs=theta)[0]
-        grad = -self.beta * grad
+        grad = -self.gamma * grad
         theta = theta.detach()
         return grad
 
@@ -269,25 +273,25 @@ class DiffusionSampler(_PosteriorSampler):
             save_dir = Path(output)
 
         for target_idx in range(n_target):
-            log_prob = -self.beta * self._guidance_model.forward(
+            log_prob = -self.gamma * self._guidance_model.forward(
                 samples[:, target_idx], x_o[:, [target_idx]], time_repr
             )
             sample = samples[:, target_idx]
-            title = f"Index: {target_idx}, beta: {self.beta}"
-            file_name = f"pair_plot_{target_idx}_beta_{self.beta}.png"
+            title = f"Index: {target_idx}, gamma: {self.gamma}"
+            file_name = f"pair_plot_{target_idx}_gamma_{self.gamma}.png"
             save_path = save_dir / file_name
             _pair_plot(
                 sample, torch.exp(log_prob), title=title, save_path=str(save_path)
             )
 
-    def update_beta(self, value: int | float):
+    def update_gamma(self, value: int | float):
         assert isinstance(value, (int, float))
-        self._beta = value
+        self._gamma = value
 
     @property
     def theta_dim(self) -> int:
         return self._guidance_model._net.theta_dim
 
     @property
-    def beta(self) -> float:
-        return self._beta
+    def gamma(self) -> float:
+        return self._gamma
