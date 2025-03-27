@@ -137,7 +137,7 @@ class _SBIDataset(Dataset):
         sample_idx = np.random.choice(
             len(self._x_target), size=self._n_target, replace=False
         )
-        target_sample = self._x_all[sample_idx]
+        target_sample = self._x_target[sample_idx]
 
         if self._normalize:
             theta = self.normalize_theta(theta)
