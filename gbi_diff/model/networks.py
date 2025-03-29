@@ -1,5 +1,6 @@
 from typing import List, Tuple, Union
 
+import einops
 import torch
 import torch.nn as nn
 from torch import Tensor
@@ -31,7 +32,7 @@ class Concatenate(nn.Module):
     def __init__(self, dim: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.dim = dim
-        
+
     def forward(self, inputs: List[Tensor]) -> Tensor:
         return torch.cat(inputs, dim=self.dim)
 
@@ -392,7 +393,7 @@ class SBINetwork(Module):
             )
         elif config.net_type == "AdaMLP":
             net = AdaMLP_Scoring(
-        x_dim=self.             _sim_enc_out_dim,
+                x_dim=self._sim_enc_out_dim,
                 emb_dim=input_dim - self._sim_enc_out_dim,
                 input_handler=None,
                 hidden_dim=config.hidden_dim,
@@ -411,15 +412,35 @@ class SBINetwork(Module):
     def forward(
         self, theta: Tensor, x_target: Tensor, time_repr: Tensor = None
     ) -> Tensor:
-        x_embed = self._sim_enc.forward(x_target)
+        """_summary_
+
+        Args:
+            theta (Tensor): (batch_dim, theta_dim)
+            x_target (Tensor): (batch_dim, n_target, x_dim) or with trial dimension (batch_dim, n_target, n_trials, x_dim)
+            time_repr (Tensor, optional): (batch_dim, time_repr_dim). Defaults to None.
+
+        Returns:
+            Tensor: (batch_dim, n_target, 1)
+        """
         theta_embed = self._theta_enc.forward(theta)
         time_embed = self._time_enc.forward(time_repr)
-
+        
+        if len(x_target.shape) == 4:
+            batch_size, n_target, _, _ = x_target.shape
+            x_target = einops.rearrange(x_target, "b t T x -> (b t) T x")
+            x_embed = self._sim_enc.forward(x_target)
+            x_embed = einops.rearrange(
+                x_embed, "(b t) x -> b t x", b=batch_size, t=n_target
+            )
+        elif len(x_target.shape) >= 5:
+            raise ValueError("SBI Network is for 3 or 4 dimensions")
+        else:
+            x_embed = self._sim_enc.forward(x_target)
         # repeat theta_embed, and time embed
-        n_target = x_target.shape[1]
+        
+        n_target = x_embed.shape[1]
         theta_embed = dim_repeat(theta_embed, int(n_target), 1)
         time_embed = dim_repeat(time_embed, int(n_target), 1)
-
         res = self._latent_mlp.forward([theta_embed, x_embed, time_embed])
         return res
 
