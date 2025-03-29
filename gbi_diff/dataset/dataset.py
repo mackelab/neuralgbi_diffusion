@@ -117,10 +117,10 @@ class _SBIDataset(Dataset):
         return x_miss
 
     def get_theta_dim(self) -> int:
-        return self._theta.shape[1]
+        return self._theta.shape[-1]
 
     def get_sim_out_dim(self) -> int:
-        return self._x.shape[1]
+        return self._x.shape[-1]
 
     def __getitem__(self, index: int) -> Tuple[Tensor, Tensor, Tensor]:
         """_summary_
@@ -242,7 +242,22 @@ class _SBIDataset(Dataset):
         return x * x_std + x_mean
 
     def __repr__(self):
-        s = f"{type(self).__name__}:\n\t{self._target_noise_std=}\n\t{self._n_target=}\n\t{self._seed=}\n\t{self._diffusion_scale=}\n\t{self._max_diffusion_steps=}\n\t{self._n_misspecified=}\n\t{self._n_noised=}\n\t{self._normalize=}\n\tself._theta_stats=({self.get_theta_mean()},{self.get_theta_std()})\n\tself._x_stats=({self.get_x_mean()},{self.get_x_std()})"
+        s = f"{type(self).__name__}:"
+        s += f"\n\t{self._target_noise_std=}"
+        s += f"\n\t{self._n_target=}"
+        s += f"\n\t{self._seed=}"
+        s += f"\n\t{self._diffusion_scale=}"
+        s += f"\n\t{self._max_diffusion_steps=}"
+        s += f"\n\t{self._n_misspecified=}"
+        s += f"\n\t{self._n_noised=}"
+        s += f"\n\t{self._normalize=}"
+        s += f"\n\tself._theta_stats=({self.get_theta_mean()},{self.get_theta_std()})"
+        s += f"\n\tself._x_stats=({self.get_x_mean()},{self.get_x_std()})"
+        s += f"\n\t_theta.shape={self._theta.shape}"
+        s += f"\n\t_x.shape={self._x.shape}"
+        s += f"\n\t_x_miss.shape={self._x_miss.shape}"
+        s += f"\n\t_x_noised.shape={self._x_noised.shape}"
+        s += f"\n\t_x_target.shape={self._x_target.shape}"
         return s
 
 
@@ -424,7 +439,7 @@ class GaussianMixture(_SBIDataset):
             *args,
             **kwargs,
         )
-        self._simulator = GaussianMixtureSimulator(seed=self._seed)
+        self.simulator = GaussianMixtureSimulator(seed=self._seed)
 
     def sample_posterior(self, prior_samples):
         x = self.simulator.simulate(prior_samples)
@@ -447,7 +462,7 @@ class GaussianMixture(_SBIDataset):
         else:
             n_samples = min(self._n_misspecified, len(self._x))
         sample_idx = np.random.choice(len(self._x), size=n_samples, replace=False)
-        x_miss = self._simulator.simulate_misspecified(self._theta[sample_idx])
+        x_miss = self.simulator.simulate_misspecified(self._theta[sample_idx])
         return x_miss
 
 
