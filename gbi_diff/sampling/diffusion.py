@@ -62,7 +62,7 @@ class DiffusionSampler(_PosteriorSampler):
         self._diff_beta_schedule = self._diff_model.diff_schedule.beta_schedule
 
         self._extended_information = extended_information
-        self._info = {"guidance_grad": [], "diffusion_grad": [], "trajectory": []}
+        self._info = {"guidance_grad": [], "diffusion_step": [], "trajectory": []}
 
     def _check_config(self, observed_data: str | Path, guidance_model_ckpt: Path):
         # check if dataset is compatible with guidance and therefor with diffusion model
@@ -194,7 +194,7 @@ class DiffusionSampler(_PosteriorSampler):
 
         if extended_information:
             self._info["guidance_grad"].append(torch.stack(guidance_grads))
-            self._info["diffusion_grad"].append(torch.stack(diffusion_steps))
+            self._info["diffusion_step"].append(torch.stack(diffusion_steps))
             self._info["trajectory"].append(torch.stack(trajectory))
 
         if self._normalize_data:
@@ -220,11 +220,18 @@ class DiffusionSampler(_PosteriorSampler):
         Returns:
             Tensor: log gradient (batch_size, n_theta_features)
         """
-        if len(x_target.shape) == 1:
+        # add n_target target dimension
+        if len(x_target.shape) == 1 or (
+            len(x_target.shape) == 2 and len(self.x_o.shape) == 3
+        ):
             x_target = x_target[None]
 
+        # add batch dimension
         batch_size = len(theta)
-        x_target = x_target[None].repeat(batch_size, 1, 1)
+        if len(self.x_o.shape) == 3:  # trial in samples
+            x_target = x_target[None].repeat(batch_size, 1, 1, 1)
+        else:
+            x_target = x_target[None].repeat(batch_size, 1, 1)
 
         theta = theta.detach()
         theta.requires_grad = True
@@ -252,14 +259,14 @@ class DiffusionSampler(_PosteriorSampler):
         Returns:
             Tensor: (n_samples, n_observed_data, param_dim) | h5py.File
         """
-        self._info = {"guidance_grad": [], "diffusion_grad": [], "trajectory": []}
+        self._info = {"guidance_grad": [], "diffusion_step": [], "trajectory": []}
 
         if h5_file is None:
-            res = torch.zeros((1, n_samples, len(self.x_o), self.theta_dim))
+            res = torch.zeros((1, len(self.x_o), n_samples, self.theta_dim))
             s = slice(0, 1)
         else:
             file, s = h5_file
-            res = file["theta"]
+            res = file["theta_pred"]
 
         iterator = self.x_o
         if not (quiet >= 2):
@@ -274,33 +281,41 @@ class DiffusionSampler(_PosteriorSampler):
                 .cpu()
             )
             if h5_file is not None:
+                # convert to numpy for h5
                 samples = samples.numpy().copy()
-                res[s, :, idx] = samples
+
+            res[s, idx] = samples
 
         if self._extended_information:
             if h5_file is not None:
-                h5_file["guidance_grad"][s] = (
+                file["guidance_grad"][s] = (
                     torch.stack(self._info["guidance_grad"])
                     .detach()
                     .cpu()
                     .numpy()
                     .copy()
                 )
-                h5_file["diffusion_grad"][s] = (
-                    torch.stack(self._info["diffusion_grad"])
+                file["diffusion_step"][s] = (
+                    torch.stack(self._info["diffusion_step"])
                     .detach()
                     .cpu()
                     .numpy()
                     .copy()
                 )
-                h5_file["trajectory"][s] = (
+                file["trajectory"][s] = (
                     torch.stack(self._info["trajectory"]).detach().cpu().numpy().copy()
                 )
 
             else:
-                self._info["guidance_grad"] = torch.stack(self._info["guidance_grad"]).detach().cpu()
-                self._info["diffusion_grad"] = torch.stack(self._info["diffusion_grad"]).detach().cpu()
-                self._info["trajectory"] = torch.stack(self._info["trajectory"]).detach().cpu()
+                self._info["guidance_grad"] = (
+                    torch.stack(self._info["guidance_grad"]).detach().cpu()
+                )
+                self._info["diffusion_step"] = (
+                    torch.stack(self._info["diffusion_step"]).detach().cpu()
+                )
+                self._info["trajectory"] = (
+                    torch.stack(self._info["trajectory"]).detach().cpu()
+                )
 
         if h5_file is None:
             # remove artificial dimension and return stacked tensor
