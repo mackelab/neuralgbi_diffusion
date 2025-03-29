@@ -76,7 +76,7 @@ class PotentialNetwork(LightningModule):
         if self.trial_dim > 0:
             distance_func = "mmd"
         else:
-    distance_func = "       mse"
+            distance_func = "mse"
         self.criterion = SBICriterion(distance_func)
         self._optimizer_config = optimizer_config.__dict__
 
@@ -311,7 +311,7 @@ class Guidance(_DiffusionBase):
         if self.trial_dim > 0:
             distance_func = "mmd"
         else:
-    distance_func = "       mse"
+            distance_func = "mse"
         self.criterion = SBICriterion(distance_func)
 
         self._optimizer_config = optimizer_config.__dict__
