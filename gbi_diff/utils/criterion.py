@@ -1,17 +1,26 @@
+from typing import Callable, Literal
 import numpy as np
 import torch
 import torch.nn as nn
 from torch import Tensor
 
-from gbi_diff.utils.metrics import batch_correlation
+from gbi_diff.utils.metrics import batch_correlation, mmd_dist
 
 
 class SBICriterion:
     def __init__(
         self,
-        distance_order: int = 2.0,
+        distance_func: Literal["mse", "rmse", "mmd"],
     ):
-        self._distance_order = distance_order
+        if distance_func == "mse":
+            self.distance_func = self.mse_distance
+        elif distance_func == "rmse":
+            self.distance_func = self.rmse_distance
+        elif distance_func == "mmd":
+            self.distance_func = self.mmd_distance
+        else:
+            raise ValueError(f"No implemented distance function for: {distance_func=}")
+        
         self._pred: Tensor
         """(batch_size, n_target)"""
         self._d: Tensor
@@ -31,7 +40,7 @@ class SBICriterion:
             Tensor: loss
         """
         # distance matrix
-        d = self.sample_distance(x, x_target)
+        d = self.distance_func(x, x_target)
         d_target = d
 
         loss = self.mse.forward(pred[..., 0], d_target)
@@ -41,7 +50,8 @@ class SBICriterion:
         self._d = d
         return loss
 
-    def sample_distance(self, x: Tensor, x_target: Tensor) -> Tensor:
+    @staticmethod
+    def mse_distance(x: Tensor, x_target: Tensor) -> Tensor:
         """compute L2 distance
 
         Args:
@@ -53,11 +63,40 @@ class SBICriterion:
         """
 
         # L2 distance
-        difference = x[:, None] - x_target
-        distance = torch.linalg.norm(
-            difference, ord=self._distance_order, dim=-1
-        )  # pylint: disable=E1102
-        return distance
+        mse = torch.square(x[:, None] - x_target).sum(dim=-1)
+        return mse
+    
+    @staticmethod
+    def rmse_distance(x: Tensor, x_target: Tensor) -> Tensor:
+        """compute L2 distance
+
+        Args:
+            x (Tensor): (batch_size, n_sim_features)
+            x_target (Tensor): (batch_size, n_target, n_sim_features)
+
+        Returns:
+            Tensor: (batch_size, n_target)
+        """
+
+        # L2 distance
+        mse = torch.linalg.norm(x[:, None] - x_target, dim=-1)
+        return mse
+    
+
+    @staticmethod
+    def mmd_distance(x: Tensor, x_target: Tensor) -> Tensor:
+        """compute L2 distance
+
+        Args:
+            x (Tensor): (batch_size, n_sim_features)
+            x_target (Tensor): (batch_size, n_target, n_sim_features)
+
+        Returns:
+            Tensor: (batch_size, n_target)
+        """
+        batch_size = len(x)
+        res = torch.stack([mmd_dist(x_target[i], x[i]) for i in range(batch_size)])
+        return res
 
     def get_sample_correlation(self) -> Tensor:
         """computes Pearson correlation between network prediction and  distance matrix per sample in batchsize

@@ -28,6 +28,7 @@ from gbi_diff.utils.criterion import DiffusionCriterion, SBICriterion
 
 # from gbi_diff.utils.metrics import batch_correlation
 from gbi_diff.utils.encoding import get_positional_encoding
+from gbi_diff.utils.metrics import mse_dist, pairwise_mmd_dist
 from gbi_diff.utils.plot import plot_correlation, plot_diffusion_step_loss
 
 
@@ -44,32 +45,39 @@ class PotentialNetwork(LightningModule):
     ):
         super().__init__(*args, **kwargs)
         self.save_hyperparameters()
+        self.theta_dim = theta_dim
+        self.simulator_out_dim = simulator_out_dim
+        self.trial_dim = trial_dim
 
         optimizer_config = deepcopy(optimizer_config)
         net_config = deepcopy(net_config)
 
         self._net = SBINetwork(
-            theta_dim=theta_dim,
-            x_dim=simulator_out_dim,
+            theta_dim=self.theta_dim,
+            x_dim=self.simulator_out_dim,
             theta_encoder=net_config.ThetaEncoder,
             simulator_encoder=net_config.SimulatorEncoder,
             latent_mlp=net_config.LatentMLP,
-            trail_dim=trial_dim,
+            trail_dim=self.trial_dim,
         )
-        if trial_dim > 0:
+        if self.trial_dim > 0:
             self.example_input_array = (
-                torch.zeros(1, theta_dim),
-                torch.zeros(1, 1, trial_dim, simulator_out_dim),
+                torch.zeros(1, self.theta_dim),
+                torch.zeros(1, 1, self.trial_dim, self.simulator_out_dim),
                 torch.zeros(1, net_config.TimeEncoder.input_dim),
             )
         else:
             self.example_input_array = (
-                torch.zeros(1, theta_dim),
-                torch.zeros(1, 1, simulator_out_dim),
+                torch.zeros(1, self.theta_dim),
+                torch.zeros(1, 1, self.simulator_out_dim),
                 torch.zeros(1, net_config.TimeEncoder.input_dim),
             )
 
-        self.criterion = SBICriterion(distance_order=2)
+        if self.trial_dim > 0:
+            distance_func = "mmd"
+        else:
+    distance_func = "       mse"
+        self.criterion = SBICriterion(distance_func)
         self._optimizer_config = optimizer_config.__dict__
 
         # this thing should not leave the class. Inconsistencies with strings feared
@@ -92,7 +100,7 @@ class PotentialNetwork(LightningModule):
             distance_func (Callable[[Tensor, Tensor], Tensor]): _description_
         """
         self._net.init_standardize_net(theta, x)
-        self._net.init_distr_multiplier(x, x_target, distance_func)
+        self._net.init_distr_multiplier(x, x_target, distance_func)        
 
     def _batch_forward(self, batch: Tuple[Tensor, Tensor, Tensor]) -> Tensor:
         theta, simulator_out, x_target = batch
@@ -267,36 +275,45 @@ class Guidance(_DiffusionBase):
     ):
         super().__init__(diff_config, *args, **kwargs)
         self.save_hyperparameters()
+        self.theta_dim = theta_dim
+        self.simulator_out_dim = simulator_out_dim
+        self.trial_dim = trial_dim
 
         optimizer_config = deepcopy(optimizer_config)
         net_config = deepcopy(net_config)
 
         self._net = SBINetwork(
-            theta_dim=theta_dim,
-            x_dim=simulator_out_dim,
+            theta_dim=self.theta_dim,
+            x_dim=self.simulator_out_dim,
             theta_encoder=net_config.ThetaEncoder,
             simulator_encoder=net_config.SimulatorEncoder,
             time_encoder=net_config.TimeEncoder,
             latent_mlp=net_config.LatentMLP,
-            trail_dim=trial_dim,
+            trail_dim=self.trial_dim,
             **net_kwargs,
         )
 
         if trial_dim > 0:
             self.example_input_array = (
-                torch.zeros(1, theta_dim),
+                torch.zeros(1, self.theta_dim),
                 torch.zeros(
-                    1, net_config.LatentMLP.n_target, trial_dim, simulator_out_dim
+                    1, net_config.LatentMLP.n_target, self.trial_dim, self.simulator_out_dim
                 ),
                 torch.zeros(1, net_config.TimeEncoder.input_dim),
             )
         else:
             self.example_input_array = (
-                torch.zeros(1, theta_dim),
-                torch.zeros(1, net_config.LatentMLP.n_target, simulator_out_dim),
+                torch.zeros(1, self.theta_dim),
+                torch.zeros(1, net_config.LatentMLP.n_target, self.simulator_out_dim),
                 torch.zeros(1, net_config.TimeEncoder.input_dim),
             )
-        self.criterion = SBICriterion(distance_order=2)
+
+        if self.trial_dim > 0:
+            distance_func = "mmd"
+        else:
+    distance_func = "       mse"
+        self.criterion = SBICriterion(distance_func)
+
         self._optimizer_config = optimizer_config.__dict__
 
         # this thing should not leave the class. Inconsistencies with strings feared
