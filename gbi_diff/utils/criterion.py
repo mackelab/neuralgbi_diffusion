@@ -63,7 +63,7 @@ class SBICriterion:
         """
 
         # L2 distance
-        mse = torch.square(x[:, None] - x_target).sum(dim=-1)
+        mse = torch.square(x[:, None] - x_target).mean(dim=-1)
         return mse
     
     @staticmethod
