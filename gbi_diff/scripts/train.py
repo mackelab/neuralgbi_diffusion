@@ -27,14 +27,20 @@ def train_potential(config: Config_Potential, devices: int = 1, force: bool = Fa
         trial_dim = 0
         dist_func = mse_dist
 
+    kwargs = {
+        "theta_stats": compute_standardizing_net_params(train_set._theta, False),
+        "x_stats": compute_standardizing_net_params(train_set._x, False),
+        "distance_stats": compute_multiplybymean_params(dist_func, train_set._x_target, train_set._x),
+    }
+    
     model = PotentialNetwork(
         theta_dim=train_set.get_theta_dim(),
         simulator_out_dim=train_set.get_sim_out_dim(),
         optimizer_config=config.optimizer,
         net_config=config.model,
         trial_dim=trial_dim,
+        net_kwargs=kwargs,
     )
-    model.init_wrt_dataset(train_set._theta, train_set._x, train_set._x_miss, dist_func)
 
     _print_state(config, model, train_set)
     _ask(force)
