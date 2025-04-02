@@ -11,7 +11,7 @@ from tqdm import tqdm
 from gbi_diff.model.lit_module import PotentialNetwork
 from gbi_diff.sampling import prior_distr
 from gbi_diff.sampling.sampler import _PosteriorSampler
-from gbi_diff.sampling.utils import get_sample_path, load_data_stats, load_observed_data
+from gbi_diff.sampling.utils import get_sample_path, load_data_stats, load_specified_data
 from gbi_diff.utils.plot import _pair_plot
 from gbi_diff.utils.configs.sampling_mcmc import Config
 
@@ -41,15 +41,30 @@ class PotentialFunc:
             self.update_x_o(self.x_o)
 
     def log_likelihood(self, theta: torch.Tensor) -> torch.Tensor:
+        """_summary_
+
+        Args:
+            theta (torch.Tensor): (theta_dim, )
+
+        Returns:
+            torch.Tensor: _description_
+        """
         x_o = self.x_o
-        batched = False
-        if len(theta.shape) == 2:
-            x_o = self.x_o[None].repeat(len(theta), 1, 1)
-            batched = True
+        
+        artificial_batch = False
+        if len(theta.shape) == 1:
+            artificial_batch = True
+            theta = theta[None]
+        
+        x_o = self.x_o[None].repeat(len(theta), 1, 1)
+        
         score = self.nn.forward(theta, x_o)
-        ll = -self.beta * score
-        if batched:
-            ll = ll[:, 0]
+        score = score[..., 0]  # remove out dim because it is just one
+        ll = -self.beta * score     
+        
+        if artificial_batch:
+            ll = ll[0]
+        
         return ll
 
     def log_posterior(self, theta: torch.Tensor) -> torch.Tensor:
@@ -87,7 +102,7 @@ class PotentialFunc:
             bool: if the potential function will work as specified
         """
         prior_dim = len(self.prior.sample())
-        if self.nn._net._theta_encoder._input_dim != prior_dim:
+        if self.nn._net.theta_dim != prior_dim:
             raise ValueError(
                 f"Theta dim from prior does not fit to theta dim from likelihood:{self.nn.net._theta_encoder._input_dim} != {prior_dim}"
             )
@@ -104,7 +119,7 @@ class MCMCSampler(_PosteriorSampler):
         self._checkpoint = checkpoint
         self._config = config
         self._normalize_data = normalize_data
-        self._x_o, _ = load_observed_data(self._config.observed_data_file)
+        self._x_o, _ = load_specified_data(self._config.observed_data_file)
         self._data_stats = load_data_stats(
             self._checkpoint.parent.joinpath("data_stats.pt")
         )
@@ -208,7 +223,7 @@ class MCMCSampler(_PosteriorSampler):
                 sample, torch.exp(log_prob), title=title, save_path=str(save_path)
             )
 
-    def update_beta(self, value: float):
+    def update_gamma(self, value: float):
         assert isinstance(value, (float, int)), f"Expected numeric, got {type(value)}"
         self._config.beta = value
         self._potential_function.beta = value
