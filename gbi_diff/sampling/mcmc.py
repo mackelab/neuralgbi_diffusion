@@ -13,7 +13,7 @@ from gbi_diff.sampling import prior_distr
 from gbi_diff.sampling.sampler import _PosteriorSampler
 from gbi_diff.sampling.utils import get_sample_path, load_data_stats, load_observed_data
 from gbi_diff.utils.plot import _pair_plot
-from gbi_diff.utils.sampling_mcmc_config import Config
+from gbi_diff.utils.configs.sampling_mcmc import Config
 
 
 class PotentialFunc:

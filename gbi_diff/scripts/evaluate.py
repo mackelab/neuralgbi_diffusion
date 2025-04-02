@@ -13,7 +13,8 @@ from gbi_diff.utils.cast import to_camel_case
 from gbi_diff.utils.evaluate_diffusion_config import Config as EvalDiffConfig
 from gbi_diff.sampling.diffusion import DiffusionSampler
 from gbi_diff.dataset import dataset as sbi_datasets
-from gbi_diff.utils.train_diffusion_config import Config as DiffusionTrainConfig
+from gbi_diff.utils.configs.train_diffusion import Config as DiffusionTrainConfig
+from gbi_diff.dataset.dataset import GaussianMixture
 
 
 def evaluate_diffusion_sampling(
@@ -50,7 +51,7 @@ def evaluate_diffusion_sampling(
         guidance_ckpt,
         observed_data_file=eval_config.observed_data_file,
         gamma=eval_config.betas[0],
-        normalize_data=train_config.dataset.normalize,
+        normalize_data=False,
         extended_information=True
     )
     # sampler.x_o = sampler.x_o[:2]
@@ -80,30 +81,45 @@ def evaluate_diffusion_sampling(
     n_x_o = len(sampler.x_o)
     param_samples = file.create_dataset(
         "theta_pred",
-        (len(eval_config.betas), eval_config.n_samples, n_x_o, theta_dim),
+        (len(eval_config.betas), n_x_o, eval_config.n_samples, theta_dim),
         dtype="float32",
     )
-    obs_gt = file.create_dataset(
-        "x_gt",
-        (n_x_o, eval_config.n_samples, x_dim),
-        dtype="float32",
-    )
-    obs_samples = file.create_dataset(
-        "x_pred",
-        (len(eval_config.betas), eval_config.n_samples, n_x_o, x_dim),
-        dtype="float32",
-    )
-    guidance_grads = file.create_dataset(
-        "guidance_grads",
+    print(dataset)
+    if isinstance(dataset, GaussianMixture):
+        trial_dim = sampler.x_o.shape[1]
+        obs_gt = file.create_dataset(
+            "x_gt",
+            (n_x_o, eval_config.n_samples, trial_dim, x_dim),
+            dtype="float32",
+        )
+        obs_samples = file.create_dataset(
+            "x_pred",
+            (len(eval_config.betas), n_x_o, eval_config.n_samples, trial_dim, x_dim),
+            dtype="float32",
+        )
+    else:
+        obs_gt = file.create_dataset(
+            "x_gt",
+            (n_x_o, eval_config.n_samples, x_dim),
+            dtype="float32",
+        )
+        obs_samples = file.create_dataset(
+            "x_pred",
+            (len(eval_config.betas), n_x_o, eval_config.n_samples , x_dim),
+            dtype="float32",
+        )
+
+    file.create_dataset(
+        "guidance_grad",
         (len(eval_config.betas), n_x_o, sampler._diff_model.diffusion_steps, eval_config.n_samples, theta_dim),
         dtype="float32",
     )
-    diffusion_steps = file.create_dataset(
-        "diffusion_steps",
+    file.create_dataset(
+        "diffusion_step",
         (len(eval_config.betas), n_x_o, sampler._diff_model.diffusion_steps, eval_config.n_samples, theta_dim),
         dtype="float32",
     )
-    trajectory = file.create_dataset(
+    file.create_dataset(
         "trajectory",
         (len(eval_config.betas), n_x_o, sampler._diff_model.diffusion_steps + 1, eval_config.n_samples, theta_dim),
         dtype="float32",
@@ -122,15 +138,15 @@ def evaluate_diffusion_sampling(
         file = sampler.forward(
             eval_config.n_samples,
             quiet=1,
-            h5_file=(file, slice(beta_idx + 1, beta_idx + 2)),
+            h5_file=(file, slice(beta_idx, beta_idx + 1)),
         )
         # guidance_grads[beta_idx] = sampler._info["guidance_grads"]
         # diffusion_steps[beta_idx] = sampler._info["diffusion_steps"]
         # trajectory[beta_idx] = sampler._info["trajectory"]
         
         for x_o_idx in range(n_x_o):
-            obs_samples[beta_idx, :, x_o_idx] = dataset.sample_posterior(
-                torch.from_numpy(param_samples[beta_idx, :, x_o_idx])
+            obs_samples[beta_idx, x_o_idx] = dataset.sample_posterior(
+                torch.from_numpy(param_samples[beta_idx, x_o_idx])
             )
     print("Finished saving")
     file.close()

@@ -4,9 +4,9 @@ import torch
 from gbi_diff.sampling.diffusion import DiffusionSampler
 from gbi_diff.sampling.mcmc import MCMCSampler
 from gbi_diff.sampling.utils import save_torch, get_datetime_str
-from gbi_diff.utils.sampling_mcmc_config import Config as MCMCConfig
-from gbi_diff.utils.sampling_diffusion_config import Config as DiffusionSamplingConfig
-from gbi_diff.utils.train_diffusion_config import Config as DiffusionTrainConfig
+from gbi_diff.utils.configs.sampling_mcmc import Config as MCMCConfig
+from gbi_diff.utils.configs.sampling_diffusion import Config as DiffusionSamplingConfig
+from gbi_diff.utils.configs.train_diffusion import Config as DiffusionTrainConfig
 
 
 # NOTE: does not work yet with multiple worker
