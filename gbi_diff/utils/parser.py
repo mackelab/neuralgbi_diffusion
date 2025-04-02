@@ -127,7 +127,7 @@ def add_diffusion_sample_args(parser: ArgumentParser) -> ArgumentParser:
     return parser
 
 
-def add_train_diffusion_args(parser: ArgumentParser) -> ArgumentParser:
+def add_train_denoiser_args(parser: ArgumentParser) -> ArgumentParser:
     parser.add_argument(
         "--device",
         help="_description_. Defaults to 1.",
@@ -237,13 +237,13 @@ def setup_entrypoint_parser(
     train_guidance = add_train_guidance_args(train_guidance)
     train_guidance = add_hydra_parser(train_guidance)
     subparser["train_guidance"] = train_guidance
-    train_diffusion = command_subparser.add_parser(
-        "train-diffusion",
+    train_denoiser = command_subparser.add_parser(
+        "train-denoiser",
         help="train diffusion model which is also the prior for the sampling process",
     )
-    train_diffusion = add_train_diffusion_args(train_diffusion)
-    train_diffusion = add_hydra_parser(train_diffusion)
-    subparser["train_diffusion"] = train_diffusion
+    train_denoiser = add_train_denoiser_args(train_denoiser)
+    train_denoiser = add_hydra_parser(train_denoiser)
+    subparser["train_denoiser"] = train_denoiser
     diffusion_sample = command_subparser.add_parser(
         "diffusion-sample", help="sample from diffusion process"
     )

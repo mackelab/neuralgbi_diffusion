@@ -1,4 +1,3 @@
-import functools
 from copy import deepcopy
 from typing import Any, Callable, Dict, Tuple
 
@@ -11,13 +10,13 @@ from matplotlib import pyplot as plt
 from torch import Tensor, optim
 
 import gbi_diff.diffusion.schedule as diffusion_schedule
-from gbi_diff.model.networks import DiffusionNetwork, SBINetwork
-from gbi_diff.utils.configs.train_diffusion import (
+from gbi_diff.model.networks import DenoiserNetwork, SBINetwork
+from gbi_diff.utils.configs.train_denoiser import (
     _Diffusion as DiffusionDiffusionConfig,
 )
-from gbi_diff.utils.configs.train_diffusion import _Model as DiffusionModelConfig
-from gbi_diff.utils.configs.train_diffusion import (
-    _Optimizer as DiffusionOptimizerConfig,
+from gbi_diff.utils.configs.train_denoiser import _Model as DenoiserModelConfig
+from gbi_diff.utils.configs.train_denoiser import (
+    _Optimizer as DenoiserOptimizerConfig,
 )
 from gbi_diff.utils.configs.train_guidance import _Diffusion as DiffusionGuidanceConfig
 from gbi_diff.utils.configs.train_guidance import _Model as ModelGuidanceConfig
@@ -26,9 +25,7 @@ from gbi_diff.utils.configs.train_potential import _Model as PotentialModelConfi
 from gbi_diff.utils.configs.train_potential import _Optimizer as OptimizerConfig
 from gbi_diff.utils.criterion import DiffusionCriterion, SBICriterion
 
-# from gbi_diff.utils.metrics import batch_correlation
 from gbi_diff.utils.encoding import get_positional_encoding
-from gbi_diff.utils.metrics import mse_dist, pairwise_mmd_dist
 from gbi_diff.utils.plot import plot_correlation, plot_diffusion_step_loss
 
 
@@ -60,7 +57,7 @@ class PotentialNetwork(LightningModule):
             simulator_encoder=net_config.SimulatorEncoder,
             latent_mlp=net_config.LatentMLP,
             trail_dim=self.trial_dim,
-            **net_kwargs
+            **net_kwargs,
         )
         if self.trial_dim > 0:
             self.example_input_array = (
@@ -83,7 +80,6 @@ class PotentialNetwork(LightningModule):
         # this thing should not leave the class. Inconsistencies with strings feared
         self._train_step_outputs = {"pred": [], "d": []}
         self._val_step_outputs = {"pred": [], "d": []}
-  
 
     def _batch_forward(self, batch: Tuple[Tensor, Tensor, Tensor]) -> Tensor:
         theta, simulator_out, x_target = batch
@@ -102,7 +98,7 @@ class PotentialNetwork(LightningModule):
             Tensor: (batch_size, n_target)
         """
         return self._net.forward(theta, x_target)
-        
+
     def training_step(self, batch: Tuple[Tensor, Tensor, Tensor], batch_idx: int):
         loss = self._batch_forward(batch)
         self.log("train/loss", loss, on_epoch=True, on_step=False)
@@ -169,9 +165,9 @@ class _DiffusionBase(LightningModule):
         """same thing as: T (capital T)"""
         self.t = torch.linspace(0, 1, self.diffusion_steps)
 
-        assert self.diffusion_steps % 100 == 0, (
-            "For validation, T has to be a multiple of 100"
-        )
+        assert (
+            self.diffusion_steps % 100 == 0
+        ), "For validation, T has to be a multiple of 100"
         self.val_t = torch.linspace(0, self.diffusion_steps - 1, 100).int()
         self.val_t_repr = self.get_diff_time_repr(self.val_t).float()
 
@@ -280,7 +276,10 @@ class Guidance(_DiffusionBase):
             self.example_input_array = (
                 torch.zeros(1, self.theta_dim),
                 torch.zeros(
-                    1, net_config.LatentMLP.n_target, self.trial_dim, self.simulator_out_dim
+                    1,
+                    net_config.LatentMLP.n_target,
+                    self.trial_dim,
+                    self.simulator_out_dim,
                 ),
                 torch.zeros(1, net_config.TimeEncoder.input_dim),
             )
@@ -428,13 +427,13 @@ class Guidance(_DiffusionBase):
         return optimizer
 
 
-class DiffusionModel(_DiffusionBase):
+class DenoiserModel(_DiffusionBase):
     def __init__(
         self,
         theta_dim: int,
         diff_config: DiffusionDiffusionConfig,
-        optimizer_config: DiffusionOptimizerConfig,
-        net_config: DiffusionModelConfig,
+        optimizer_config: DenoiserOptimizerConfig,
+        net_config: DenoiserModelConfig,
         *args,
         **kwargs,
     ):
@@ -444,7 +443,7 @@ class DiffusionModel(_DiffusionBase):
         optimizer_config = deepcopy(optimizer_config)
         net_config = deepcopy(net_config)
 
-        self._net = DiffusionNetwork(
+        self._net = DenoiserNetwork(
             theta_dim=theta_dim,
             theta_encoder=net_config.ThetaEncoder,
             time_encoder=net_config.TimeEncoder,

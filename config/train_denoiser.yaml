@@ -3,7 +3,7 @@ defaults:
   - _self_
   - hydra: hydra
   - dataset: dataset
-  - model: diffusion_model 
+  - model: denoiser_model 
   - diffusion: diffusion
   - optimizer: optimizer
 

@@ -11,7 +11,11 @@ from tqdm import tqdm
 from gbi_diff.model.lit_module import PotentialNetwork
 from gbi_diff.sampling import prior_distr
 from gbi_diff.sampling.sampler import _PosteriorSampler
-from gbi_diff.sampling.utils import get_sample_path, load_data_stats, load_specified_data
+from gbi_diff.sampling.utils import (
+    get_sample_path,
+    load_data_stats,
+    load_specified_data,
+)
 from gbi_diff.utils.plot import _pair_plot
 from gbi_diff.utils.configs.sampling_mcmc import Config
 
@@ -50,21 +54,21 @@ class PotentialFunc:
             torch.Tensor: _description_
         """
         x_o = self.x_o
-        
+
         artificial_batch = False
         if len(theta.shape) == 1:
             artificial_batch = True
             theta = theta[None]
-        
+
         x_o = self.x_o[None].repeat(len(theta), 1, 1)
-        
+
         score = self.nn.forward(theta, x_o)
         score = score[..., 0]  # remove out dim because it is just one
-        ll = -self.beta * score     
-        
+        ll = -self.beta * score
+
         if artificial_batch:
             ll = ll[0]
-        
+
         return ll
 
     def log_posterior(self, theta: torch.Tensor) -> torch.Tensor:

@@ -39,15 +39,15 @@ def execute(args: dict) -> bool:
                 config_name="train_guidance.yaml",
             )
 
-        case "train-diffusion":
+        case "train-denoiser":
             api.hydra_plugin.hydra_wrapper(
-                module.train_diffusion,
+                module.train_denoiser,
                 args,
-                command_parser["train_diffusion"],
+                command_parser["train_denoiser"],
                 config_var_name="config",
                 version_base=None,
                 config_path=str(Path.cwd().joinpath("config")),
-                config_name="train_diffusion.yaml",
+                config_name="train_denoiser.yaml",
             )
 
         case "diffusion-sample":

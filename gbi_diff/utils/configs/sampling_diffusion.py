@@ -5,5 +5,5 @@ from config2class.api.base import StructuredConfig
 
 @dataclass
 class Config(StructuredConfig):
-    beta: int
-    observed_data_file: str
+    beta: int = None
+    observed_data_file: str = None

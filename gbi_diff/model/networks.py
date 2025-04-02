@@ -13,6 +13,11 @@ from sbi.neural_nets.embedding_nets import (
 )
 from pyknos.nflows.nn import nets
 from sbi.utils.sbiutils import Standardize
+from gbi_diff.utils.configs.train_denoiser import (
+    _ThetaEncoder,
+    _TimeEncoder,
+    _LatentMLP,
+)
 
 
 class MultiplyByMean(nn.Module):
@@ -437,10 +442,10 @@ class SBINetwork(Module):
             x_embed = self._sim_enc.forward(x_target)
         # repeat theta_embed, and time embed
         n_target = x_embed.shape[1]
-        
+
         theta_embed = self._theta_enc.forward(theta)
         theta_embed = dim_repeat(theta_embed, int(n_target), 1)
-        
+
         if time_repr is not None:
             time_embed = self._time_enc.forward(time_repr)
             time_embed = dim_repeat(time_embed, int(n_target), 1)
@@ -452,13 +457,7 @@ class SBINetwork(Module):
         return res
 
 
-class DiffusionNetwork(Module):
-    from gbi_diff.utils.configs.train_diffusion import (
-        _ThetaEncoder,
-        _TimeEncoder,
-        _LatentMLP,
-    )
-
+class DenoiserNetwork(Module):
     def __init__(
         self,
         theta_dim: int,

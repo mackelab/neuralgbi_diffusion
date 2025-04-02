@@ -13,53 +13,37 @@ class _Dataset(StructuredConfig):
 
 @dataclass
 class _TimeEncoder(StructuredConfig):
-    enabled: bool = None
     input_dim: int = None
-    n_layers: int = None
-    hidden_dim: int = None
+    output_dim: int = None
+    activation_func: str = None
+    architecture: list = None
+    final_activation: str = None
 
 
 @dataclass
 class _ThetaEncoder(StructuredConfig):
-    enabled: bool = None
     output_dim: int = None
-    n_layers: int = None
-    hidden_dim: int = None
-
-
-@dataclass
-class _SimulatorEncoder(StructuredConfig):
-    enabled: bool = None
-    n_layers: int = None
-    hidden_dim: int = None
-    output_dim: int = None
+    architecture: list = None
+    activation_func: str = None
+    final_activation: str = None
 
 
 @dataclass
 class _LatentMLP(StructuredConfig):
-    net_type: str = None
-    n_target: str = None
-    n_layers: int = None
-    hidden_dim: int = None
-    dropout_prob: float = None
-    use_batch_norm: bool = None
+    architecture: list = None
+    activation_func: str = None
+    final_activation: NoneType = None
 
 
 @dataclass
 class _Model(StructuredConfig):
     TimeEncoder: _TimeEncoder = None
     ThetaEncoder: _ThetaEncoder = None
-    SimulatorEncoder: _SimulatorEncoder = None
     LatentMLP: _LatentMLP = None
-    final_activation: str = None
-    standardize: bool = None
 
     def __post_init__(self):
         self.TimeEncoder = _TimeEncoder(**self.TimeEncoder)  # pylint: disable=E1134
         self.ThetaEncoder = _ThetaEncoder(**self.ThetaEncoder)  # pylint: disable=E1134
-        self.SimulatorEncoder = _SimulatorEncoder(
-            **self.SimulatorEncoder
-        )  # pylint: disable=E1134
         self.LatentMLP = _LatentMLP(**self.LatentMLP)  # pylint: disable=E1134
 
 

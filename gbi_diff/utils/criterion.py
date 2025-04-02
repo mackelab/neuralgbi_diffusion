@@ -20,7 +20,7 @@ class SBICriterion:
             self.distance_func = self.mmd_distance
         else:
             raise ValueError(f"No implemented distance function for: {distance_func=}")
-        
+
         self._pred: Tensor
         """(batch_size, n_target)"""
         self._d: Tensor
@@ -65,7 +65,7 @@ class SBICriterion:
         # L2 distance
         mse = torch.square(x[:, None] - x_target).mean(dim=-1)
         return mse
-    
+
     @staticmethod
     def rmse_distance(x: Tensor, x_target: Tensor) -> Tensor:
         """compute L2 distance
@@ -81,7 +81,6 @@ class SBICriterion:
         # L2 distance
         mse = torch.linalg.norm(x[:, None] - x_target, dim=-1)
         return mse
-    
 
     @staticmethod
     def mmd_distance(x: Tensor, x_target: Tensor) -> Tensor:

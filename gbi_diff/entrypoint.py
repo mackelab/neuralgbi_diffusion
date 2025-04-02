@@ -81,8 +81,8 @@ class Entrypoint:
         config = Config.from_dict_config(config, resolve=True)
         train_guidance(config, device, force)
 
-    @add_hydra("config", None, "config", "train_diffusion.yaml")
-    def train_diffusion(
+    @add_hydra("config", None, "config", "train_denoiser.yaml")
+    def train_denoiser(
         self,
         config: DictConfig,
         device: int = 1,
@@ -91,19 +91,19 @@ class Entrypoint:
         """train diffusion model which is also the prior for the sampling process
 
         Args:
-            config (str, optional): _description_. Defaults to "config/train_diffusion.yaml".
+            config (str, optional): _description_. Defaults to "config/train_denoiser.yaml".
             device (int, optional): _description_. Defaults to 1.
             force (bool, optional): _description_. Defaults to False.
         """
         # >>>> add import here for faster help message
-        from gbi_diff.scripts.train import train_diffusion  # pylint: disable=C0415
-        from gbi_diff.utils.configs.train_diffusion import (
+        from gbi_diff.scripts.train import train_denoiser  # pylint: disable=C0415
+        from gbi_diff.utils.configs.train_denoiser import (
             Config,
         )  # pylint: disable=C0415
 
         # <<<<
         config = Config.from_dict_config(config, resolve=True)
-        train_diffusion(config, device, force)
+        train_denoiser(config, device, force)
 
     @add_hydra(
         "config",

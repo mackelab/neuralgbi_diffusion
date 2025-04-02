@@ -7,13 +7,16 @@ from torch import Tensor
 import torch
 from tqdm import tqdm
 
-from gbi_diff.model.lit_module import DiffusionModel, Guidance
+from gbi_diff.model.lit_module import DenoiserModel, Guidance
 from gbi_diff.sampling.sampler import _PosteriorSampler
-from gbi_diff.sampling.utils import get_sample_path, load_data_stats, load_specified_data
+from gbi_diff.sampling.utils import (
+    get_sample_path,
+    load_data_stats,
+    load_specified_data,
+)
 from gbi_diff.utils.plot import _pair_plot
-from gbi_diff.utils.configs.train_diffusion import Config as DiffusionConfig
+from gbi_diff.utils.configs.train_denoiser import Config as DenoiserConfig
 from gbi_diff.utils.configs.train_guidance import Config as GuidanceConfig
-from gbi_diff.utils.configs.sampling_diffusion import Config
 
 
 class DiffusionSampler(_PosteriorSampler):
@@ -49,7 +52,7 @@ class DiffusionSampler(_PosteriorSampler):
         self._check_config(self._observed_data_file, guidance_model_ckpt)
 
         self._guidance_model = Guidance.load_from_checkpoint(guidance_model_ckpt)
-        self._diff_model = DiffusionModel.load_from_checkpoint(diff_model_ckpt)
+        self._diff_model = DenoiserModel.load_from_checkpoint(diff_model_ckpt)
         self.x_o, self.theta_o = load_specified_data(self._observed_data_file)
 
         if self._normalize_data:
@@ -84,7 +87,7 @@ class DiffusionSampler(_PosteriorSampler):
         self, diff_model_ckpt: Path, guidance_model_ckpt: Path
     ):
         # load configs for both checkpoints
-        diff_model_config: DiffusionConfig = DiffusionConfig.from_file(
+        diff_model_config: DenoiserConfig = DenoiserConfig.from_file(
             diff_model_ckpt.parent / "config.yaml"
         )
         guidance_model_config: GuidanceConfig = GuidanceConfig.from_file(

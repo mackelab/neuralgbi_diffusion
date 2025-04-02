@@ -28,6 +28,7 @@ def load_specified_data(path: str) -> Tuple[Tensor, Tensor]:
 
     return x_o, theta
 
+
 def load_misspecified_data(path: str) -> Tuple[Tensor, Tensor]:
     """loads a torch file with observed data inside. Please make sure the
 
