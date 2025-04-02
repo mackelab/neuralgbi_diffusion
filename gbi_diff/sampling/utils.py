@@ -6,7 +6,7 @@ import torch
 from torch import Tensor
 
 
-def load_observed_data(path: str) -> Tuple[Tensor, Tensor]:
+def load_specified_data(path: str) -> Tuple[Tensor, Tensor]:
     """loads a torch file with observed data inside. Please make sure the
 
     Args:
@@ -24,6 +24,28 @@ def load_observed_data(path: str) -> Tuple[Tensor, Tensor]:
     except KeyError:
         raise ValueError(
             f"The given file: `{path}` has to contain the key `_x` for observed data"
+        )
+
+    return x_o, theta
+
+def load_misspecified_data(path: str) -> Tuple[Tensor, Tensor]:
+    """loads a torch file with observed data inside. Please make sure the
+
+    Args:
+        path (str): path to observed data file
+
+    Returns:
+        Tuple[Tensor, Tensor]:
+            - tensor with observed data (n_samples, n_features)
+            - tensor with measured theta (n_samples, n_params)
+    """
+    content = torch.load(path, map_location="cpu", weights_only=True)
+    try:
+        x_o = content["_x_miss"]
+        theta = content["_theta"]
+    except KeyError:
+        raise ValueError(
+            f"The given file: `{path}` has to contain the key `_x_miss` for observed data"
         )
 
     return x_o, theta
