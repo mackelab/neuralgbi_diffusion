@@ -40,6 +40,7 @@ class PotentialNetwork(LightningModule):
         optimizer_config: OptimizerConfig,
         net_config: PotentialModelConfig,
         trial_dim: int = 0,
+        net_kwargs: Dict[str, Any] = None,
         *args,
         **kwargs,
     ):
@@ -59,18 +60,17 @@ class PotentialNetwork(LightningModule):
             simulator_encoder=net_config.SimulatorEncoder,
             latent_mlp=net_config.LatentMLP,
             trail_dim=self.trial_dim,
+            **net_kwargs
         )
         if self.trial_dim > 0:
             self.example_input_array = (
                 torch.zeros(1, self.theta_dim),
                 torch.zeros(1, 1, self.trial_dim, self.simulator_out_dim),
-                torch.zeros(1, net_config.TimeEncoder.input_dim),
             )
         else:
             self.example_input_array = (
                 torch.zeros(1, self.theta_dim),
                 torch.zeros(1, 1, self.simulator_out_dim),
-                torch.zeros(1, net_config.TimeEncoder.input_dim),
             )
 
         if self.trial_dim > 0:
@@ -83,24 +83,7 @@ class PotentialNetwork(LightningModule):
         # this thing should not leave the class. Inconsistencies with strings feared
         self._train_step_outputs = {"pred": [], "d": []}
         self._val_step_outputs = {"pred": [], "d": []}
-
-    def init_wrt_dataset(
-        self,
-        theta: Tensor,
-        x: Tensor,
-        x_target: Tensor,
-        distance_func: Callable[[Tensor, Tensor], Tensor],
-    ):
-        """init network standardizer and distribution multipliers
-
-        Args:
-            theta (Tensor): _description_
-            x (Tensor): _description_
-            x_target (Tensor): _description_
-            distance_func (Callable[[Tensor, Tensor], Tensor]): _description_
-        """
-        self._net.init_standardize_net(theta, x)
-        self._net.init_distr_multiplier(x, x_target, distance_func)        
+  
 
     def _batch_forward(self, batch: Tuple[Tensor, Tensor, Tensor]) -> Tensor:
         theta, simulator_out, x_target = batch
@@ -119,7 +102,7 @@ class PotentialNetwork(LightningModule):
             Tensor: (batch_size, n_target)
         """
         return self._net.forward(theta, x_target)
-
+        
     def training_step(self, batch: Tuple[Tensor, Tensor, Tensor], batch_idx: int):
         loss = self._batch_forward(batch)
         self.log("train/loss", loss, on_epoch=True, on_step=False)
