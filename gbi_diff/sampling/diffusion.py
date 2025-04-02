@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from gbi_diff.model.lit_module import DiffusionModel, Guidance
 from gbi_diff.sampling.sampler import _PosteriorSampler
-from gbi_diff.sampling.utils import get_sample_path, load_data_stats, load_observed_data
+from gbi_diff.sampling.utils import get_sample_path, load_data_stats, load_specified_data
 from gbi_diff.utils.plot import _pair_plot
 from gbi_diff.utils.configs.train_diffusion import Config as DiffusionConfig
 from gbi_diff.utils.configs.train_guidance import Config as GuidanceConfig
@@ -50,7 +50,7 @@ class DiffusionSampler(_PosteriorSampler):
 
         self._guidance_model = Guidance.load_from_checkpoint(guidance_model_ckpt)
         self._diff_model = DiffusionModel.load_from_checkpoint(diff_model_ckpt)
-        self.x_o, self.theta_o = load_observed_data(self._observed_data_file)
+        self.x_o, self.theta_o = load_specified_data(self._observed_data_file)
 
         if self._normalize_data:
             self._data_stats = load_data_stats(
