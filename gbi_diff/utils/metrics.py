@@ -95,8 +95,8 @@ def _sample_based_mmd_marginal(x: Tensor, y: Tensor, scale: float = 0.01) -> Ten
     xo1 = x.repeat((1, num_y, 1))
     xo2 = y.repeat_interleave((num_x), dim=1)
     distances = torch.exp(-scale * torch.square(xo1 - xo2))
-    average_dist = distances.prod(dim=2).mean(dim=1)
-    return average_dist
+    average_dist = distances.mean(dim=1).prod(dim=1)
+    return average_dist 
 
 
 def pairwise_mmd_dist(x_target: Tensor, x_o: Tensor) -> Tensor:
