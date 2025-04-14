@@ -3,7 +3,7 @@ import numpy as np
 from gbi_diff.dataset.simulators.hh import biophys_cython_comp
 
 solver = biophys_cython_comp.forwardeuler
-# solver = bioph        ys_cython_comp.backwardeuler
+# solver = biophys_cython_comp.backwardeuler
 # solver = biophys_cython_comp.hinesmethod
 
 # def solver(t, I, V, m, n, h, p, q, r, u, dt, r_mat)

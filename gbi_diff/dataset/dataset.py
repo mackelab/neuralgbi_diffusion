@@ -9,6 +9,7 @@ from abc import abstractmethod
 from sourcerer import simulators
 
 from gbi_diff.dataset.simulators.gaussian_mixture import GaussianMixtureSimulator
+from gbi_diff.dataset.simulators.hh.simulator import HodgkinHuxleySimulator
 from gbi_diff.dataset.simulators.linear_gaussian import LinearGaussianSimulator
 from gbi_diff.dataset.simulators.uniform import UniformNoise1DSimulator
 from gbi_diff.dataset.utils import generate_x_misspecified
@@ -549,3 +550,56 @@ class Uniform(_SBIDataset):
         theta = self.simulator.prior.sample((size,))
         x = self.sample_posterior(theta)
         return theta, x
+
+
+class Hodg  kinHuxley(_SBIDataset):
+    def __init__(
+        self,
+        target_noise_level=0.01,
+        n_target=100,
+        seed=42,
+        diffusion_scale=0.5,
+        max_diffusion_steps=1000,
+        n_misspecified=None,
+        n_noised=100,
+        normalize=False,
+        allen: bool = False,
+        prior_uniform: bool = True,
+        prior_extent: bool = False,
+        prior_log: bool = False,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            target_noise_level,
+            n_target,
+            seed,
+            diffusion_scale,
+            max_diffusion_steps,
+            0,
+            n_noised,
+            normalize,
+            *args,
+            **kwargs,
+        )
+
+        self.simulator = HodgkinHuxleySimulator(
+            allen=allen,
+            prior_uniform=prior_uniform,
+            prior_extent=prior_extent,
+            prior_log=prior_log,
+            seed=self._seed
+        )
+        
+    
+    @abstractmethod
+    def sample_posterior(self, prior_samples: Tensor) -> Tensor:
+        return self.simulator.simulate(prior_samples)
+
+    @abstractmethod
+    def _sample_data(self, size: int) -> Tuple[Tensor, Tensor]:
+        theta = self.simulator.prior.sample((size,))
+        x = self.sample_posterior(theta)
+        return theta, x
+
+    
