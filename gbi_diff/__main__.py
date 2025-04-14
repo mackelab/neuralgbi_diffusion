@@ -17,6 +17,11 @@ def execute(args: dict) -> bool:
                 path=args["path"],
             )
 
+        case "generate-hh-data":
+            module.generate_hh_data(
+                sizes=args["sizes"], path=args["path"], allen=args["allen"]
+            )
+
         case "train-potential":
             api.hydra_plugin.hydra_wrapper(
                 module.train_potential,

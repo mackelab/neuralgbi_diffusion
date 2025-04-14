@@ -31,6 +31,29 @@ class Entrypoint:
 
         generate_dataset(dataset_type, sizes, path)
 
+    def generate_hh_data(
+        self,
+        sizes: List[int],
+        path: str = "./data",
+        allen: bool = False,
+    ):
+        """creates a specified dataset and stores it into the file system on the Hodgkin-Huxley simulator.
+
+        Args:
+            dataset_type (str): dataset_type for dataset: currently available: moon
+            sizes (int): how many samples you want to create
+            path (str): directory where you want to store the dataset
+            allen (bool): generate data based on measured data for the hodgkin huxley simulator
+        """
+        # >>>> add import here for faster help message
+        from gbi_diff.scripts.generate_dataset import (
+            generate_dataset,
+        )  # pylint: disable=C0415
+
+        # <<<<
+
+        generate_dataset("hodgkin_huxley", sizes, path, dataset_kwargs={"allen": allen})
+
     @add_hydra("config", None, "config", "train_potential.yaml")
     def train_potential(
         self,

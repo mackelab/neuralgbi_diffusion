@@ -5,7 +5,8 @@ import torch
 from torch.distributions import MultivariateNormal
 from tqdm import tqdm
 
-from gbi_diff.dataset.simulators.hh import HodgkinHuxley, HodgkinHuxleyStatsMoments
+from gbi_diff.dataset.simulators.hh.HodgkinHuxley import HodgkinHuxley
+from gbi_diff.dataset.simulators.hh.HodgkinHuxleyStatsMoments import HodgkinHuxleyStatsMoments
 from gbi_diff.dataset.simulators.hh.HodgkinHuxley import param_transform
 from gbi_diff.dataset.simulators.hh.utils import (
     allen_obs_data,
@@ -129,13 +130,13 @@ class HodgkinHuxleySimulator:
 
     def simulate(self, theta: Tensor, seeds: np.ndarray = None) -> Tensor:
         if seeds is None:
-            seeds = np.ones(len(theta)) * self.seed
+            seeds = np.arange(len(theta), dtype=int) + self.seed
         else:
             assert len(theta) == len(seeds), "Every theta needs one dedicated seed"
 
         r = []
         for param, seed in tqdm(zip(theta, seeds), total=len(theta)):
-            r.append(self.sim.gen_single(theta, seed=seed))
-        ss: np.ndarray = self.stats.calc(r)
+            r.append(self.sim.gen_single(param, seed=seed))
+        ss = self.stats.calc(r)
         ss = torch.from_numpy(ss)
         return ss

@@ -187,6 +187,33 @@ def add_train_potential_args(parser: ArgumentParser) -> ArgumentParser:
     return parser
 
 
+def add_generate_hh_data_args(parser: ArgumentParser) -> ArgumentParser:
+    parser.add_argument(
+        "--sizes",
+        help="dataset_type for dataset: currently available: moon",
+        dest="sizes",
+        type=int,
+        nargs="+",
+        required=True,
+    )
+    parser.add_argument(
+        "--path",
+        help="how many samples you want to create",
+        dest="path",
+        type=str,
+        default="./data",
+        required=False,
+    )
+    parser.add_argument(
+        "--allen",
+        help="directory where you want to store the dataset",
+        dest="allen",
+        action="store_true",
+        required=False,
+    )
+    return parser
+
+
 def add_generate_data_args(parser: ArgumentParser) -> ArgumentParser:
     parser.add_argument(
         "--dataset-type",
@@ -225,6 +252,12 @@ def setup_entrypoint_parser(
     )
     generate_data = add_generate_data_args(generate_data)
     subparser["generate_data"] = generate_data
+    generate_hh_data = command_subparser.add_parser(
+        "generate-hh-data",
+        help="creates a specified dataset and stores it into the file system on the Hodgkin-Huxley simulator.",
+    )
+    generate_hh_data = add_generate_hh_data_args(generate_hh_data)
+    subparser["generate_hh_data"] = generate_hh_data
     train_potential = command_subparser.add_parser(
         "train-potential", help="start training process as defined in your config file"
     )
