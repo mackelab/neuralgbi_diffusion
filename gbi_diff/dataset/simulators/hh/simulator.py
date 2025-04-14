@@ -132,14 +132,10 @@ class HodgkinHuxleySimulator:
             seeds = np.ones(len(theta)) * self.seed
         else:
             assert len(theta) == len(seeds), "Every theta needs one dedicated seed"
-        
+
         r = []
         for param, seed in tqdm(zip(theta, seeds), total=len(theta)):
-            r.append(self.sim.gen_single(theta, seed=seed))    
+            r.append(self.sim.gen_single(theta, seed=seed))
         ss: np.ndarray = self.stats.calc(r)
         ss = torch.from_numpy(ss)
-        return ss       
-    
-    
-        
-        
+        return ss

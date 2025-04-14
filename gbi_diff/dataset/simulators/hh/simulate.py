@@ -71,9 +71,9 @@ for run_ind in range(n_runs):
     start_time = time.time()
     r = []
     for theta, seed in tqdm(zip(thetas, seeds), total=len(thetas)):
-        r.append(sim.gen_single(theta, seed=seed))      
+        r.append(sim.gen_single(theta, seed=seed))
     ss = stats.calc(r)
-    
+
     print("time", time.time() - start_time)
 
     with open(f"data/theta_{run_ind}.pkl", "wb") as handle:

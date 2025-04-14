@@ -576,7 +576,7 @@ class HodgkinHuxley(_SBIDataset):
             seed,
             diffusion_scale,
             max_diffusion_steps,
-            0,
+            n_misspecified,
             n_noised,
             normalize,
             *args,
@@ -588,10 +588,9 @@ class HodgkinHuxley(_SBIDataset):
             prior_uniform=prior_uniform,
             prior_extent=prior_extent,
             prior_log=prior_log,
-            seed=self._seed
+            seed=self._seed,
         )
-        
-    
+
     @abstractmethod
     def sample_posterior(self, prior_samples: Tensor) -> Tensor:
         return self.simulator.simulate(prior_samples)
@@ -601,5 +600,3 @@ class HodgkinHuxley(_SBIDataset):
         theta = self.simulator.prior.sample((size,))
         x = self.sample_posterior(theta)
         return theta, x
-
-    

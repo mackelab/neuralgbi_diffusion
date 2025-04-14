@@ -6,9 +6,10 @@ import numpy as np
 import os
 import pickle
 import gbi_diff.dataset.simulators.hh.HodgkinHuxley as hh
-from gbi_diff.dataset.simulators.hh.HodgkinHuxleyStatsMoments import HodgkinHuxleyStatsMoments
+from gbi_diff.dataset.simulators.hh.HodgkinHuxleyStatsMoments import (
+    HodgkinHuxleyStatsMoments,
+)
 from torch import zeros, ones, eye, as_tensor
-
 
 
 def load_all_allen():
