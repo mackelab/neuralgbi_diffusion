@@ -7,7 +7,7 @@ defaults:
   - diffusion: diffusion
   - optimizer: optimizer
 
-data_entity: linear_gaussian
+data_entity: gaussian_mixture
 check_val_every_n_epochs: 5
 num_worker: 8  
 
