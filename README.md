@@ -72,6 +72,15 @@ If you would like to add you own dataset in the form of `*.pt` files please make
 | _n_misspecified      | Number of misspecified samples | int                             |
 | _n_noised            | Number of noised samples       | int                             |
 
+
+> NOTE: **Hodgkin Huxley Simulator**
+>
+> We reused the same Hodkin Huxley simulator as GBI-ACE. Additionally to the standard interface we added `generate-hh-data` function in the CLI to create either completly or measured data (`--allen`). To have the simulator working efficient please compile the inserted cython code with the skript  `compile.py`. You can find more information in the corresponding [README.md](gbi_diff/dataset/simulators/hh/README.md)
+>
+> Also note that for the HH simulator we used 1.000.000 training samples.
+
+
+
 ## Diffusion
 
 The main contribution of this repository is a pipeline for training and sampling a posterior distribution in a simulation based inference setting.
