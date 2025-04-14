@@ -14,14 +14,14 @@ font.family          : sans-serif
 font.serif           : Arial, sans-serif
 font.sans-serif      : Arial, sans-serif
 font.cursive         : Arial, sans-serif
-font.size            : 6
-figure.titlesize     : 6
-figure.dpi           : 300
-legend.fontsize      : 6
-axes.titlesize       : 6
-axes.labelsize       : 6
-xtick.labelsize      : 6
-ytick.labelsize      : 6
+font.size            : 8
+figure.titlesize     : 8
+figure.dpi           : 500
+legend.fontsize      : 8
+axes.titlesize       : 8
+axes.labelsize       : 8
+xtick.labelsize      : 8
+ytick.labelsize      : 8
 
 image.interpolation   : nearest
 image.resample        : False
