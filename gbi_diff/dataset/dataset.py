@@ -552,7 +552,7 @@ class Uniform(_SBIDataset):
         return theta, x
 
 
-class Hodg  kinHuxley(_SBIDataset):
+class HodgkinHuxley(_SBIDataset):
     def __init__(
         self,
         target_noise_level=0.01,
