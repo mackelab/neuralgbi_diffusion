@@ -1,19 +1,14 @@
-import json
 from pathlib import Path
-from typing import List
 
 import h5py
 import torch
 from tqdm import tqdm
 import yaml
-from gbi_diff.sampling.utils import save_torch
-from gbi_diff.scripts.sampling import diffusion_sampling
 from omegaconf import DictConfig
 from gbi_diff.utils.cast import to_camel_case
 from gbi_diff.utils.evaluate_diffusion_config import Config as EvalDiffConfig
 from gbi_diff.sampling.diffusion import DiffusionSampler
 from gbi_diff.dataset import dataset as sbi_datasets
-from gbi_diff.utils.configs.train_diffusion import Config as DiffusionTrainConfig
 from gbi_diff.dataset.dataset import GaussianMixture
 
 
@@ -42,9 +37,6 @@ def evaluate_diffusion_sampling(
     """
     eval_config: EvalDiffConfig = EvalDiffConfig.from_dict_config(
         eval_config, resolve=True
-    )
-    train_config: DiffusionTrainConfig = DiffusionTrainConfig.from_file(
-        Path(diffusion_ckpt).parent.joinpath("config.yaml")
     )
     sampler = DiffusionSampler(
         diffusion_ckpt,
@@ -121,6 +113,17 @@ def evaluate_diffusion_sampling(
         dtype="float32",
     )
     file.create_dataset(
+        "guidance_pred",
+        (
+            len(eval_config.betas),
+            n_x_o,
+            sampler._diff_model.diffusion_steps,
+            eval_config.n_samples,
+            theta_dim,
+        ),
+        dtype="float32",
+    )
+    file.create_dataset(
         "diffusion_step",
         (
             len(eval_config.betas),
@@ -160,10 +163,6 @@ def evaluate_diffusion_sampling(
             quiet=1,
             h5_file=(file, slice(beta_idx, beta_idx + 1)),
         )
-        # guidance_grads[beta_idx] = sampler._info["guidance_grads"]
-        # diffusion_steps[beta_idx] = sampler._info["diffusion_steps"]
-        # trajectory[beta_idx] = sampler._info["trajectory"]
-
         for x_o_idx in range(n_x_o):
             obs_samples[beta_idx, x_o_idx] = dataset.sample_posterior(
                 torch.from_numpy(param_samples[beta_idx, x_o_idx])
