@@ -205,7 +205,7 @@ If you use this code in your research, please cite:
 ```bibtex
 @misc{uhrich2025gbidiff,
   title={Generalized Diffusion Simulation Based Inference},
-  author={Uhrich, Robin and Vetter, Julian},
+  author={Uhrich, Robin and Vetter, Julius},
   year={2025},
   url={https://github.com/mackelab/neuralgbi_diffusion}
 }
